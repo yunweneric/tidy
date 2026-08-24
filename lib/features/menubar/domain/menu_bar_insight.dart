@@ -71,12 +71,14 @@ class MenuBarInsight {
         kind: MenuBarInsightKind.diskCritical,
         level: VitalLevel.urgent,
         headline: 'Your startup disk is almost full',
-        detail: junkBytes > 0
-            ? '$free left · ${formatBytes(junkBytes)} can go right now'
-            : '$free left of ${formatBytes(disk.totalBytes)}',
-        action: junkBytes > 0
-            ? MenuBarInsightAction.cleanJunk
-            : MenuBarInsightAction.openApp,
+        detail:
+            junkBytes > 0
+                ? '$free left · ${formatBytes(junkBytes)} can go right now'
+                : '$free left of ${formatBytes(disk.totalBytes)}',
+        action:
+            junkBytes > 0
+                ? MenuBarInsightAction.cleanJunk
+                : MenuBarInsightAction.openApp,
         actionLabel: junkBytes > 0 ? 'Clean' : 'Find space',
       );
     }
@@ -86,28 +88,32 @@ class MenuBarInsight {
       return MenuBarInsight(
         kind: MenuBarInsightKind.memoryPressure,
         level: VitalLevel.urgent,
-        headline: vitals.isSwapHeavy
-            ? 'Memory is full — macOS is swapping to disk'
-            : 'Memory is under pressure',
-        detail: topMemory == null
-            ? '${formatBytes(vitals.memoryUsedBytes)} of '
-                  '${formatBytes(vitals.memoryTotalBytes)} in use'
-            : '${topMemory.name} is holding '
-                  '${formatBytes(topMemory.memoryBytes)}',
+        headline:
+            vitals.isSwapHeavy
+                ? 'Memory is full — macOS is swapping to disk'
+                : 'Memory is under pressure',
+        detail:
+            topMemory == null
+                ? '${formatBytes(vitals.memoryUsedBytes)} of '
+                    '${formatBytes(vitals.memoryTotalBytes)} in use'
+                : '${topMemory.name} is holding '
+                    '${formatBytes(topMemory.memoryBytes)}',
       );
     }
 
     if (vitals.thermal.isNotable) {
       return MenuBarInsight(
         kind: MenuBarInsightKind.thermal,
-        level: vitals.thermal == ThermalState.critical
-            ? VitalLevel.urgent
-            : VitalLevel.watch,
+        level:
+            vitals.thermal == ThermalState.critical
+                ? VitalLevel.urgent
+                : VitalLevel.watch,
         headline: 'Your Mac is running hot',
-        detail: topCpu?.cpuPercent == null
-            ? 'macOS is slowing things down to cool off'
-            : '${topCpu!.name} is using '
-                  '${topCpu.cpuPercent!.toStringAsFixed(0)}% of the CPU',
+        detail:
+            topCpu?.cpuPercent == null
+                ? 'macOS is slowing things down to cool off'
+                : '${topCpu!.name} is using '
+                    '${topCpu.cpuPercent!.toStringAsFixed(0)}% of the CPU',
       );
     }
 
@@ -117,9 +123,10 @@ class MenuBarInsight {
         level: VitalLevel.watch,
         headline: 'Your disk is filling up',
         detail: '$free left of ${formatBytes(disk.totalBytes)}',
-        action: junkBytes > 0
-            ? MenuBarInsightAction.cleanJunk
-            : MenuBarInsightAction.openApp,
+        action:
+            junkBytes > 0
+                ? MenuBarInsightAction.cleanJunk
+                : MenuBarInsightAction.openApp,
         actionLabel: junkBytes > 0 ? 'Clean' : 'Find space',
       );
     }
@@ -129,11 +136,12 @@ class MenuBarInsight {
         kind: MenuBarInsightKind.memoryPressure,
         level: VitalLevel.watch,
         headline: 'Memory is getting tight',
-        detail: topMemory == null
-            ? '${formatBytes(vitals.memoryUsedBytes)} of '
-                  '${formatBytes(vitals.memoryTotalBytes)} in use'
-            : '${topMemory.name} is holding '
-                  '${formatBytes(topMemory.memoryBytes)}',
+        detail:
+            topMemory == null
+                ? '${formatBytes(vitals.memoryUsedBytes)} of '
+                    '${formatBytes(vitals.memoryTotalBytes)} in use'
+                : '${topMemory.name} is holding '
+                    '${formatBytes(topMemory.memoryBytes)}',
       );
     }
 
@@ -143,10 +151,11 @@ class MenuBarInsight {
         kind: MenuBarInsightKind.cpuBusy,
         level: VitalLevel.watch,
         headline: 'The CPU is pinned',
-        detail: topCpu?.cpuPercent == null
-            ? '${cpu.toStringAsFixed(0)}% across ${vitals.coreCount} cores'
-            : '${topCpu!.name} is using '
-                  '${topCpu.cpuPercent!.toStringAsFixed(0)}%',
+        detail:
+            topCpu?.cpuPercent == null
+                ? '${cpu.toStringAsFixed(0)}% across ${vitals.coreCount} cores'
+                : '${topCpu!.name} is using '
+                    '${topCpu.cpuPercent!.toStringAsFixed(0)}%',
       );
     }
 
@@ -159,10 +168,11 @@ class MenuBarInsight {
         kind: MenuBarInsightKind.reclaimable,
         level: VitalLevel.watch,
         headline: '${formatBytes(reclaimable)} can be reclaimed',
-        detail: trashBytes == 0
-            ? 'Caches, logs and saved app state'
-            : '${formatBytes(junkBytes)} in caches and logs · '
-                  '${formatBytes(trashBytes)} in the Trash',
+        detail:
+            trashBytes == 0
+                ? 'Caches, logs and saved app state'
+                : '${formatBytes(junkBytes)} in caches and logs · '
+                    '${formatBytes(trashBytes)} in the Trash',
         action: junkBytes > 0 ? MenuBarInsightAction.cleanJunk : null,
         actionLabel: junkBytes > 0 ? 'Clean' : null,
       );
@@ -172,9 +182,10 @@ class MenuBarInsight {
       kind: MenuBarInsightKind.healthy,
       level: VitalLevel.good,
       headline: 'Everything looks healthy',
-      detail: diskKnown
-          ? '$free free · up ${vitals.uptimeLabel}'
-          : 'Up ${vitals.uptimeLabel}',
+      detail:
+          diskKnown
+              ? '$free free · up ${vitals.uptimeLabel}'
+              : 'Up ${vitals.uptimeLabel}',
     );
   }
 }

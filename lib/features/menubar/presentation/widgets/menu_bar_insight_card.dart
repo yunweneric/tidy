@@ -50,9 +50,7 @@ class MenuBarInsightCard extends StatelessWidget {
               children: [
                 Text(
                   insight.headline,
-                  style: context.text.label.copyWith(
-                    color: colors.textPrimary,
-                  ),
+                  style: context.text.label.copyWith(color: colors.textPrimary),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),

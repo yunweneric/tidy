@@ -8,12 +8,11 @@ import 'package:mac_uninstaller/features/menubar/domain/menu_bar_insight.dart';
 import 'package:mac_uninstaller/features/performance/data/models/system_vitals.dart';
 
 /// The colour a [VitalLevel] wears, everywhere in the panel.
-Color colorForLevel(BuildContext context, VitalLevel level) =>
-    switch (level) {
-      VitalLevel.good => context.colors.accent,
-      VitalLevel.watch => context.colors.review,
-      VitalLevel.urgent => context.colors.risky,
-    };
+Color colorForLevel(BuildContext context, VitalLevel level) => switch (level) {
+  VitalLevel.good => context.colors.accent,
+  VitalLevel.watch => context.colors.review,
+  VitalLevel.urgent => context.colors.risky,
+};
 
 /// The three numbers worth having in a menu bar: how busy the machine is, how
 /// much memory is left, and how much disk is left.
@@ -31,57 +30,69 @@ class MenuBarVitals extends StatelessWidget {
     final cpu = vitals.cpuPercent;
     final diskKnown = disk.totalBytes > 0;
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Expanded(
-          child: _VitalTile(
-            icon: AppIcons.cpu,
-            label: 'CPU',
-            value: cpu == null ? '—' : '${cpu.round()}%',
-            fraction: vitals.cpuFraction,
-            level: levelForFraction(vitals.cpuFraction, watch: 0.6, urgent: 0.85),
-            caption: _cpuCaption(),
-          ),
-        ),
-        const SizedBox(width: AppSpacing.sm),
-        Expanded(
-          child: _VitalTile(
-            icon: AppIcons.memory,
-            label: 'Memory',
-            value: vitals.isKnown
-                ? '${(vitals.memoryUsedFraction * 100).round()}%'
-                : '—',
-            fraction: vitals.memoryUsedFraction,
-            // Coloured by pressure, not by how full it looks: macOS runs
-            // memory near full on purpose, and the number that hurts is how
-            // much of it cannot be handed back.
-            level: levelForFraction(
-              vitals.pressureFraction,
-              watch: 0.70,
-              urgent: 0.85,
+    // IntrinsicHeight, not a stretched Row: the panel lives in a scroll view,
+    // so its height is unbounded, and stretching into that hands the tiles an
+    // infinite constraint and throws in layout. This measures the tallest tile
+    // and matches the other two to it.
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: _VitalTile(
+              icon: AppIcons.cpu,
+              label: 'CPU',
+              value: cpu == null ? '—' : '${cpu.round()}%',
+              fraction: vitals.cpuFraction,
+              level: levelForFraction(
+                vitals.cpuFraction,
+                watch: 0.6,
+                urgent: 0.85,
+              ),
+              caption: _cpuCaption(),
             ),
-            caption: _memoryCaption(),
           ),
-        ),
-        const SizedBox(width: AppSpacing.sm),
-        Expanded(
-          child: _VitalTile(
-            icon: AppIcons.storage,
-            label: 'Disk',
-            value: diskKnown ? '${(disk.usedFraction * 100).round()}%' : '—',
-            fraction: diskKnown ? disk.usedFraction : 0,
-            level: levelForFraction(
-              diskKnown ? disk.usedFraction : 0,
-              watch: 0.88,
-              urgent: 0.95,
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: _VitalTile(
+              icon: AppIcons.memory,
+              label: 'Memory',
+              value:
+                  vitals.isKnown
+                      ? '${(vitals.memoryUsedFraction * 100).round()}%'
+                      : '—',
+              fraction: vitals.memoryUsedFraction,
+              // Coloured by pressure, not by how full it looks: macOS runs
+              // memory near full on purpose, and the number that hurts is how
+              // much of it cannot be handed back.
+              level: levelForFraction(
+                vitals.pressureFraction,
+                watch: 0.70,
+                urgent: 0.85,
+              ),
+              caption: _memoryCaption(),
             ),
-            caption: diskKnown
-                ? '${formatBytes(disk.freeBytes)} free'
-                : 'Reading…',
           ),
-        ),
-      ],
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: _VitalTile(
+              icon: AppIcons.storage,
+              label: 'Disk',
+              value: diskKnown ? '${(disk.usedFraction * 100).round()}%' : '—',
+              fraction: diskKnown ? disk.usedFraction : 0,
+              level: levelForFraction(
+                diskKnown ? disk.usedFraction : 0,
+                watch: 0.88,
+                urgent: 0.95,
+              ),
+              caption:
+                  diskKnown
+                      ? '${formatBytes(disk.freeBytes)} free'
+                      : 'Reading…',
+            ),
+          ),
+        ],
+      ),
     );
   }
 

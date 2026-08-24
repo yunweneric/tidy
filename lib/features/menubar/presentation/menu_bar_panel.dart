@@ -7,10 +7,13 @@ import 'package:mac_uninstaller/core/platform/system_bridge.dart';
 import 'package:mac_uninstaller/core/utils/byte_format.dart';
 import 'package:mac_uninstaller/features/apps/data/services/junk_scanner.dart';
 import 'package:mac_uninstaller/features/apps/data/services/scan_cache.dart';
+import 'package:mac_uninstaller/features/clipboard/data/models/clipboard_entry.dart';
+import 'package:mac_uninstaller/features/clipboard/data/services/clipboard_service.dart';
 import 'package:mac_uninstaller/features/menubar/domain/menu_bar_insight.dart';
 import 'package:mac_uninstaller/features/menubar/platform/popover_bridge.dart';
 import 'package:mac_uninstaller/features/menubar/presentation/widgets/measure_size.dart';
 import 'package:mac_uninstaller/features/menubar/presentation/widgets/menu_bar_button.dart';
+import 'package:mac_uninstaller/features/menubar/presentation/widgets/menu_bar_clip_row.dart';
 import 'package:mac_uninstaller/features/menubar/presentation/widgets/menu_bar_insight_card.dart';
 import 'package:mac_uninstaller/features/menubar/presentation/widgets/menu_bar_process_row.dart';
 import 'package:mac_uninstaller/features/menubar/presentation/widgets/menu_bar_reclaim_row.dart';
@@ -20,26 +23,66 @@ import 'package:mac_uninstaller/features/performance/data/models/process_sample.
 import 'package:mac_uninstaller/features/performance/data/models/system_vitals.dart';
 import 'package:mac_uninstaller/features/performance/data/services/performance_bridge.dart';
 import 'package:mac_uninstaller/features/performance/data/services/process_monitor_service.dart';
+import 'package:mac_uninstaller/features/recycle_bin/data/models/trash_item.dart';
 import 'package:mac_uninstaller/features/recycle_bin/data/services/recycle_bin_service.dart';
+import 'package:mac_uninstaller/features/shell/domain/app_destination.dart';
 
 /// Root of the menu bar popover engine.
-class MenuBarPanelApp extends StatelessWidget {
+///
+/// Owns the one [PopoverBridge] — a method channel holds a single handler, so
+/// a second bridge anywhere in this engine would quietly steal the callbacks
+/// from the first.
+class MenuBarPanelApp extends StatefulWidget {
   const MenuBarPanelApp({super.key});
 
   @override
+  State<MenuBarPanelApp> createState() => _MenuBarPanelAppState();
+}
+
+class _MenuBarPanelAppState extends State<MenuBarPanelApp> {
+  late final PopoverBridge _bridge = PopoverBridge(
+    onAppearanceChanged: (dark) {
+      if (mounted) setState(() => _dark = dark);
+    },
+  );
+
+  /// Null until macOS has answered. `ThemeMode.system` is not good enough here:
+  /// this engine runs headless, and has been seen reporting a light platform
+  /// brightness while the popover behind it is dark — which paints dark text
+  /// onto a dark panel.
+  bool? _dark;
+
+  @override
+  void initState() {
+    super.initState();
+    _bridge.isDarkAppearance().then((dark) {
+      if (mounted) setState(() => _dark = dark);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // The popover has no settings UI of its own, so it simply follows the
-    // system appearance — which is also what the menu bar behind it does.
     return MaterialApp(
       title: Brand.name,
       debugShowCheckedModeBanner: false,
-      themeMode: ThemeMode.system,
+      themeMode: switch (_dark) {
+        true => ThemeMode.dark,
+        false => ThemeMode.light,
+        null => ThemeMode.system,
+      },
       theme: TidyTheme.light(),
       darkTheme: TidyTheme.dark(),
-      home: const MenuBarPanel(),
+      home: MenuBarPanel(bridge: _bridge),
     );
   }
 }
+
+/// Which of the two menu bar icons the panel is answering for.
+///
+/// One Flutter view, two panels. The icons mean different things and the panel
+/// shows what its icon promised — a clipboard icon that opened a disk report
+/// would be a worse lie than having no clipboard icon at all.
+enum MenuBarMode { dashboard, clipboard }
 
 /// The panel behind the status item: how the machine is doing right now, the
 /// one thing worth acting on, what is using it, and what can be handed back.
@@ -50,7 +93,9 @@ class MenuBarPanelApp extends StatelessWidget {
 /// is good at is the opposite: numbers that change while you work, and the one
 /// action that answers them.
 class MenuBarPanel extends StatefulWidget {
-  const MenuBarPanel({super.key});
+  const MenuBarPanel({super.key, required this.bridge});
+
+  final PopoverBridge bridge;
 
   @override
   State<MenuBarPanel> createState() => _MenuBarPanelState();
@@ -61,19 +106,25 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
   /// short enough that the panel stays a glance rather than a table.
   static const int _consumerCount = 5;
 
+  /// How many recent clips the dashboard's teaser lists. Enough to cover "the
+  /// thing before the thing I have now", short enough that it stays a glance.
+  static const int _clipCount = 6;
+
+  /// How many the clipboard panel lists. Longer, because there the clips are
+  /// not a teaser — they are what the user came for.
+  static const int _clipboardPanelCount = 14;
+
   /// Matches the Performance page's cadence. Faster reads as noise, slower
   /// stops feeling live.
   static const Duration _tick = Duration(seconds: 2);
 
-  late final PopoverBridge _bridge = PopoverBridge(
-    onPopoverOpened: _onPopoverOpened,
-    onPopoverClosed: _onPopoverClosed,
-  );
+  PopoverBridge get _bridge => widget.bridge;
 
   final ScanCache _cache = locator<ScanCache>();
   final JunkScanner _junkScanner = locator<JunkScanner>();
   final ProcessMonitorService _monitor = locator<ProcessMonitorService>();
   final RecycleBinService _recycleBin = locator<RecycleBinService>();
+  final ClipboardService _clipboard = locator<ClipboardService>();
 
   SystemVitals _vitals = SystemVitals.empty;
   DiskUsage _disk = DiskUsage.empty;
@@ -81,8 +132,18 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
   JunkReport _junk = JunkReport.empty;
   int _trashBytes = 0;
 
+  /// False when macOS refused to list the Trash — it is behind Full Disk
+  /// Access. An unreadable bin reported as an empty one tells the user there is
+  /// nothing to reclaim when there may be gigabytes.
+  bool _trashReadable = true;
+
   ProcessSort _sort = ProcessSort.cpu;
   Timer? _ticker;
+
+  MenuBarMode _mode = MenuBarMode.dashboard;
+
+  List<ClipboardEntry> _clips = const [];
+  StreamSubscription<void>? _clipSubscription;
 
   /// The space scan — junk and Trash — is the slow half and runs on its own.
   bool _scanningSpace = true;
@@ -98,16 +159,26 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
   @override
   void initState() {
     super.initState();
+    _bridge.onPopoverOpened = _onPopoverOpened;
+    _bridge.onPopoverClosed = _onPopoverClosed;
     // Sample once at launch so the first open is already populated, then let
     // the open/close callbacks own the timer.
     _monitor.start();
     _sample();
     _scanSpace();
+
+    // The clipboard pushes rather than polling, so this costs nothing while
+    // nothing is being copied.
+    _clipSubscription = _clipboard.onChanged.listen((_) => _loadClips());
+    _loadClips();
   }
 
   @override
   void dispose() {
     _ticker?.cancel();
+    _clipSubscription?.cancel();
+    _bridge.onPopoverOpened = null;
+    _bridge.onPopoverClosed = null;
     super.dispose();
   }
 
@@ -146,17 +217,74 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
     if (!mounted) return;
     setState(() {
       _trashBytes = bin.totalBytes;
+      _trashReadable = _isReadable(bin);
       _scanningSpace = false;
     });
   }
 
-  void _onPopoverOpened() {
-    _sample();
+  /// Nothing listed at all counts as unreadable too: the home bin always
+  /// exists, so an empty set of locations means macOS answered with a refusal
+  /// rather than with a bin.
+  static bool _isReadable(TrashSnapshot bin) =>
+      bin.locations.isNotEmpty &&
+      bin.locations.any((location) => location.readable);
+
+  Future<void> _loadClips() async {
+    final entries = await _clipboard.history();
+    if (!mounted) return;
+    setState(() => _clips = entries.take(_clipboardPanelCount).toList());
+  }
+
+  /// Clicking a clip puts it back on the pasteboard and gets out of the way.
+  ///
+  /// Closing is the point: the reason anyone opens this panel is to paste
+  /// something next, and a panel still sitting over the document they are
+  /// pasting into is a second click they should not have to make.
+  Future<void> _copyClip(ClipboardEntry entry) async {
+    final outcome = await _clipboard.copyToClipboard(entry);
+    if (!mounted) return;
+
+    _bridge.hideClipPreview();
+    if (outcome.ok) {
+      _bridge.close();
+      return;
+    }
+    setState(() {
+      _status = outcome.message ?? 'That could not be copied';
+    });
+  }
+
+  /// The pointer moved onto a clip, or off one. The preview is a native window
+  /// beside the panel — see `ClipPreviewPanel` for why it cannot live inside
+  /// the popover.
+  void _previewClip(ClipboardEntry entry, double? rowTop) {
+    if (rowTop == null) {
+      _bridge.hideClipPreview();
+      return;
+    }
+    _bridge.showClipPreview(id: entry.id, top: rowTop);
+  }
+
+  /// The clipboard icon and ⌘⇧V both open the panel asking for "clipboard";
+  /// the vitals icon asks for nothing. Both get a whole panel of their own.
+  void _onPopoverOpened(String? section) {
+    final mode =
+        section == 'clipboard' ? MenuBarMode.clipboard : MenuBarMode.dashboard;
+    setState(() => _mode = mode);
+    _loadClips();
+
     _ticker?.cancel();
-    _ticker = Timer.periodic(_tick, (_) => _sample());
+    _ticker = null;
+    // Nothing on the clipboard panel is sampled, so the two-second tick that
+    // feeds the vitals has no reason to run behind it.
+    if (mode == MenuBarMode.dashboard) {
+      _sample();
+      _ticker = Timer.periodic(_tick, (_) => _sample());
+    }
   }
 
   void _onPopoverClosed() {
+    _bridge.hideClipPreview();
     _ticker?.cancel();
     _ticker = null;
     // Whatever was half-confirmed when the panel vanished is not still
@@ -198,10 +326,12 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
       _junk = junk;
       _disk = disk;
       _trashBytes = bin.totalBytes;
+      _trashReadable = _isReadable(bin);
       _busy = false;
-      _status = result.isCompleteSuccess
-          ? '${formatBytes(expected)} moved to Trash'
-          : '${result.failures.length} item(s) could not be removed';
+      _status =
+          result.isCompleteSuccess
+              ? '${formatBytes(expected)} moved to Trash'
+              : '${result.failures.length} item(s) could not be removed';
     });
   }
 
@@ -216,9 +346,10 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
 
     setState(() {
       _busyPids.remove(process.pid);
-      _status = outcome.ok
-          ? 'Asked ${process.name} to quit'
-          : outcome.message ?? 'That process would not quit';
+      _status =
+          outcome.ok
+              ? 'Asked ${process.name} to quit'
+              : outcome.message ?? 'That process would not quit';
     });
 
     await _sample();
@@ -235,10 +366,11 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
 
   // --------------------------------------------------------------------- build
 
-  List<ProcessSample> get _consumers => ProcessMonitorService.sorted(
-    _snapshot.processes,
-    _sort,
-  ).take(_consumerCount).toList();
+  List<ProcessSample> get _consumers =>
+      ProcessMonitorService.sorted(
+        _snapshot.processes,
+        _sort,
+      ).take(_consumerCount).toList();
 
   MenuBarInsight get _insight {
     final byCpu = ProcessMonitorService.sorted(
@@ -268,7 +400,11 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
     // height-filling widget instead would just report the popover's current
     // size back to itself and never grow.
     return Scaffold(
-      backgroundColor: context.colors.sidebar,
+      // Transparent on purpose. `MenuBarController` clears the Flutter view's
+      // background so what sits behind the panel is the popover's own material
+      // — the same blurred, appearance-following backdrop as a macOS menu.
+      // Painting a surface here would cover it with a flat rectangle.
+      backgroundColor: Colors.transparent,
       body: SingleChildScrollView(
         child: MeasureSize(
           onChange: (size) => _bridge.setHeight(size.height),
@@ -278,60 +414,180 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
             children: [
               _buildHeader(),
               const Divider(height: 1),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.md + 2,
-                  AppSpacing.md,
-                  AppSpacing.md + 2,
-                  0,
-                ),
-                child: MenuBarVitals(vitals: _vitals, disk: _disk),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.md + 2,
-                  AppSpacing.sm + 2,
-                  AppSpacing.md + 2,
-                  0,
-                ),
-                child: MenuBarInsightCard(
-                  insight: _insight,
-                  enabled: !_busy,
-                  onAction: _runInsightAction,
-                ),
-              ),
-              _buildConsumers(),
-              const Divider(height: 1),
-              MenuBarSection(
-                title: 'Reclaimable',
-                trailing: _scanningSpace
-                    ? 'scanning…'
-                    : formatBytes(_junk.safeBytes + _trashBytes),
-              ),
-              MenuBarReclaimRow(
-                icon: AppIcons.cleanup,
-                title: 'Caches, logs & saved state',
-                subtitle: 'Rebuilt automatically the next time an app runs',
-                bytes: _junk.safeBytes,
-                scanning: _scanningSpace && _junk.safeBytes == 0,
-                actionLabel: 'Clean',
-                onAction: _junk.safeBytes == 0 || _busy ? null : _clearJunk,
-              ),
-              MenuBarReclaimRow(
-                icon: AppIcons.recycleBin,
-                title: 'Trash',
-                subtitle: 'Still taking up space until it is emptied',
-                bytes: _trashBytes,
-                scanning: _scanningSpace,
-                actionLabel: 'Review',
-                onAction: _bridge.openMainWindow,
-              ),
+              ...switch (_mode) {
+                MenuBarMode.dashboard => _dashboardBody(),
+                MenuBarMode.clipboard => _clipboardBody(),
+              },
               const Divider(height: 1),
               _buildFooter(),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  /// Everything the vitals icon promises: how the machine is doing, the one
+  /// thing worth acting on, what is using it, what can be handed back.
+  List<Widget> _dashboardBody() {
+    return [
+      Padding(
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.md + 2,
+          AppSpacing.md,
+          AppSpacing.md + 2,
+          0,
+        ),
+        child: MenuBarVitals(vitals: _vitals, disk: _disk),
+      ),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.md + 2,
+          AppSpacing.sm + 2,
+          AppSpacing.md + 2,
+          0,
+        ),
+        child: MenuBarInsightCard(
+          insight: _insight,
+          enabled: !_busy,
+          onAction: _runInsightAction,
+        ),
+      ),
+      _buildConsumers(),
+      _buildClips(),
+      const Divider(height: 1),
+      MenuBarSection(
+        title: 'Reclaimable',
+        trailing:
+            _scanningSpace
+                ? 'scanning…'
+                : formatBytes(_junk.safeBytes + _trashBytes),
+      ),
+      MenuBarReclaimRow(
+        icon: AppIcons.cleanup,
+        title: 'Caches, logs & saved state',
+        subtitle: 'Rebuilt automatically the next time an app runs',
+        bytes: _junk.safeBytes,
+        scanning: _scanningSpace && _junk.safeBytes == 0,
+        actionLabel: 'Clean',
+        onAction: _junk.safeBytes == 0 || _busy ? null : _clearJunk,
+      ),
+      MenuBarReclaimRow(
+        icon: AppIcons.recycleBin,
+        title: 'Trash',
+        subtitle:
+            _trashReadable
+                ? 'Still taking up space until it is emptied'
+                : 'macOS keeps the Trash behind Full Disk Access',
+        bytes: _trashBytes,
+        scanning: _scanningSpace,
+        note: _trashReadable || _scanningSpace ? null : 'can’t read it',
+        actionLabel: _trashReadable ? 'Review' : 'Grant',
+        onAction:
+            _trashReadable
+                ? _bridge.openMainWindow
+                : SystemBridge.openFullDiskAccessSettings,
+      ),
+    ];
+  }
+
+  /// Everything the clipboard icon promises: what you copied, most recent
+  /// first, one click to put it back on the pasteboard.
+  List<Widget> _clipboardBody() {
+    if (_clips.isEmpty) {
+      return [
+        Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.xl,
+            vertical: AppSpacing.xxl,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                AppIcons.clipboard,
+                size: 22,
+                color: context.colors.textMuted,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              Text(
+                'Nothing copied yet',
+                style: context.text.label,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                'Anything you copy shows up here. If it stays empty, the '
+                'recorder is off — turn it on in Settings.',
+                style: context.text.caption,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              MenuBarButton(
+                label: 'Open Clipboard',
+                tone: MenuBarButtonTone.filled,
+                onPressed:
+                    () => _bridge.openMainWindow(
+                      route: AppDestination.clipboard.path,
+                    ),
+              ),
+            ],
+          ),
+        ),
+      ];
+    }
+
+    return [
+      MenuBarSection(
+        title: 'Recent clips',
+        action: MenuBarButton(
+          label: 'Open',
+          onPressed:
+              () =>
+                  _bridge.openMainWindow(route: AppDestination.clipboard.path),
+        ),
+      ),
+      for (final entry in _clips)
+        MenuBarClipRow(
+          key: ValueKey(entry.id),
+          entry: entry,
+          onCopy: () => _copyClip(entry),
+          onHover: (top) => _previewClip(entry, top),
+        ),
+    ];
+  }
+
+  /// Recent clips.
+  ///
+  /// Absent rather than empty when there is nothing: the recorder is off until
+  /// the user turns it on, and a permanently blank section in a panel this
+  /// small would be advertising, not information.
+  Widget _buildClips() {
+    if (_clips.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Divider(height: 1),
+        MenuBarSection(
+          title: 'Recent clips',
+          action: MenuBarButton(
+            label: 'Open',
+            onPressed:
+                () => _bridge.openMainWindow(
+                  route: AppDestination.clipboard.path,
+                ),
+          ),
+        ),
+        for (final entry in _clips.take(_clipCount))
+          MenuBarClipRow(
+            key: ValueKey(entry.id),
+            entry: entry,
+            onCopy: () => _copyClip(entry),
+            onHover: (top) => _previewClip(entry, top),
+          ),
+      ],
     );
   }
 
@@ -349,9 +605,14 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
         children: [
           Icon(Brand.mark, size: 15, color: context.colors.accent),
           const SizedBox(width: AppSpacing.sm),
-          Text(Brand.name, style: context.text.titleS),
+          Text(
+            _mode == MenuBarMode.clipboard ? 'Clipboard' : Brand.name,
+            style: context.text.titleS,
+          ),
           const SizedBox(width: AppSpacing.sm),
-          _StatusDot(level: insight.level),
+          // The dot is a verdict about the machine, and the clipboard panel
+          // makes no claim about the machine.
+          if (_mode == MenuBarMode.dashboard) _StatusDot(level: insight.level),
           const Spacer(),
           if (_busy)
             const Padding(
@@ -364,8 +625,13 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
             ),
           MenuBarIconButton(
             icon: AppIcons.refresh,
-            tooltip: 'Rescan',
-            onPressed: _busy ? null : _refresh,
+            tooltip: _mode == MenuBarMode.clipboard ? 'Reload' : 'Rescan',
+            onPressed:
+                _busy
+                    ? null
+                    : _mode == MenuBarMode.clipboard
+                    ? _loadClips
+                    : _refresh,
           ),
           MenuBarIconButton(
             icon: AppIcons.openExternal,
@@ -405,15 +671,15 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
           for (final process in consumers)
             MenuBarProcessRow(
               process: process,
-              icon: process.bundlePath == null
-                  ? null
-                  : _monitor.icons[process.bundlePath],
+              icon:
+                  process.bundlePath == null
+                      ? null
+                      : _monitor.icons[process.bundlePath],
               sort: _sort,
               confirming: _confirmingPid == process.pid,
               busy: _busyPids.contains(process.pid),
               enabled: !_busy,
-              onQuitPressed: () =>
-                  setState(() => _confirmingPid = process.pid),
+              onQuitPressed: () => setState(() => _confirmingPid = process.pid),
               onCancel: () => setState(() => _confirmingPid = null),
               onConfirm: () => _quit(process),
             ),
@@ -446,6 +712,11 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
   }
 
   String _footerLabel() {
+    if (_mode == MenuBarMode.clipboard) {
+      if (_clips.isEmpty) return 'Clipboard history is empty';
+      return '${_clips.length} recent ${_clips.length == 1 ? 'clip' : 'clips'}';
+    }
+
     final parts = <String>[
       if (_vitals.isKnown) 'Up ${_vitals.uptimeLabel}',
       if (_snapshot.processes.isNotEmpty)

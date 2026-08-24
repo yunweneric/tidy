@@ -3,284 +3,116 @@ import 'package:mac_uninstaller/core/design/design.dart';
 import 'package:mac_uninstaller/core/di/service_locator.dart';
 import 'package:mac_uninstaller/core/platform/full_disk_access_service.dart';
 import 'package:mac_uninstaller/core/settings/app_settings.dart';
+import 'package:mac_uninstaller/core/widgets/fade_through.dart';
 import 'package:mac_uninstaller/core/widgets/module_scaffold.dart';
-import 'package:mac_uninstaller/core/widgets/status_chip.dart';
-import 'package:mac_uninstaller/core/widgets/tidy_card.dart';
+import 'package:mac_uninstaller/features/settings/domain/settings_section.dart';
+import 'package:mac_uninstaller/features/settings/presentation/sections/about_section.dart';
+import 'package:mac_uninstaller/features/settings/presentation/sections/appearance_section.dart';
+import 'package:mac_uninstaller/features/settings/presentation/sections/clipboard_section.dart';
+import 'package:mac_uninstaller/features/settings/presentation/sections/general_section.dart';
+import 'package:mac_uninstaller/features/settings/presentation/sections/permissions_section.dart';
+import 'package:mac_uninstaller/features/settings/presentation/widgets/settings_rail.dart';
 
-class SettingsPage extends StatelessWidget {
+/// Settings, as two panes: the sections down the left, the chosen one's
+/// controls on the right.
+///
+/// One scrolling column put the clipboard's nine rows between the theme picker
+/// and the permission everything else depends on, so both ends of the page
+/// were reachable only by scrolling past a feature you might not use. The tabs
+/// are the same settings, addressed rather than scrolled.
+class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
+
+  @override
+  State<SettingsPage> createState() => _SettingsPageState();
+}
+
+class _SettingsPageState extends State<SettingsPage> {
+  SettingsSection _section = SettingsSection.initial;
+
+  /// One controller for the detail pane, reset on every tab change: keeping a
+  /// tall section's scroll offset while showing a short one leaves the new
+  /// section scrolled past its own top.
+  final ScrollController _scroll = ScrollController();
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  void _select(SettingsSection section) {
+    if (section == _section) return;
+    setState(() => _section = section);
+    if (_scroll.hasClients) _scroll.jumpTo(0);
+  }
 
   @override
   Widget build(BuildContext context) {
     final settings = locator<AppSettings>();
-    final fullDiskAccess = locator<FullDiskAccessService>();
 
     return ModuleScaffold(
       title: 'Settings',
-      subtitle: 'Appearance, motion and the permissions ${Brand.name} needs.',
-      child: Column(
+      subtitle:
+          'Appearance, the clipboard history and the permissions '
+          '${Brand.name} needs.',
+      scrollable: false,
+      // Stretch, not start: the detail pane is a scroll view, and a Row that
+      // sizes its children to their own height hands it unbounded constraints.
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _Section(
-            title: 'Appearance',
-            child: Column(
-              children: [
-                _ThemeChoice(settings: settings),
-                Divider(height: AppSpacing.xxl, color: context.colors.border),
-                _SwitchRow(
-                  title: 'Reduce motion',
-                  detail:
-                      'Turns off the scan animations and counters. Results appear '
-                      'immediately instead of counting up.',
-                  value: settings.reduceMotion,
-                  onChanged: (value) => settings.reduceMotion = value,
+          SettingsRail(current: _section, onSelect: _select),
+          const SizedBox(width: AppSpacing.xxl),
+          Expanded(
+            child: FadeThrough(
+              trigger: _section,
+              child: SingleChildScrollView(
+                controller: _scroll,
+                padding: const EdgeInsets.only(bottom: AppSpacing.xxl),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _SectionHeading(section: _section),
+                    const SizedBox(height: AppSpacing.lg),
+                    _body(settings),
+                  ],
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          _Section(
-            title: 'Permissions',
-            child: _FullDiskAccessRow(service: fullDiskAccess),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          _Section(
-            title: 'Introduction',
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Show the intro again', style: context.text.titleS),
-                      const SizedBox(height: AppSpacing.xxs),
-                      Text(
-                        'Replays the first-run walkthrough, including the '
-                        'permission step, next time you open ${Brand.name}.',
-                        style: context.text.bodyS,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.lg),
-                OutlinedButton(
-                  onPressed: settings.resetOnboarding,
-                  child: const Text('Replay intro'),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          _Section(
-            title: 'About',
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('${Brand.name} — ${Brand.tagline}', style: context.text.bodyL),
-                const SizedBox(height: AppSpacing.xs),
-                Text(
-                  'Runs outside the App Sandbox, which is what lets it read '
-                  '/Applications and ~/Library at all. Nothing leaves your Mac.',
-                  style: context.text.bodyM,
-                ),
-              ],
+              ),
             ),
           ),
         ],
       ),
     );
   }
+
+  Widget _body(AppSettings settings) => switch (_section) {
+    SettingsSection.general => GeneralSection(settings: settings),
+    SettingsSection.appearance => AppearanceSection(settings: settings),
+    SettingsSection.clipboard => ClipboardSection(settings: settings),
+    SettingsSection.permissions => PermissionsSection(
+      service: locator<FullDiskAccessService>(),
+    ),
+    SettingsSection.about => const AboutSection(),
+  };
 }
 
-class _Section extends StatelessWidget {
-  const _Section({required this.title, required this.child});
+/// Names the pane you are looking at. The page header says "Settings" for all
+/// five sections, so without this the right-hand column is unlabelled.
+class _SectionHeading extends StatelessWidget {
+  const _SectionHeading({required this.section});
 
-  final String title;
-  final Widget child;
+  final SettingsSection section;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-          child: Text(title.toUpperCase(), style: context.text.overline),
-        ),
-        TidyCard(
-          padding: const EdgeInsets.all(AppSpacing.xl),
-          child: child,
-        ),
+        Text(section.label, style: context.text.titleM),
+        const SizedBox(height: AppSpacing.xxs),
+        Text(section.blurb, style: context.text.bodyM),
       ],
-    );
-  }
-}
-
-class _ThemeChoice extends StatelessWidget {
-  const _ThemeChoice({required this.settings});
-
-  final AppSettings settings;
-
-  @override
-  Widget build(BuildContext context) {
-    const options = {
-      ThemeMode.system: 'System',
-      ThemeMode.light: 'Light',
-      ThemeMode.dark: 'Dark',
-    };
-
-    return Row(
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Theme', style: context.text.titleS),
-              const SizedBox(height: AppSpacing.xxs),
-              Text(
-                'Follows your macOS appearance unless you pick one.',
-                style: context.text.bodyS,
-              ),
-            ],
-          ),
-        ),
-        SegmentedButton<ThemeMode>(
-          segments: [
-            for (final entry in options.entries)
-              ButtonSegment(value: entry.key, label: Text(entry.value)),
-          ],
-          selected: {settings.themeMode},
-          showSelectedIcon: false,
-          onSelectionChanged: (selection) => settings.themeMode = selection.first,
-        ),
-      ],
-    );
-  }
-}
-
-class _SwitchRow extends StatelessWidget {
-  const _SwitchRow({
-    required this.title,
-    required this.detail,
-    required this.value,
-    required this.onChanged,
-  });
-
-  final String title;
-  final String detail;
-  final bool value;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: context.text.titleS),
-              const SizedBox(height: AppSpacing.xxs),
-              Text(detail, style: context.text.bodyS),
-            ],
-          ),
-        ),
-        const SizedBox(width: AppSpacing.lg),
-        Switch(value: value, onChanged: onChanged),
-      ],
-    );
-  }
-}
-
-/// Explains what Full Disk Access unlocks, shows whether we have it, and links
-/// to the pane. There is no API to request it, and the grant only takes effect
-/// after a relaunch — both facts have to be on screen or the flow reads broken.
-class _FullDiskAccessRow extends StatelessWidget {
-  const _FullDiskAccessRow({required this.service});
-
-  final FullDiskAccessService service;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-
-    return AnimatedBuilder(
-      animation: service,
-      builder: (context, _) {
-        final granted = service.granted;
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Text('Full Disk Access', style: context.text.titleS),
-                          const SizedBox(width: AppSpacing.sm),
-                          if (granted == true)
-                            StatusChip(
-                              label: 'Granted',
-                              color: colors.safe,
-                              icon: AppIcons.safe,
-                            )
-                          else if (granted == false)
-                            StatusChip(
-                              label: 'Not granted',
-                              color: colors.review,
-                              icon: AppIcons.locked,
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: AppSpacing.xs),
-                      Text(
-                        'macOS keeps other apps’ data — Mail, Messages, Safari, '
-                        'app containers, iOS backups — behind this permission. '
-                        'Without it, scans quietly see less than half your disk.',
-                        style: context.text.bodyS,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.lg),
-                Column(
-                  children: [
-                    OutlinedButton(
-                      onPressed: service.openSettings,
-                      child: const Text('Open Settings'),
-                    ),
-                    const SizedBox(height: AppSpacing.xs),
-                    TextButton(
-                      onPressed: service.isChecking ? null : service.refresh,
-                      child: const Text('Re-check'),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            if (granted == false) ...[
-              const SizedBox(height: AppSpacing.md),
-              Container(
-                padding: const EdgeInsets.all(AppSpacing.md),
-                decoration: BoxDecoration(
-                  color: colors.surfaceRaised,
-                  borderRadius: AppRadii.mdAll,
-                ),
-                child: Text(
-                  'In System Settings, click +, choose ${Brand.name}, then quit '
-                  'and reopen it. macOS caches the decision for the lifetime of '
-                  'the process, so the change will not take effect until then.',
-                  style: context.text.bodyS,
-                ),
-              ),
-            ],
-          ],
-        );
-      },
     );
   }
 }

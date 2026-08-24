@@ -33,11 +33,16 @@
 		A1B2C3D001AA000000000004 /* MenuBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D001AA000000000003 /* MenuBarController.swift */; };
 		A1B2C3D002AA000000000008 /* PerformanceChannel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D002AA000000000007 /* PerformanceChannel.swift */; };
 		A1B2C3D002AA000000000006 /* Maintenance.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D002AA000000000005 /* Maintenance.swift */; };
-		A1B2C3D004AA000000000002 /* SystemVitals.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D004AA000000000001 /* SystemVitals.swift */; };
+		A1B2C3D005AA000000000002 /* SystemVitals.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D005AA000000000001 /* SystemVitals.swift */; };
+		A1B2C3D005AA000000000004 /* ClipPreviewPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D005AA000000000003 /* ClipPreviewPanel.swift */; };
 		A1B2C3D002AA000000000004 /* ProcessMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D002AA000000000003 /* ProcessMonitor.swift */; };
 		A1B2C3D002AA000000000002 /* LaunchItems.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D002AA000000000001 /* LaunchItems.swift */; };
 		A1B2C3D003AA000000000002 /* Trash.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D003AA000000000001 /* Trash.swift */; };
 		A1B2C3D003AA000000000004 /* RecycleBinChannel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D003AA000000000003 /* RecycleBinChannel.swift */; };
+		A1B2C3D004AA000000000002 /* ClipboardStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D004AA000000000001 /* ClipboardStore.swift */; };
+		A1B2C3D004AA000000000004 /* ClipboardMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D004AA000000000003 /* ClipboardMonitor.swift */; };
+		A1B2C3D004AA000000000006 /* ClipboardChannel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D004AA000000000005 /* ClipboardChannel.swift */; };
+		A1B2C3D004AA000000000008 /* HotKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D004AA000000000007 /* HotKey.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -87,11 +92,16 @@
 		A1B2C3D001AA000000000003 /* MenuBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarController.swift; sourceTree = "<group>"; };
 		A1B2C3D002AA000000000007 /* PerformanceChannel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceChannel.swift; sourceTree = "<group>"; };
 		A1B2C3D002AA000000000005 /* Maintenance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Maintenance.swift; sourceTree = "<group>"; };
-		A1B2C3D004AA000000000001 /* SystemVitals.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemVitals.swift; sourceTree = "<group>"; };
+		A1B2C3D005AA000000000001 /* SystemVitals.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemVitals.swift; sourceTree = "<group>"; };
+		A1B2C3D005AA000000000003 /* ClipPreviewPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipPreviewPanel.swift; sourceTree = "<group>"; };
 		A1B2C3D002AA000000000003 /* ProcessMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessMonitor.swift; sourceTree = "<group>"; };
 		A1B2C3D002AA000000000001 /* LaunchItems.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchItems.swift; sourceTree = "<group>"; };
 		A1B2C3D003AA000000000001 /* Trash.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Trash.swift; sourceTree = "<group>"; };
 		A1B2C3D003AA000000000003 /* RecycleBinChannel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecycleBinChannel.swift; sourceTree = "<group>"; };
+		A1B2C3D004AA000000000001 /* ClipboardStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardStore.swift; sourceTree = "<group>"; };
+		A1B2C3D004AA000000000003 /* ClipboardMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardMonitor.swift; sourceTree = "<group>"; };
+		A1B2C3D004AA000000000005 /* ClipboardChannel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardChannel.swift; sourceTree = "<group>"; };
+		A1B2C3D004AA000000000007 /* HotKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotKey.swift; sourceTree = "<group>"; };
 		33CEB47222A05771004F2AC0 /* Flutter-Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = "Flutter-Debug.xcconfig"; sourceTree = "<group>"; };
 		33CEB47422A05771004F2AC0 /* Flutter-Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = "Flutter-Release.xcconfig"; sourceTree = "<group>"; };
 		33CEB47722A0578A004F2AC0 /* Flutter-Generated.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = "Flutter-Generated.xcconfig"; path = "ephemeral/Flutter-Generated.xcconfig"; sourceTree = "<group>"; };
@@ -193,10 +203,15 @@
 				A1B2C3D002AA000000000007 /* PerformanceChannel.swift */,
 				A1B2C3D002AA000000000005 /* Maintenance.swift */,
 				A1B2C3D002AA000000000003 /* ProcessMonitor.swift */,
-				A1B2C3D004AA000000000001 /* SystemVitals.swift */,
+				A1B2C3D005AA000000000001 /* SystemVitals.swift */,
+				A1B2C3D005AA000000000003 /* ClipPreviewPanel.swift */,
 				A1B2C3D002AA000000000001 /* LaunchItems.swift */,
 				A1B2C3D003AA000000000001 /* Trash.swift */,
 				A1B2C3D003AA000000000003 /* RecycleBinChannel.swift */,
+				A1B2C3D004AA000000000001 /* ClipboardStore.swift */,
+				A1B2C3D004AA000000000003 /* ClipboardMonitor.swift */,
+				A1B2C3D004AA000000000005 /* ClipboardChannel.swift */,
+				A1B2C3D004AA000000000007 /* HotKey.swift */,
 				33E51913231747F40026EE4D /* DebugProfile.entitlements */,
 				33E51914231749380026EE4D /* Release.entitlements */,
 				33CC11242044D66E0003C045 /* Resources */,
@@ -383,10 +398,15 @@
 				A1B2C3D002AA000000000008 /* PerformanceChannel.swift in Sources */,
 				A1B2C3D002AA000000000006 /* Maintenance.swift in Sources */,
 				A1B2C3D002AA000000000004 /* ProcessMonitor.swift in Sources */,
-				A1B2C3D004AA000000000002 /* SystemVitals.swift in Sources */,
+				A1B2C3D005AA000000000002 /* SystemVitals.swift in Sources */,
+				A1B2C3D005AA000000000004 /* ClipPreviewPanel.swift in Sources */,
 				A1B2C3D002AA000000000002 /* LaunchItems.swift in Sources */,
 				A1B2C3D003AA000000000002 /* Trash.swift in Sources */,
 				A1B2C3D003AA000000000004 /* RecycleBinChannel.swift in Sources */,
+				A1B2C3D004AA000000000002 /* ClipboardStore.swift in Sources */,
+				A1B2C3D004AA000000000004 /* ClipboardMonitor.swift in Sources */,
+				A1B2C3D004AA000000000006 /* ClipboardChannel.swift in Sources */,
+				A1B2C3D004AA000000000008 /* HotKey.swift in Sources */,
 				33CC10F12044A3C60003C045 /* AppDelegate.swift in Sources */,
 				08639DC4C75ABD10EB121DD3 /* DirectorySizer.swift in Sources */,
 				0925734A75E40C9513D3AE40 /* FullDiskAccess.swift in Sources */,

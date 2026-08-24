@@ -27,6 +27,7 @@ class AppIcons {
   static const IconData assistant = HugeIcons.strokeRoundedActivity01;
   static const IconData settings = HugeIcons.strokeRoundedSettings01;
   static const IconData recycleBin = HugeIcons.strokeRoundedDelete03;
+  static const IconData clipboard = HugeIcons.strokeRoundedClipboard;
 
   // ─── Modules ─────────────────────────────────────────────────────────────
   static const IconData developerJunk = HugeIcons.strokeRoundedCpu;
@@ -46,6 +47,11 @@ class AppIcons {
   static const IconData memory = HugeIcons.strokeRoundedDatabase02;
   static const IconData storage = HugeIcons.strokeRoundedHardDrive;
   static const IconData analytics = HugeIcons.strokeRoundedPieChart;
+
+  // ─── Clipboard kinds ─────────────────────────────────────────────────────
+  static const IconData plainText = HugeIcons.strokeRoundedText;
+  static const IconData richText = HugeIcons.strokeRoundedTextBold;
+  static const IconData link = HugeIcons.strokeRoundedLink01;
 
   // ─── File kinds ──────────────────────────────────────────────────────────
   // Coarse on purpose: enough to tell a folder from a film at a glance, in a
@@ -78,6 +84,13 @@ class AppIcons {
   static const IconData close = HugeIcons.strokeRoundedCancel01;
   static const IconData quit = HugeIcons.strokeRoundedLogout01;
   static const IconData run = HugeIcons.strokeRoundedPlay;
+  static const IconData copy = HugeIcons.strokeRoundedCopy02;
+  static const IconData pin = HugeIcons.strokeRoundedPin;
+  static const IconData unpin = HugeIcons.strokeRoundedPinOff;
+
+  /// Un-blurs something the clipboard guard hid.
+  static const IconData reveal = HugeIcons.strokeRoundedView;
+  static const IconData conceal = HugeIcons.strokeRoundedViewOff;
 
   // ─── Status ──────────────────────────────────────────────────────────────
   static const IconData safe = HugeIcons.strokeRoundedCheckmarkCircle02;

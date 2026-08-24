@@ -31,7 +31,7 @@ class OnboardingScreen extends StatefulWidget {
 
 class _OnboardingScreenState extends State<OnboardingScreen>
     with WidgetsBindingObserver {
-  static const int _stepCount = 3;
+  static const int _stepCount = 4;
   int _step = 0;
 
   @override
@@ -74,6 +74,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     return switch (_step) {
       0 => _welcome(),
       1 => _howItWorks(),
+      2 => _clipboard(),
       _ => _permissions(),
     };
   }
@@ -166,9 +167,71 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     );
   }
 
-  OnboardingFrame _permissions() {
+  /// The clipboard opt-in.
+  ///
+  /// Its own step, and a choice rather than a default, because it is the one
+  /// thing in the app that keeps a record of what the user does. Two buttons of
+  /// equal weight: nothing here is the recommended answer.
+  OnboardingFrame _clipboard() {
+    final colors = context.colors;
+
     return OnboardingFrame(
       stepIndex: 2,
+      stepCount: _stepCount,
+      title: 'Keep a history of what you copy',
+      subtitle:
+          'macOS has room for one thing on the clipboard, so copying anything '
+          'loses what was there before. ${Brand.name} can remember it all — if '
+          'you want it to.',
+      primaryLabel: 'Turn it on',
+      onPrimary: () {
+        widget.settings.clipboardEnabled = true;
+        _next();
+      },
+      secondaryLabel: 'Not now',
+      onSecondary: () {
+        widget.settings.clipboardEnabled = false;
+        _next();
+      },
+      onBack: () => setState(() => _step--),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _Feature(
+            icon: AppIcons.clipboard,
+            iconColor: colors.accent,
+            title: 'Text, links, images and files',
+            detail:
+                'Everything you copy is listed newest first, with the app it '
+                'came from. Click any of it to put it back on the clipboard.',
+          ),
+          _Feature(
+            icon: AppIcons.locked,
+            iconColor: colors.review,
+            title: 'Passwords are never recorded',
+            detail:
+                'Copies from password managers are skipped outright. Anything '
+                'that looks like a key or a card number is hidden in the list, '
+                'and can be dropped instead of stored.',
+          ),
+          _Feature(
+            icon: AppIcons.storage,
+            iconColor: colors.safe,
+            title: 'On this Mac, and only for as long as you say',
+            detail:
+                'Kept in an unencrypted file in your Application Support '
+                'folder — nothing is sent anywhere. It clears itself after a '
+                'week by default, and you can change that or switch the whole '
+                'thing off in Settings.',
+          ),
+        ],
+      ),
+    );
+  }
+
+  OnboardingFrame _permissions() {
+    return OnboardingFrame(
+      stepIndex: 3,
       stepCount: _stepCount,
       title: 'One permission to grant',
       subtitle:

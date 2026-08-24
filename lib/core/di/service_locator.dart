@@ -7,6 +7,7 @@ import 'package:mac_uninstaller/features/apps/data/services/leftover_scanner.dar
 import 'package:mac_uninstaller/features/apps/data/services/scan_cache.dart';
 import 'package:mac_uninstaller/features/apps/data/services/unused_apps_module.dart';
 import 'package:mac_uninstaller/features/cleanup/data/cleanup_scan_module.dart';
+import 'package:mac_uninstaller/features/clipboard/data/services/clipboard_service.dart';
 import 'package:mac_uninstaller/features/performance/data/services/launch_items_service.dart';
 import 'package:mac_uninstaller/features/performance/data/services/maintenance_service.dart';
 import 'package:mac_uninstaller/features/performance/data/services/process_monitor_service.dart';
@@ -72,9 +73,21 @@ Future<void> setUpLocator({required bool includeUi}) async {
   // ─── Recycle Bin ─────────────────────────────────────────────────────────
   locator.registerLazySingleton<RecycleBinService>(RecycleBinService.new);
 
+  // ─── Clipboard ───────────────────────────────────────────────────────────
+  // The history itself is native — see ClipboardBridge for why — so this holds
+  // only an image cache and the settings mirror.
+  locator.registerLazySingleton<ClipboardService>(ClipboardService.new);
+
   // The popover has no settings UI and no theme switcher, so it skips the
   // file read entirely.
   if (includeUi) {
-    locator.registerSingleton<AppSettings>(await AppSettings.load());
+    final settings = await AppSettings.load();
+    locator.registerSingleton<AppSettings>(settings);
+
+    // One funnel for pushing the clipboard preferences to the native recorder,
+    // registered here so no individual setter can forget. The popover engine
+    // skips it: it has no settings UI, and the native side reads the same file
+    // itself at launch.
+    locator<ClipboardService>().bindTo(settings);
   }
 }

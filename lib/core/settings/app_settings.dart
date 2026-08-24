@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' show ThemeMode;
 import 'package:mac_uninstaller/core/design/brand.dart';
+import 'package:mac_uninstaller/features/clipboard/data/models/clipboard_prefs.dart';
 import 'package:path/path.dart' as p;
 
 /// User preferences, persisted as JSON next to the scan cache.
@@ -22,9 +23,24 @@ class AppSettings extends ChangeNotifier {
   static const String _onboardingKey = 'onboardingCompletedVersion';
   static const String _coverageNoteKey = 'smartCareCoverageSeen';
 
+  // Clipboard. These four are also read directly by `ClipboardStore.swift` at
+  // launch, so the native store honours the user's limits before any Flutter
+  // engine has spoken. Renaming one here means renaming it there.
+  static const String _clipboardEnabledKey = 'clipboardEnabled';
+  static const String _clipboardMaxItemsKey = 'clipboardMaxItems';
+  static const String _clipboardRetentionKey = 'clipboardRetentionDays';
+  static const String _clipboardImagesKey = 'clipboardCaptureImages';
+  static const String _clipboardSensitiveKey = 'clipboardStoreSensitive';
+  static const String _clipboardClearOnQuitKey = 'clipboardClearOnQuit';
+  static const String _clipboardExcludedKey = 'clipboardExcludedApps';
+
   /// Bumping this shows onboarding again — for when a release adds a
   /// permission or a capability the existing copy does not cover.
-  static const int onboardingVersion = 1;
+  ///
+  /// 2: the clipboard recorder. It keeps a record of what the user does, and
+  /// existing users have never been asked about it — an opt-in buried in
+  /// Settings would be an opt-in nobody made.
+  static const int onboardingVersion = 2;
 
   /// Loads from disk, falling back to defaults if anything is missing or
   /// unreadable. Never throws — a corrupt settings file should not stop the app
@@ -115,6 +131,75 @@ class AppSettings extends ChangeNotifier {
   void markSmartCareCoverageSeen() {
     if (hasSeenSmartCareCoverage) return;
     _values[_coverageNoteKey] = true;
+    _persist();
+  }
+
+  // ─── Clipboard ─────────────────────────────────────────────────────────
+
+  /// Off until the user turns it on, and deliberately so.
+  ///
+  /// Recording the clipboard means writing everything copied — including the
+  /// passwords the redaction heuristics miss — to an unencrypted file. That is
+  /// a reasonable thing to ask for and an unreasonable thing to assume, so the
+  /// Clipboard page opens on a plain statement of what it stores and a button
+  /// to start.
+  bool get clipboardEnabled => _values[_clipboardEnabledKey] as bool? ?? false;
+
+  set clipboardEnabled(bool value) {
+    _values[_clipboardEnabledKey] = value;
+    _persist();
+  }
+
+  /// How many unpinned entries to keep. Pinned ones do not count against it.
+  int get clipboardMaxItems => _values[_clipboardMaxItemsKey] as int? ?? 200;
+
+  set clipboardMaxItems(int value) {
+    _values[_clipboardMaxItemsKey] = value;
+    _persist();
+  }
+
+  ClipboardRetention get clipboardRetention =>
+      ClipboardRetention.fromDays(_values[_clipboardRetentionKey] as int? ?? 7);
+
+  set clipboardRetention(ClipboardRetention value) {
+    _values[_clipboardRetentionKey] = value.days;
+    _persist();
+  }
+
+  bool get clipboardCaptureImages =>
+      _values[_clipboardImagesKey] as bool? ?? true;
+
+  set clipboardCaptureImages(bool value) {
+    _values[_clipboardImagesKey] = value;
+    _persist();
+  }
+
+  /// Whether anything that looks like a secret is kept at all. Off means such
+  /// items are dropped at capture and never reach the disk; on means they are
+  /// stored but blurred in the list.
+  bool get clipboardStoreSensitive =>
+      _values[_clipboardSensitiveKey] as bool? ?? false;
+
+  set clipboardStoreSensitive(bool value) {
+    _values[_clipboardSensitiveKey] = value;
+    _persist();
+  }
+
+  bool get clipboardClearOnQuit =>
+      _values[_clipboardClearOnQuitKey] as bool? ?? false;
+
+  set clipboardClearOnQuit(bool value) {
+    _values[_clipboardClearOnQuitKey] = value;
+    _persist();
+  }
+
+  /// Apps whose copies are never recorded. The native side adds its own list of
+  /// known password managers to whatever is here.
+  List<String> get clipboardExcludedApps =>
+      (_values[_clipboardExcludedKey] as List?)?.cast<String>() ?? const [];
+
+  set clipboardExcludedApps(List<String> value) {
+    _values[_clipboardExcludedKey] = value;
     _persist();
   }
 

@@ -62,9 +62,8 @@ class MenuBarProcessRow extends StatelessWidget {
               BundleIcon(
                 bytes: icon,
                 size: 22,
-                fallback: process.isApp
-                    ? AppIcons.appPlaceholder
-                    : AppIcons.cpu,
+                fallback:
+                    process.isApp ? AppIcons.appPlaceholder : AppIcons.cpu,
               ),
               const SizedBox(width: AppSpacing.sm + 2),
               Expanded(
@@ -106,13 +105,13 @@ class MenuBarProcessRow extends StatelessWidget {
               else if (!confirming)
                 MenuBarIconButton(
                   icon: AppIcons.close,
-                  tooltip: process.quittable
-                      ? 'Quit ${process.name}'
-                      : 'Quitting ${process.name} would end your login session',
+                  tooltip:
+                      process.quittable
+                          ? 'Quit ${process.name}'
+                          : 'Quitting ${process.name} would end your login session',
                   color: colors.risky,
-                  onPressed: enabled && process.quittable
-                      ? onQuitPressed
-                      : null,
+                  onPressed:
+                      enabled && process.quittable ? onQuitPressed : null,
                 )
               else
                 const SizedBox(width: 28),

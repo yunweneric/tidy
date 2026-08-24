@@ -8,6 +8,7 @@ import 'package:mac_uninstaller/features/apps/presentation/screens/applications_
 import 'package:mac_uninstaller/features/cleanup/presentation/cleanup_page.dart';
 import 'package:mac_uninstaller/features/onboarding/presentation/onboarding_screen.dart';
 import 'package:mac_uninstaller/features/performance/presentation/performance_page.dart';
+import 'package:mac_uninstaller/features/clipboard/presentation/clipboard_page.dart';
 import 'package:mac_uninstaller/features/recycle_bin/presentation/recycle_bin_page.dart';
 import 'package:mac_uninstaller/features/settings/presentation/settings_page.dart';
 import 'package:mac_uninstaller/features/shell/domain/app_destination.dart';
@@ -101,6 +102,7 @@ Widget _pageFor(AppDestination destination) => switch (destination) {
   ),
   AppDestination.performance => const PerformancePage(),
   AppDestination.recycleBin => const RecycleBinPage(),
+  AppDestination.clipboard => const ClipboardPage(),
   AppDestination.clutter => const ComingSoonPage(
     destination: AppDestination.clutter,
     planned: [

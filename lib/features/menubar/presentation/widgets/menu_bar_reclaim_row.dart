@@ -18,6 +18,7 @@ class MenuBarReclaimRow extends StatelessWidget {
     this.actionLabel,
     this.onAction,
     this.scanning = false,
+    this.note,
   });
 
   final IconData icon;
@@ -30,6 +31,10 @@ class MenuBarReclaimRow extends StatelessWidget {
   /// The size is still being worked out, so show that rather than a confident
   /// zero — an empty Trash and an unscanned one are not the same answer.
   final bool scanning;
+
+  /// Stands in for the size when there is no honest number to give, such as a
+  /// Trash macOS will not let the app read.
+  final String? note;
 
   @override
   Widget build(BuildContext context) {
@@ -68,8 +73,11 @@ class MenuBarReclaimRow extends StatelessWidget {
           ),
           const SizedBox(width: AppSpacing.sm),
           Text(
-            scanning ? 'scanning…' : formatBytes(bytes),
-            style: context.text.bodyS,
+            note ?? (scanning ? 'scanning…' : formatBytes(bytes)),
+            style:
+                note == null
+                    ? context.text.bodyS
+                    : context.text.caption.copyWith(color: colors.review),
           ),
           if (actionLabel != null) ...[
             const SizedBox(width: AppSpacing.xs),

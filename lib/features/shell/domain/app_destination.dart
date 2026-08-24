@@ -115,6 +115,17 @@ enum AppDestination {
     icon: AppIcons.recycleBin,
     group: NavGroup.secondary,
     blurb: 'See what is in the Trash, put things back, or clear it for good.',
+  ),
+
+  /// Appended for the same reason [recycleBin] was, and listed under the
+  /// working modules because it is one — it is somewhere you go to get
+  /// something back, not a supporting view.
+  clipboard(
+    path: '/clipboard',
+    label: 'Clipboard',
+    icon: AppIcons.clipboard,
+    group: NavGroup.primary,
+    blurb: 'Everything you have copied, and a way back to any of it.',
   );
 
   const AppDestination({

@@ -33,12 +33,10 @@ class MenuBarButton extends StatelessWidget {
     };
 
     final style = TextButton.styleFrom(
-      foregroundColor: tone == MenuBarButtonTone.filled
-          ? colors.textOnAccent
-          : color,
-      backgroundColor: tone == MenuBarButtonTone.filled
-          ? color
-          : Colors.transparent,
+      foregroundColor:
+          tone == MenuBarButtonTone.filled ? colors.textOnAccent : color,
+      backgroundColor:
+          tone == MenuBarButtonTone.filled ? color : Colors.transparent,
       textStyle: context.text.label,
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md - 2),
       minimumSize: const Size(0, 26),

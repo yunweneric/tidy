@@ -3,6 +3,7 @@ import 'package:mac_uninstaller/core/design/design.dart';
 import 'package:mac_uninstaller/core/di/service_locator.dart';
 import 'package:mac_uninstaller/core/router/app_router.dart';
 import 'package:mac_uninstaller/core/settings/app_settings.dart';
+import 'package:mac_uninstaller/features/menubar/platform/popover_bridge.dart';
 import 'package:mac_uninstaller/features/menubar/presentation/menu_bar_panel.dart';
 
 Future<void> main() async {
@@ -37,6 +38,14 @@ class _TidyAppState extends State<TidyApp> {
   // Built once and held: rebuilding the router on every settings change would
   // throw away the shell's branch state along with it.
   late final _router = buildRouter(settings: widget.settings);
+
+  @override
+  void initState() {
+    super.initState();
+    // The menu bar popover cannot reach this router across the isolate
+    // boundary, so "Open Clipboard" arrives as a route over the channel.
+    PopoverRoutes.listen(_router.go);
+  }
 
   @override
   Widget build(BuildContext context) {

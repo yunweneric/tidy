@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:mac_uninstaller/core/platform/action_outcome.dart';
 import 'package:mac_uninstaller/core/platform/trash_ledger.dart';
 
 /// Free/total capacity of the boot volume.
@@ -225,6 +226,40 @@ class SystemBridge {
       await _channel.invokeMethod<void>('openFullDiskAccessSettings');
     } catch (e) {
       debugPrint('openFullDiskAccessSettings failed: $e');
+    }
+  }
+
+  /// Whether the app launches at login, and whether macOS lets us ask.
+  ///
+  /// `SMAppService` arrived in macOS 13 and the app supports 11, so
+  /// `available` is false on older systems and the Settings row hides itself
+  /// rather than offering a switch that cannot do anything.
+  static Future<({bool available, bool enabled})> loginItemStatus() async {
+    try {
+      final result = await _channel.invokeMapMethod<String, dynamic>(
+        'loginItemStatus',
+      );
+      return (
+        available: result?['available'] as bool? ?? false,
+        enabled: result?['enabled'] as bool? ?? false,
+      );
+    } catch (e) {
+      debugPrint('loginItemStatus failed: $e');
+      return (available: false, enabled: false);
+    }
+  }
+
+  static Future<ActionOutcome> setLoginItem({required bool enabled}) async {
+    try {
+      final result = await _channel.invokeMapMethod<String, dynamic>(
+        'setLoginItem',
+        {'enabled': enabled},
+      );
+      return ActionOutcome.fromMap(result);
+    } catch (e) {
+      final message =
+          e is PlatformException ? (e.message ?? e.code) : e.toString();
+      return ActionOutcome(ok: false, message: message);
     }
   }
 

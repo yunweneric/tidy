@@ -1,5 +1,6 @@
 import Cocoa
 import FlutterMacOS
+import ServiceManagement
 
 /// Native helpers the Dart side cannot do safely (or at all) by shelling out.
 ///
@@ -57,8 +58,43 @@ enum SystemChannel {
     case "canReadPaths":
       let paths = (call.arguments as? [String: Any])?["paths"] as? [String] ?? []
       result(Dictionary(uniqueKeysWithValues: paths.map { ($0, FullDiskAccess.canRead($0)) }))
+    case "loginItemStatus":
+      result(loginItemStatus())
+    case "setLoginItem":
+      let enabled = (call.arguments as? [String: Any])?["enabled"] as? Bool ?? false
+      result(setLoginItem(enabled: enabled))
     default:
       result(FlutterMethodNotImplemented)
+    }
+  }
+
+  // MARK: - Login item
+
+  /// Whether the app is set to launch at login.
+  ///
+  /// `SMAppService` arrived in macOS 13 and the deployment target is 11, so
+  /// older systems report the capability as unavailable and the Settings row
+  /// hides itself rather than showing a switch that does nothing.
+  private static func loginItemStatus() -> [String: Any] {
+    guard #available(macOS 13.0, *) else {
+      return ["available": false, "enabled": false]
+    }
+    return ["available": true, "enabled": SMAppService.mainApp.status == .enabled]
+  }
+
+  private static func setLoginItem(enabled: Bool) -> [String: Any] {
+    guard #available(macOS 13.0, *) else {
+      return ["ok": false, "message": "Launching at login needs macOS 13 or later."]
+    }
+    do {
+      if enabled {
+        try SMAppService.mainApp.register()
+      } else {
+        try SMAppService.mainApp.unregister()
+      }
+      return ["ok": true]
+    } catch {
+      return ["ok": false, "message": error.localizedDescription]
     }
   }
 
