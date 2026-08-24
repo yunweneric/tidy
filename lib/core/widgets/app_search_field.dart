@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:mac_uninstaller/core/theme/app_theme.dart';
+import 'package:mac_uninstaller/core/design/design.dart';
 
-/// Search input with prefix icon. Use [onChanged] for filtering.
+/// Search input with a prefix glyph. Filtering happens in [onChanged].
 class AppSearchField extends StatelessWidget {
   const AppSearchField({
     super.key,
-    this.hintText = 'Search...',
+    this.hintText = 'Search…',
     this.width,
     this.onChanged,
     this.controller,
@@ -20,16 +20,18 @@ class AppSearchField extends StatelessWidget {
   Widget build(BuildContext context) {
     final child = TextField(
       controller: controller,
-      style: AppTheme.bodyPrimary,
+      style: context.text.bodyL,
       decoration: InputDecoration(
         hintText: hintText,
-        prefixIcon: const Icon(Icons.search, size: 20, color: AppTheme.textMuted),
+        prefixIcon: Icon(
+          Icons.search_rounded,
+          size: 17,
+          color: context.colors.textMuted,
+        ),
+        prefixIconConstraints: const BoxConstraints(minWidth: 36, minHeight: 36),
       ),
       onChanged: onChanged,
     );
-    if (width != null) {
-      return SizedBox(width: width, child: child);
-    }
-    return child;
+    return width == null ? child : SizedBox(width: width, child: child);
   }
 }

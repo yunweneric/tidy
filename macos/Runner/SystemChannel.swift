@@ -24,6 +24,20 @@ enum SystemChannel {
       remove(call: call, result: result, toTrash: false)
     case "diskUsage":
       result(diskUsage())
+    case "sizeOfPaths":
+      let paths = (call.arguments as? [String: Any])?["paths"] as? [String] ?? []
+      // fts walking is blocking and can take seconds over a large tree.
+      DispatchQueue.global(qos: .userInitiated).async {
+        let sizes = DirectorySizer.sizes(of: paths)
+        DispatchQueue.main.async { result(sizes) }
+      }
+    case "childSizes":
+      let args = call.arguments as? [String: Any]
+      let path = args?["path"] as? String ?? ""
+      DispatchQueue.global(qos: .userInitiated).async {
+        let children = DirectorySizer.children(of: path)
+        DispatchQueue.main.async { result(children) }
+      }
     case "iconsForPaths":
       result(icons(for: call))
     case "revealInFinder":
@@ -32,8 +46,17 @@ enum SystemChannel {
       }
       result(nil)
     case "openFullDiskAccessSettings":
-      openFullDiskAccessSettings()
+      FullDiskAccess.openSettings()
       result(nil)
+    case "openSettingsPane":
+      let anchor = (call.arguments as? [String: Any])?["anchor"] as? String
+      FullDiskAccess.openSettingsPane(anchor: anchor ?? "Privacy_AllFiles")
+      result(nil)
+    case "fullDiskAccessStatus":
+      result(["granted": FullDiskAccess.isGranted])
+    case "canReadPaths":
+      let paths = (call.arguments as? [String: Any])?["paths"] as? [String] ?? []
+      result(Dictionary(uniqueKeysWithValues: paths.map { ($0, FullDiskAccess.canRead($0)) }))
     default:
       result(FlutterMethodNotImplemented)
     }
@@ -77,7 +100,13 @@ enum SystemChannel {
           if toTrash {
             try FileManager.default.trashItem(at: url, resultingItemURL: nil)
           } else {
-            try FileManager.default.removeItem(at: url)
+            do {
+              try FileManager.default.removeItem(at: url)
+            } catch {
+              // Retry once after clearing immutable flags / read-only modes.
+              makeWritable(url)
+              try FileManager.default.removeItem(at: url)
+            }
           }
           removed.append(path)
         } catch {
@@ -95,11 +124,25 @@ enum SystemChannel {
   /// constrain their search roots; this makes the dangerous paths unreachable
   /// even if a caller gets it wrong.
   private static func isRemovable(_ rawPath: String) -> Bool {
-    let path = URL(fileURLWithPath: rawPath).standardized.path
+    let url = URL(fileURLWithPath: rawPath)
+    let path = url.standardized.path
 
     if path.isEmpty || path == "/" { return false }
     if path.hasPrefix("/System") { return false }
     if protectedPaths.contains(path) { return false }
+
+    // Resolve symlinks too, so a link inside an allowed root cannot be used to
+    // reach a protected target. Both forms have to clear the deny list.
+    let resolved = url.resolvingSymlinksInPath().standardizedFileURL.path
+    if resolved != path {
+      if resolved.isEmpty || resolved == "/" { return false }
+      if resolved.hasPrefix("/System") { return false }
+      if protectedPaths.contains(resolved) { return false }
+    }
+
+    // Refuse volume roots and mount points: deleting one of those means
+    // deleting whatever is mounted there.
+    if isMountPoint(path) { return false }
 
     // Refuse top-level entries like "/Applications" or "/Users" themselves,
     // while still allowing "/Applications/Some.app".
@@ -107,6 +150,44 @@ enum SystemChannel {
     if components.count < 2 { return false }
 
     return true
+  }
+
+  /// True when `path` is where a filesystem is mounted.
+  private static func isMountPoint(_ path: String) -> Bool {
+    var buffer = statfs()
+    guard statfs(path, &buffer) == 0 else { return false }
+    let mounted = withUnsafePointer(to: &buffer.f_mntonname) {
+      String(cString: UnsafeRawPointer($0).assumingMemoryBound(to: CChar.self))
+    }
+    return mounted == path
+  }
+
+  /// Clears the immutable flag and restores write permission so `removeItem`
+  /// can proceed. Go's module cache (mode 0444 inside 0555 directories) and
+  /// user-locked files both fail without this.
+  private static func makeWritable(_ url: URL) {
+    let fm = FileManager.default
+    let path = url.path
+
+    if let attrs = try? fm.attributesOfItem(atPath: path),
+       let flags = attrs[.immutable] as? Bool, flags {
+      try? fm.setAttributes([.immutable: false], ofItemAtPath: path)
+    }
+
+    guard let walker = fm.enumerator(
+      at: url,
+      includingPropertiesForKeys: [.isDirectoryKey],
+      options: [.skipsHiddenFiles ]
+    ) else { return }
+
+    for case let child as URL in walker {
+      guard let perms = (try? fm.attributesOfItem(atPath: child.path))?[.posixPermissions] as? NSNumber
+      else { continue }
+      let writable = perms.uint16Value | 0o200
+      if writable != perms.uint16Value {
+        try? fm.setAttributes([.posixPermissions: NSNumber(value: writable)], ofItemAtPath: child.path)
+      }
+    }
   }
 
   private static var protectedPaths: Set<String> {
@@ -208,16 +289,5 @@ enum SystemChannel {
     NSGraphicsContext.restoreGraphicsState()
 
     return rep.representation(using: .png, properties: [:])
-  }
-
-  // MARK: - Privacy settings
-
-  private static func openFullDiskAccessSettings() {
-    let url = URL(
-      string: "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles"
-    )
-    if let url {
-      NSWorkspace.shared.open(url)
-    }
   }
 }

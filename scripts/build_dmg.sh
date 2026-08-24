@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Builds MacUninstaller.app and packages it into an unsigned (ad-hoc signed) DMG.
+# Builds Tidy.app and packages it into an unsigned (ad-hoc signed) DMG.
 #
 # The app is deliberately not signed with a Developer ID and not notarized, so
 # Gatekeeper will quarantine it on other Macs. See the note printed at the end.
@@ -15,7 +15,7 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 
-APP_NAME="MacUninstaller"
+APP_NAME="Tidy"
 BUILD_DIR="build/macos/Build/Products/Release"
 APP_PATH="$BUILD_DIR/$APP_NAME.app"
 DIST_DIR="dist"
@@ -107,8 +107,9 @@ To open it on another Mac:
   2. Run: xattr -dr com.apple.quarantine /Applications/$APP_NAME.app
 
 $APP_NAME runs outside the App Sandbox (it has to, in order to inspect
-/Applications and ~/Library). Grant Full Disk Access in System Settings for a
-complete leftover scan.
+/Applications and ~/Library). Grant Full Disk Access in System Settings, then
+reopen the app — macOS caches the decision per process, so the grant does not
+take effect until relaunch.
 EOF
 
 if [[ "$OPEN_AFTER" == true ]]; then

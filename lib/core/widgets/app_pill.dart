@@ -1,13 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:mac_uninstaller/core/theme/app_theme.dart';
+import 'package:mac_uninstaller/core/design/design.dart';
 
-/// A small pill/chip for status or counts (e.g. "Selected: 0").
+/// A small pill for status or counts (e.g. "3 selected").
 class AppPill extends StatelessWidget {
-  const AppPill({
-    super.key,
-    required this.label,
-    this.style,
-  });
+  const AppPill({super.key, required this.label, this.style});
 
   final String label;
   final TextStyle? style;
@@ -15,12 +11,15 @@ class AppPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceElevated,
-        borderRadius: BorderRadius.circular(20),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.xs + 1,
       ),
-      child: Text(label, style: style ?? AppTheme.labelSmall),
+      decoration: BoxDecoration(
+        color: context.colors.surfaceRaised,
+        borderRadius: AppRadii.pillAll,
+      ),
+      child: Text(label, style: style ?? context.text.caption),
     );
   }
 }

@@ -36,7 +36,13 @@ class AppManagerService {
   Future<List<MacApp>> scanApps() async {
     final bundles = _discoverBundles();
 
-    final apps = await mapPooled<_BundleRef, MacApp?>(bundles, _readBundle);
+    // Sizes come back in a single native walk; metadata still needs one plist
+    // read per bundle, which is what the pool is for.
+    final sizes = await pathSizes(bundles.map((ref) => ref.path).toList());
+    final apps = await mapPooled<_BundleRef, MacApp?>(
+      bundles,
+      (ref) => _readBundle(ref, sizes[ref.path] ?? 0),
+    );
 
     final found = apps.whereType<MacApp>().toList();
     final withDates = await _attachLastUsed(found);
@@ -128,12 +134,11 @@ class AppManagerService {
 
   // ----------------------------------------------------------------- metadata
 
-  Future<MacApp?> _readBundle(_BundleRef ref) async {
+  Future<MacApp?> _readBundle(_BundleRef ref, int sizeBytes) async {
     final fileName = ref.path.split('/').last;
     final fallbackName = fileName.replaceAll(RegExp(r'\.app$'), '');
 
     final info = await _readPlist(ref.path);
-    final sizeBytes = await pathSizeBytes(ref.path);
 
     final name = _firstNonEmpty([
       info['CFBundleDisplayName'],

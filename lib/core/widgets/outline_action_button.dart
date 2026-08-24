@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:mac_uninstaller/core/theme/app_theme.dart';
+import 'package:mac_uninstaller/core/design/design.dart';
 
-/// Outlined secondary button with optional icon (e.g. "Sort by: Date").
+/// Outlined secondary button with optional icon (e.g. "Sort by: Size").
 class OutlineActionButton extends StatelessWidget {
   const OutlineActionButton({
     super.key,
@@ -16,22 +16,24 @@ class OutlineActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final style = OutlinedButton.styleFrom(
-      foregroundColor: AppTheme.textSecondary,
-      side: const BorderSide(color: AppTheme.borderSubtle),
+      foregroundColor: colors.textSecondary,
+      side: BorderSide(color: colors.border),
     );
+
     if (icon != null) {
       return OutlinedButton.icon(
         onPressed: onPressed,
-        icon: Icon(icon, size: 18, color: AppTheme.textSecondary),
-        label: Text(label, style: AppTheme.bodySecondary),
+        icon: Icon(icon, size: 16, color: colors.textSecondary),
+        label: Text(label, style: context.text.label),
         style: style,
       );
     }
     return OutlinedButton(
       onPressed: onPressed,
       style: style,
-      child: Text(label, style: AppTheme.bodySecondary),
+      child: Text(label, style: context.text.label),
     );
   }
 }

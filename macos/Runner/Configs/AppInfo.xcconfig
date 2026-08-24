@@ -5,9 +5,14 @@
 // 'flutter create' template.
 
 // The application's name. By default this is also the title of the Flutter window.
-PRODUCT_NAME = MacUninstaller
+PRODUCT_NAME = Tidy
 
-// The application's bundle identifier
+// The application's bundle identifier.
+//
+// Deliberately still says macuninstaller even though the product is now Tidy:
+// TCC permission grants (Full Disk Access in particular) are keyed to the
+// bundle id plus signing identity, so changing it would silently revoke access
+// for anyone already running the app.
 PRODUCT_BUNDLE_IDENTIFIER = com.yunweneric.macuninstaller
 
 // The copyright displayed in application information

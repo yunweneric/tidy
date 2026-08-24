@@ -1,5 +1,3 @@
-import 'dart:ui' show FontFeature;
-
 import 'package:flutter/material.dart';
 import 'package:mac_uninstaller/core/design/tokens/app_color_tokens.dart';
 

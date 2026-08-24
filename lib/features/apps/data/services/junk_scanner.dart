@@ -141,14 +141,39 @@ class JunkScanner {
     if (home == null) return JunkReport.empty;
 
     final groups = await Future.wait([
-      _scanDirectory('$home/Library/Caches', JunkKind.caches),
-      _scanDirectory('$home/Library/Logs', JunkKind.logs),
-      _scanDirectory('$home/Library/Saved Application State', JunkKind.savedState),
-      _scanOrphans(installedApps),
+      for (final kind in JunkKind.values)
+        scanKind(kind, installedBundleIds: _bundleIdsOf(installedApps)),
     ]);
 
     return JunkReport(groups: groups.where((g) => g.items.isNotEmpty).toList());
   }
+
+  /// One category at a time, so a caller can stream results as they land
+  /// instead of waiting on the slowest root.
+  ///
+  /// [installedBundleIds] is only consulted for [JunkKind.orphaned]; taking ids
+  /// rather than [MacApp]s keeps the argument cheap to hand to an isolate,
+  /// since a MacApp drags its icon bytes along with it.
+  Future<JunkGroup> scanKind(
+    JunkKind kind, {
+    Set<String> installedBundleIds = const {},
+  }) async {
+    final home = _home;
+    if (home == null) return JunkGroup(kind: kind, items: const []);
+
+    return switch (kind) {
+      JunkKind.caches => _scanDirectory('$home/Library/Caches', kind),
+      JunkKind.logs => _scanDirectory('$home/Library/Logs', kind),
+      JunkKind.savedState =>
+        _scanDirectory('$home/Library/Saved Application State', kind),
+      JunkKind.orphaned => _scanOrphans(installedBundleIds),
+    };
+  }
+
+  static Set<String> _bundleIdsOf(List<MacApp> apps) => {
+    for (final app in apps)
+      if (app.bundleId.isNotEmpty) app.bundleId,
+  };
 
   /// Every immediate child of [root] counts as clearable junk, except those
   /// owned by macOS itself.
@@ -156,16 +181,16 @@ class JunkScanner {
     final entries = _childrenOf(
       root,
     ).where((path) => !_isProtectedEntry(path.split('/').last)).toList();
-    final sizes = await mapPooled<String, int>(entries, pathSizeBytes);
+    final sizes = await pathSizes(entries);
 
     final items = <JunkItem>[
-      for (var i = 0; i < entries.length; i++)
-        if (sizes[i] > 0)
+      for (final path in entries)
+        if ((sizes[path] ?? 0) > 0)
           JunkItem(
-            path: entries[i],
-            sizeBytes: sizes[i],
+            path: path,
+            sizeBytes: sizes[path]!,
             kind: kind,
-            label: entries[i].split('/').last,
+            label: path.split('/').last,
           ),
     ];
     items.sort((a, b) => b.sizeBytes.compareTo(a.sizeBytes));
@@ -173,12 +198,7 @@ class JunkScanner {
   }
 
   /// Bundle-id-named folders with no matching installed app.
-  Future<JunkGroup> _scanOrphans(List<MacApp> installedApps) async {
-    final installedIds = installedApps
-        .map((app) => app.bundleId)
-        .where((id) => id.isNotEmpty)
-        .toSet();
-
+  Future<JunkGroup> _scanOrphans(Set<String> installedIds) async {
     final candidates = <String>[];
     for (final root in _orphanRoots) {
       for (final path in _childrenOf(root)) {
@@ -190,16 +210,16 @@ class JunkScanner {
       }
     }
 
-    final sizes = await mapPooled<String, int>(candidates, pathSizeBytes);
+    final sizes = await pathSizes(candidates);
 
     final items = <JunkItem>[
-      for (var i = 0; i < candidates.length; i++)
-        if (sizes[i] > 0)
+      for (final path in candidates)
+        if ((sizes[path] ?? 0) > 0)
           JunkItem(
-            path: candidates[i],
-            sizeBytes: sizes[i],
+            path: path,
+            sizeBytes: sizes[path]!,
             kind: JunkKind.orphaned,
-            label: candidates[i].split('/').last,
+            label: path.split('/').last,
           ),
     ];
     items.sort((a, b) => b.sizeBytes.compareTo(a.sizeBytes));

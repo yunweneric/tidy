@@ -39,7 +39,7 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
 
     button.image = Self.statusImage()
     button.image?.isTemplate = true // Adapts to light/dark menu bars.
-    button.toolTip = "MacUninstaller"
+    button.toolTip = "Tidy"
     button.target = self
     button.action = #selector(statusItemClicked(_:))
     button.sendAction(on: [.leftMouseUp, .rightMouseUp])
@@ -55,7 +55,7 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
       "trash",
     ]
     for name in candidates {
-      if let image = NSImage(systemSymbolName: name, accessibilityDescription: "MacUninstaller") {
+      if let image = NSImage(systemSymbolName: name, accessibilityDescription: "Tidy") {
         return image
       }
     }
@@ -73,13 +73,13 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
   private func showContextMenu() {
     let menu = NSMenu()
     menu.addItem(
-      withTitle: "Open MacUninstaller",
+      withTitle: "Open Tidy",
       action: #selector(openMainWindow),
       keyEquivalent: ""
     ).target = self
     menu.addItem(.separator())
     menu.addItem(
-      withTitle: "Quit MacUninstaller",
+      withTitle: "Quit Tidy",
       action: #selector(quit),
       keyEquivalent: "q"
     ).target = self

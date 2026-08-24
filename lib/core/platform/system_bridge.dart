@@ -15,6 +15,23 @@ class DiskUsage {
   static const DiskUsage empty = DiskUsage(totalBytes: 0, freeBytes: 0);
 }
 
+/// One entry in a directory, with its full recursive allocated size.
+class DirectoryEntry {
+  const DirectoryEntry({
+    required this.path,
+    required this.sizeBytes,
+    required this.isDirectory,
+    this.modified,
+  });
+
+  final String path;
+  final int sizeBytes;
+  final bool isDirectory;
+  final DateTime? modified;
+
+  String get name => path.split('/').last;
+}
+
 /// One path that could not be removed, with the reason macOS gave.
 class RemovalFailure {
   const RemovalFailure({required this.path, required this.error});
@@ -97,6 +114,49 @@ class SystemBridge {
     }
   }
 
+  /// Allocated bytes for each of [paths], walked natively with `fts(3)`.
+  ///
+  /// Batched deliberately: one call for a thousand paths, not a thousand calls.
+  static Future<Map<String, int>> sizeOfPaths(List<String> paths) async {
+    if (paths.isEmpty) return const {};
+    try {
+      final result = await _channel.invokeMapMethod<String, dynamic>('sizeOfPaths', {
+        'paths': paths,
+      });
+      if (result == null) return const {};
+      return result.map((path, size) => MapEntry(path, (size as num).toInt()));
+    } catch (e) {
+      debugPrint('sizeOfPaths failed: $e');
+      return const {};
+    }
+  }
+
+  /// Immediate children of [path] with their full recursive sizes. Backs the
+  /// disk map and any "what is big in here" view.
+  static Future<List<DirectoryEntry>> childSizes(String path) async {
+    try {
+      final result = await _channel.invokeListMethod<dynamic>('childSizes', {
+        'path': path,
+      });
+      if (result == null) return const [];
+      return result.map((raw) {
+        final map = (raw as Map).cast<String, dynamic>();
+        final modified = (map['modified'] as num?)?.toInt() ?? 0;
+        return DirectoryEntry(
+          path: map['path'] as String? ?? '',
+          sizeBytes: (map['size'] as num?)?.toInt() ?? 0,
+          isDirectory: map['isDirectory'] as bool? ?? false,
+          modified: modified == 0
+              ? null
+              : DateTime.fromMillisecondsSinceEpoch(modified * 1000),
+        );
+      }).toList();
+    } catch (e) {
+      debugPrint('childSizes failed: $e');
+      return const [];
+    }
+  }
+
   /// Rendered icons for app bundles, keyed by bundle path.
   ///
   /// Uses `NSWorkspace`, which resolves .icns files, asset-catalog icons and
@@ -137,6 +197,50 @@ class SystemBridge {
       await _channel.invokeMethod<void>('openFullDiskAccessSettings');
     } catch (e) {
       debugPrint('openFullDiskAccessSettings failed: $e');
+    }
+  }
+
+  /// Opens a Privacy & Security pane by anchor, e.g. `Privacy_Accessibility`.
+  static Future<void> openSettingsPane(String anchor) async {
+    try {
+      await _channel.invokeMethod<void>('openSettingsPane', {'anchor': anchor});
+    } catch (e) {
+      debugPrint('openSettingsPane failed: $e');
+    }
+  }
+
+  /// Whether the app currently holds Full Disk Access.
+  ///
+  /// There is no API to *request* it — macOS grants it only when the user adds
+  /// the app by hand — so this probes a TCC-protected read. Note the grant is
+  /// cached per process: after the user grants it, the app must be relaunched
+  /// before this flips to true.
+  static Future<bool> hasFullDiskAccess() async {
+    try {
+      final result = await _channel.invokeMapMethod<String, dynamic>(
+        'fullDiskAccessStatus',
+      );
+      return result?['granted'] as bool? ?? false;
+    } catch (e) {
+      debugPrint('fullDiskAccessStatus failed: $e');
+      // Assume access rather than hiding features behind a failed probe.
+      return true;
+    }
+  }
+
+  /// Which of [paths] we can actually read, so a scanner can report "denied"
+  /// instead of a confident zero.
+  static Future<Map<String, bool>> canReadPaths(List<String> paths) async {
+    if (paths.isEmpty) return const {};
+    try {
+      final result = await _channel.invokeMapMethod<String, dynamic>('canReadPaths', {
+        'paths': paths,
+      });
+      if (result == null) return const {};
+      return result.map((path, readable) => MapEntry(path, readable as bool));
+    } catch (e) {
+      debugPrint('canReadPaths failed: $e');
+      return {for (final path in paths) path: true};
     }
   }
 }

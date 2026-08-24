@@ -1,41 +1,48 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:mac_uninstaller/core/theme/app_theme.dart';
-import 'package:mac_uninstaller/features/apps/data/services/apps_service.dart';
-import 'package:mac_uninstaller/features/apps/logic/app_bloc.dart';
-import 'package:mac_uninstaller/features/apps/logic/app_event.dart';
-import 'package:mac_uninstaller/features/apps/presentation/screens/list_apps_screen.dart';
+import 'package:mac_uninstaller/core/design/design.dart';
+import 'package:mac_uninstaller/core/di/service_locator.dart';
+import 'package:mac_uninstaller/core/settings/app_settings.dart';
 import 'package:mac_uninstaller/features/menubar/presentation/menu_bar_panel.dart';
+import 'package:mac_uninstaller/features/shell/presentation/shell_screen.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const MacUninstallerApp());
+  await setUpLocator(includeUi: true);
+  runApp(TidyApp(settings: locator<AppSettings>()));
 }
 
 /// Entrypoint for the menu bar popover, run in a second Flutter engine by
 /// `macos/Runner/MenuBarController.swift`.
 ///
-/// It is a separate Dart isolate with its own state; the two views stay in
-/// sync through the on-disk scan cache.
+/// That engine is its own Dart isolate: it cannot see the main window's
+/// providers, so it registers its own services and keeps in step through the
+/// on-disk scan cache.
 @pragma('vm:entry-point')
-void menuBarMain() {
+Future<void> menuBarMain() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await setUpLocator(includeUi: false);
   runApp(const MenuBarPanelApp());
 }
 
-class MacUninstallerApp extends StatelessWidget {
-  const MacUninstallerApp({super.key});
+class TidyApp extends StatelessWidget {
+  const TidyApp({super.key, required this.settings});
+
+  final AppSettings settings;
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => AppsBloc(AppManagerService())..add(LoadApps()),
-      child: MaterialApp(
-        title: 'MacUninstaller',
-        theme: AppTheme.dark,
-        debugShowCheckedModeBanner: false,
-        home: const ListAppsScreen(),
-      ),
+    return AnimatedBuilder(
+      animation: settings,
+      builder: (context, _) {
+        return MaterialApp(
+          title: Brand.name,
+          debugShowCheckedModeBanner: false,
+          themeMode: settings.themeMode,
+          theme: TidyTheme.light(reduceMotion: settings.reduceMotion),
+          darkTheme: TidyTheme.dark(reduceMotion: settings.reduceMotion),
+          home: const ShellScreen(),
+        );
+      },
     );
   }
 }

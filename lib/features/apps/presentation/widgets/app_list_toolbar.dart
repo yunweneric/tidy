@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:mac_uninstaller/core/theme/app_theme.dart';
+import 'package:mac_uninstaller/core/design/design.dart';
 import 'package:mac_uninstaller/core/widgets/widgets.dart';
 
 /// Which subset of the scan the table shows.
 enum AppFilter {
-  all('All Apps'),
-  large('Large Apps'),
+  all('All apps'),
+  large('Large'),
   unused('Unused');
 
   const AppFilter(this.label);
@@ -24,7 +24,7 @@ enum AppSort {
   final String label;
 }
 
-/// Filter tabs plus Sort and Bulk Uninstall actions.
+/// Filter tabs plus sort and bulk-uninstall actions.
 class AppListToolbar extends StatelessWidget {
   const AppListToolbar({
     super.key,
@@ -55,30 +55,29 @@ class AppListToolbar extends StatelessWidget {
         const Spacer(),
         PopupMenuButton<AppSort>(
           tooltip: 'Change sort order',
-          color: AppTheme.surfaceElevated,
           initialValue: sort,
           onSelected: onSortChanged,
           itemBuilder: (_) => [
             for (final option in AppSort.values)
               PopupMenuItem<AppSort>(
                 value: option,
-                child: Text(option.label, style: AppTheme.bodyPrimary),
+                child: Text(option.label, style: context.text.bodyL),
               ),
           ],
           child: IgnorePointer(
             child: OutlineActionButton(
-              label: 'Sort by: ${sort.label}',
-              icon: Icons.sort,
+              label: 'Sort: ${sort.label}',
+              icon: Icons.swap_vert_rounded,
               onPressed: () {},
             ),
           ),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: AppSpacing.md),
         ActionButton(
           label: selectedCount > 1
               ? 'Uninstall $selectedCount apps'
-              : 'Bulk Uninstall',
-          icon: Icons.delete_outline,
+              : 'Uninstall selected',
+          icon: Icons.delete_outline_rounded,
           variant: ActionButtonVariant.danger,
           onPressed: selectedCount > 0 ? onBulkUninstallPressed : null,
         ),

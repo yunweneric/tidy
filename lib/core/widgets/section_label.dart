@@ -1,13 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:mac_uninstaller/core/theme/app_theme.dart';
+import 'package:mac_uninstaller/core/design/design.dart';
 
-/// Small uppercase section label (e.g. "MANAGEMENT" in sidebar).
+/// Small uppercase section label.
 class SectionLabel extends StatelessWidget {
-  const SectionLabel({
-    super.key,
-    required this.label,
-    this.padding,
-  });
+  const SectionLabel({super.key, required this.label, this.padding});
 
   final String label;
   final EdgeInsetsGeometry? padding;
@@ -15,8 +11,9 @@ class SectionLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: padding ?? const EdgeInsets.symmetric(horizontal: 20),
-      child: Text(label, style: AppTheme.sectionHeader),
+      padding: padding ??
+          const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+      child: Text(label, style: context.text.overline),
     );
   }
 }

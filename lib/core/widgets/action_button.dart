@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:mac_uninstaller/core/theme/app_theme.dart';
+import 'package:mac_uninstaller/core/design/design.dart';
 
-/// Primary (blue) or danger (red) action button with optional icon.
+/// Primary or danger action button with optional icon.
 class ActionButton extends StatelessWidget {
   const ActionButton({
     super.key,
@@ -18,24 +18,23 @@ class ActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDanger = variant == ActionButtonVariant.danger;
+    final colors = context.colors;
     final style = ElevatedButton.styleFrom(
-      backgroundColor: isDanger ? AppTheme.accentRed : AppTheme.accentBlue,
-      foregroundColor: Colors.white,
+      backgroundColor: variant == ActionButtonVariant.danger
+          ? colors.risky
+          : colors.accent,
+      foregroundColor: colors.textOnAccent,
     );
+
     if (icon != null) {
       return ElevatedButton.icon(
         onPressed: onPressed,
-        icon: Icon(icon, size: 18),
+        icon: Icon(icon, size: 16),
         label: Text(label),
         style: style,
       );
     }
-    return ElevatedButton(
-      onPressed: onPressed,
-      style: style,
-      child: Text(label),
-    );
+    return ElevatedButton(onPressed: onPressed, style: style, child: Text(label));
   }
 }
 

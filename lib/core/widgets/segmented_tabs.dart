@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:mac_uninstaller/core/theme/app_theme.dart';
+import 'package:mac_uninstaller/core/design/design.dart';
 
-/// Horizontal tab bar where one tab is selected. Tabs have rounded top corners.
+/// Horizontal tab strip. Corners are squared where the strip meets the panel
+/// below it, so the two read as one surface rather than two stacked boxes.
 class SegmentedTabs extends StatelessWidget {
   const SegmentedTabs({
     super.key,
@@ -16,34 +17,35 @@ class SegmentedTabs extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: List.generate(labels.length, (i) {
         final active = selectedIndex == i;
-        return Padding(
-          padding: const EdgeInsets.only(right: 0),
-          child: Material(
-            color: active ? AppTheme.accentBlue : AppTheme.surfaceCard,
-            borderRadius: BorderRadius.only(
-              topLeft: const Radius.circular(10),
-              topRight: const Radius.circular(10),
-              bottomLeft: Radius.circular(i == 0 ? 0 : 10),
-              bottomRight: Radius.circular(i == labels.length - 1 ? 0 : 10),
-            ),
-            child: InkWell(
-              onTap: () => onChanged(i),
-              borderRadius: BorderRadius.only(
-                topLeft: const Radius.circular(10),
-                topRight: const Radius.circular(10),
+        final radius = BorderRadius.only(
+          topLeft: const Radius.circular(AppRadii.md),
+          topRight: const Radius.circular(AppRadii.md),
+          bottomLeft: Radius.circular(i == 0 ? 0 : AppRadii.md),
+          bottomRight: Radius.circular(i == labels.length - 1 ? 0 : AppRadii.md),
+        );
+
+        return Material(
+          color: active ? colors.accent : colors.surface,
+          borderRadius: radius,
+          child: InkWell(
+            onTap: () => onChanged(i),
+            borderRadius: radius,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.xl,
+                vertical: AppSpacing.md,
               ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                child: Text(
-                  labels[i],
-                  style: AppTheme.bodyPrimary.copyWith(
-                    color: active ? Colors.white : AppTheme.textSecondary,
-                    fontWeight: FontWeight.w600,
-                  ),
+              child: Text(
+                labels[i],
+                style: context.text.label.copyWith(
+                  color: active ? colors.textOnAccent : colors.textSecondary,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),

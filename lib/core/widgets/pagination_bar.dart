@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:mac_uninstaller/core/theme/app_theme.dart';
+import 'package:mac_uninstaller/core/design/design.dart';
 
-/// Previous / page numbers / Next pagination. [currentPage] and [totalPages]
-/// are 1-based.
+/// Previous / page numbers / Next. [currentPage] and [totalPages] are 1-based.
 ///
-/// Long ranges collapse to a window around the current page (1 … 7 8 9 … 19)
-/// so the bar keeps a fixed width no matter how many pages there are.
+/// Long ranges collapse to a window around the current page (1 … 7 8 9 … 19) so
+/// the bar keeps a fixed width no matter how many pages there are.
 class PaginationBar extends StatelessWidget {
   const PaginationBar({
     super.key,
@@ -26,15 +25,13 @@ class PaginationBar extends StatelessWidget {
       return List<int?>.generate(totalPages, (i) => i + 1);
     }
 
-    final window = <int?>{1};
+    final window = <int>{1, totalPages};
     final side = (maxVisiblePages - 4) ~/ 2;
     for (var page = currentPage - side; page <= currentPage + side; page++) {
       if (page > 1 && page < totalPages) window.add(page);
     }
-    window.add(totalPages);
 
-    final ordered = window.whereType<int>().toList()..sort();
-
+    final ordered = window.toList()..sort();
     final result = <int?>[];
     for (var i = 0; i < ordered.length; i++) {
       if (i > 0 && ordered[i] != ordered[i - 1] + 1) result.add(null);
@@ -55,8 +52,8 @@ class PaginationBar extends StatelessWidget {
         for (final page in _pages)
           if (page == null)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Text('…', style: AppTheme.bodySecondary),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
+              child: Text('…', style: context.text.bodyM),
             )
           else
             _PageButton(
@@ -88,21 +85,26 @@ class _PageButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 3),
       child: Material(
-        color: active ? AppTheme.accentBlue : Colors.transparent,
-        borderRadius: BorderRadius.circular(6),
+        color: active ? colors.accent : Colors.transparent,
+        borderRadius: AppRadii.smAll,
         child: InkWell(
           onTap: onPressed,
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: AppRadii.smAll,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.sm + 2,
+              vertical: AppSpacing.sm,
+            ),
             child: Text(
               '$page',
-              style: TextStyle(
-                color: active ? Colors.white : AppTheme.textSecondary,
-                fontWeight: active ? FontWeight.w600 : FontWeight.normal,
+              style: context.text.label.copyWith(
+                color: active ? colors.textOnAccent : colors.textSecondary,
+                fontWeight: active ? FontWeight.w600 : FontWeight.w400,
               ),
             ),
           ),

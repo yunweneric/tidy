@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:mac_uninstaller/core/platform/system_bridge.dart';
-import 'package:mac_uninstaller/core/theme/app_theme.dart';
+import 'package:mac_uninstaller/core/design/design.dart';
 import 'package:mac_uninstaller/core/widgets/widgets.dart';
 import 'package:mac_uninstaller/features/apps/data/models/mac_app_model.dart';
 import 'package:mac_uninstaller/features/apps/logic/app_bloc.dart';
@@ -11,25 +10,30 @@ import 'package:mac_uninstaller/features/apps/presentation/widgets/widgets.dart'
     as app_widgets;
 import 'package:mac_uninstaller/features/apps/utils/size_utils.dart';
 
-const int _pageSize = 8;
+const int _pageSize = 10;
 const int _largeAppThresholdBytes = 1024 * 1024 * 1024; // 1 GB
-const int _unusedThresholdDays = 90;
+const int _unusedThresholdDays = 180; // Six months, matching "unused" elsewhere.
 
-class ListAppsScreen extends StatefulWidget {
-  const ListAppsScreen({super.key});
+/// The Applications module: uninstall apps and everything they left behind.
+///
+/// Filter, sort, search and selection stay local `setState` rather than moving
+/// into the bloc — they are view state, they reset when you leave the page, and
+/// putting them in the bloc would mean the menu-bar popover carried them too.
+class ApplicationsPage extends StatefulWidget {
+  const ApplicationsPage({super.key});
 
   @override
-  State<ListAppsScreen> createState() => _ListAppsScreenState();
+  State<ApplicationsPage> createState() => _ApplicationsPageState();
 }
 
-class _ListAppsScreenState extends State<ListAppsScreen>
+class _ApplicationsPageState extends State<ApplicationsPage>
     with WidgetsBindingObserver {
   String _searchQuery = '';
   app_widgets.AppFilter _filter = app_widgets.AppFilter.all;
   app_widgets.AppSort _sort = app_widgets.AppSort.size;
 
-  /// Selection is keyed by install path so it survives list rebuilds (icons
-  /// arrive after the first paint and replace the model objects).
+  /// Keyed by install path so it survives list rebuilds — icons arrive after
+  /// the first paint and replace the model objects wholesale.
   final Set<String> _selectedPaths = {};
   int _currentPage = 1;
 
@@ -47,8 +51,8 @@ class _ListAppsScreenState extends State<ListAppsScreen>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // Apps may have been removed from the menu bar popover (a separate isolate)
-    // or in Finder while this window was in the background.
+    // Apps may have been removed from the popover (a separate isolate) or in
+    // Finder while this window was in the background.
     if (state == AppLifecycleState.resumed) {
       context.read<AppsBloc>().add(ReconcileApps());
     }
@@ -59,83 +63,92 @@ class _ListAppsScreenState extends State<ListAppsScreen>
     return BlocListener<AppsBloc, AppsState>(
       listenWhen: (previous, current) {
         if (current is! AppsLoaded || current.lastOutcome == null) return false;
-        final previousOutcome = previous is AppsLoaded ? previous.lastOutcome : null;
+        final previousOutcome =
+            previous is AppsLoaded ? previous.lastOutcome : null;
         return !identical(previousOutcome, current.lastOutcome);
       },
-      listener: (context, state) => _showOutcome(context, (state as AppsLoaded).lastOutcome!),
-      child: Scaffold(
-        backgroundColor: AppTheme.backgroundPrimary,
-        body: BlocBuilder<AppsBloc, AppsState>(
-          builder: (context, state) {
-            final loaded = state is AppsLoaded ? state : null;
-            return Row(
+      listener: (context, state) =>
+          _showOutcome(context, (state as AppsLoaded).lastOutcome!),
+      child: BlocBuilder<AppsBloc, AppsState>(
+        builder: (context, state) {
+          final loaded = state is AppsLoaded ? state : null;
+
+          return ModuleScaffold(
+            title: 'Applications',
+            subtitle:
+                'Remove an app and the support files, caches and launch agents '
+                'it leaves scattered around the system.',
+            actions: [
+              AppSearchField(
+                width: 260,
+                hintText: 'Filter by name or bundle id…',
+                onChanged: (query) => setState(() {
+                  _searchQuery = query.trim().toLowerCase();
+                  _currentPage = 1;
+                }),
+              ),
+              _RefreshButton(
+                busy: loaded?.isRefreshing ?? state is AppsLoading,
+                onPressed: () => context.read<AppsBloc>().add(RefreshApps()),
+              ),
+            ],
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                app_widgets.AppSidebar(
-                  filter: _filter,
-                  onFilterChanged: _changeFilter,
-                  disk: loaded?.disk ?? DiskUsage.empty,
-                  reclaimableBytes: loaded?.junk.safeBytes ?? 0,
-                  onCleanupPressed: loaded == null ? null : () => _openJunkDialog(loaded),
-                ),
-                Expanded(child: _buildMainContent(context, state)),
+                _summaryCards(context, loaded),
+                const SizedBox(height: AppSpacing.xl),
+                _toolbarAndTable(context, state),
               ],
-            );
-          },
-        ),
+            ),
+          );
+        },
       ),
     );
   }
 
-  Widget _buildMainContent(BuildContext context, AppsState state) {
-    final loaded = state is AppsLoaded ? state : null;
+  Widget _summaryCards(BuildContext context, AppsLoaded? state) {
+    final removable = state?.removableApps ?? const <MacApp>[];
+    final unused = removable.where(_isUnused).toList();
+    final colors = context.colors;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+    return Row(
       children: [
-        app_widgets.AppListHeader(
-          title: 'Application Manager',
-          selectedCount: _selectedPaths.length,
-          searchHint: 'Filter by name or bundle id…',
-          isRefreshing: loaded?.isRefreshing ?? state is AppsLoading,
-          onRefreshPressed: () => context.read<AppsBloc>().add(RefreshApps()),
-          onSearchChanged: (q) => setState(() {
-            _searchQuery = q.trim().toLowerCase();
-            _currentPage = 1;
-          }),
-        ),
         Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(28, 0, 28, 28),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const SizedBox(height: 25),
-                _buildSummaryCards(loaded),
-                const SizedBox(height: 25),
-                _buildTabsAndTable(context, state),
-              ],
-            ),
+          child: _Stat(
+            label: 'Apps installed',
+            value: '${removable.length}',
+            icon: Icons.grid_view_rounded,
+            color: colors.accent,
+          ),
+        ),
+        const SizedBox(width: AppSpacing.lg),
+        Expanded(
+          child: _Stat(
+            label: 'Space used by apps',
+            value: formatBytes(totalBytes(removable)),
+            icon: Icons.pie_chart_outline_rounded,
+            color: colors.info,
+          ),
+        ),
+        const SizedBox(width: AppSpacing.lg),
+        Expanded(
+          child: _Stat(
+            label: 'Not opened in 6 months',
+            value: '${unused.length}',
+            icon: Icons.hourglass_empty_rounded,
+            color: unused.isEmpty ? colors.safe : colors.review,
+            onTap: unused.isEmpty
+                ? null
+                : () => _changeFilter(app_widgets.AppFilter.unused),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildSummaryCards(AppsLoaded? state) {
-    final removable = state?.removableApps ?? const <MacApp>[];
-    final unused = removable.where(_isUnused).length;
+  Widget _toolbarAndTable(BuildContext context, AppsState state) {
+    final colors = context.colors;
 
-    return app_widgets.AppSummaryCards(
-      totalApps: removable.length,
-      appsSpaceBytes: totalBytes(removable),
-      reclaimableBytes: state?.junk.safeBytes ?? 0,
-      unusedCount: unused,
-      isScanningJunk: state?.isScanningJunk ?? false,
-      onReclaimablePressed: state == null ? null : () => _openJunkDialog(state),
-    );
-  }
-
-  Widget _buildTabsAndTable(BuildContext context, AppsState state) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -148,35 +161,35 @@ class _ListAppsScreenState extends State<ListAppsScreen>
           onBulkUninstallPressed: () => _uninstallSelected(context, state),
         ),
         Container(
-          decoration: const BoxDecoration(
-            color: AppTheme.surfaceCard,
-            borderRadius: BorderRadius.only(
-              bottomLeft: Radius.circular(12),
-              bottomRight: Radius.circular(12),
+          decoration: BoxDecoration(
+            color: colors.surface,
+            borderRadius: const BorderRadius.only(
+              bottomLeft: Radius.circular(AppRadii.lg),
+              bottomRight: Radius.circular(AppRadii.lg),
             ),
             border: Border(
-              left: BorderSide(color: AppTheme.borderSubtle),
-              right: BorderSide(color: AppTheme.borderSubtle),
-              bottom: BorderSide(color: AppTheme.borderSubtle),
+              left: BorderSide(color: colors.border),
+              right: BorderSide(color: colors.border),
+              bottom: BorderSide(color: colors.border),
             ),
           ),
-          child: _buildTable(context, state),
+          child: _table(context, state),
         ),
       ],
     );
   }
 
-  Widget _buildTable(BuildContext context, AppsState state) {
+  Widget _table(BuildContext context, AppsState state) {
     if (state is AppsLoading || state is AppsInitial) {
-      return const SizedBox(
-        height: 480,
+      return SizedBox(
+        height: 420,
         child: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              CircularProgressIndicator(color: AppTheme.accentBlue),
-              SizedBox(height: 16),
-              Text('Scanning your applications…', style: AppTheme.bodySecondary),
+              const CircularProgressIndicator(),
+              const SizedBox(height: AppSpacing.lg),
+              Text('Reading your applications…', style: context.text.bodyM),
             ],
           ),
         ),
@@ -186,27 +199,14 @@ class _ListAppsScreenState extends State<ListAppsScreen>
     if (state is AppsError) {
       return SizedBox(
         height: 320,
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.error_outline, color: AppTheme.accentRed, size: 32),
-              const SizedBox(height: 12),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 32),
-                child: Text(
-                  state.message,
-                  textAlign: TextAlign.center,
-                  style: AppTheme.bodySecondary,
-                ),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton.icon(
-                onPressed: () => context.read<AppsBloc>().add(RefreshApps()),
-                icon: const Icon(Icons.refresh, size: 18),
-                label: const Text('Try again'),
-              ),
-            ],
+        child: EmptyState(
+          icon: Icons.error_outline_rounded,
+          accent: context.colors.risky,
+          title: 'Could not read your applications',
+          message: state.message,
+          action: ElevatedButton(
+            onPressed: () => context.read<AppsBloc>().add(RefreshApps()),
+            child: const Text('Try again'),
           ),
         ),
       );
@@ -221,9 +221,9 @@ class _ListAppsScreenState extends State<ListAppsScreen>
     final end = (start + _pageSize).clamp(0, filtered.length);
     final pageApps = filtered.isEmpty ? <MacApp>[] : filtered.sublist(start, end);
 
-    final selectableOnPage = pageApps.where((app) => !app.isSystem).toList();
+    final selectable = pageApps.where((app) => !app.isSystem).toList();
     final selectedOnPage =
-        selectableOnPage.where((app) => _selectedPaths.contains(app.path)).length;
+        selectable.where((app) => _selectedPaths.contains(app.path)).length;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -240,19 +240,20 @@ class _ListAppsScreenState extends State<ListAppsScreen>
           showSelectAll: true,
           selectAllValue: selectedOnPage == 0
               ? false
-              : (selectedOnPage == selectableOnPage.length ? true : null),
-          onSelectAll: (_) => _toggleSelectAll(selectableOnPage),
+              : (selectedOnPage == selectable.length ? true : null),
+          onSelectAll: (_) => _toggleSelectAll(selectable),
         ),
         if (pageApps.isEmpty)
           SizedBox(
-            height: 220,
-            child: Center(
-              child: Text(
-                _searchQuery.isEmpty
-                    ? 'No applications match this filter.'
-                    : 'No applications match "$_searchQuery".',
-                style: AppTheme.bodySecondary,
-              ),
+            height: 240,
+            child: EmptyState(
+              icon: Icons.search_off_rounded,
+              title: _searchQuery.isEmpty
+                  ? 'Nothing matches this filter'
+                  : 'Nothing matches “$_searchQuery”',
+              message: _searchQuery.isEmpty
+                  ? 'Try a different filter.'
+                  : 'Check the spelling, or search by bundle id instead.',
             ),
           )
         else
@@ -378,57 +379,33 @@ class _ListAppsScreenState extends State<ListAppsScreen>
     _confirmUninstall(context, selected);
   }
 
-  Future<void> _openJunkDialog(AppsLoaded state) async {
-    final bloc = context.read<AppsBloc>();
-
-    if (state.junk.groups.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          backgroundColor: AppTheme.surfaceElevated,
-          content: Text(
-            state.isScanningJunk
-                ? 'Still scanning for reclaimable space…'
-                : 'Nothing to clean up right now.',
-            style: AppTheme.bodyPrimary,
-          ),
-        ),
-      );
-      return;
-    }
-
-    final plan = await app_widgets.JunkDialog.show(context, state.junk);
-    if (plan == null) return;
-
-    bloc.add(
-      ClearJunkEvent(paths: plan.paths, expectedBytes: plan.totalBytes),
-    );
-  }
-
   void _showOutcome(BuildContext context, RemovalOutcome outcome) {
     final messenger = ScaffoldMessenger.of(context);
-    final destination = outcome.movedToTrash ? 'moved to Trash' : 'deleted';
+    final colors = context.colors;
 
+    // "Moved to Trash" rather than "freed": nothing is actually reclaimed until
+    // the Trash is emptied, and claiming otherwise is a lie the disk will
+    // contradict a moment later.
+    final destination = outcome.movedToTrash ? 'moved to Trash' : 'deleted';
     final message = outcome.hasFailures
         ? '${formatBytes(outcome.freedBytes)} $destination · '
-              '${outcome.failures.length} item(s) could not be removed'
+              '${outcome.failures.length} item(s) stayed put'
         : '${formatBytes(outcome.freedBytes)} $destination';
 
     messenger.hideCurrentSnackBar();
     messenger.showSnackBar(
       SnackBar(
-        backgroundColor: outcome.hasFailures
-            ? AppTheme.accentOrange
-            : AppTheme.surfaceElevated,
+        backgroundColor: outcome.hasFailures ? colors.review : colors.surfaceRaised,
         content: Text(
           message,
-          style: AppTheme.bodyPrimary.copyWith(
-            color: outcome.hasFailures ? Colors.black : AppTheme.textPrimary,
+          style: context.text.bodyL.copyWith(
+            color: outcome.hasFailures ? colors.canvas : colors.textPrimary,
           ),
         ),
         action: outcome.hasFailures
             ? SnackBarAction(
                 label: 'Details',
-                textColor: Colors.black,
+                textColor: colors.canvas,
                 onPressed: () => _showFailureDetails(context, outcome),
               )
             : null,
@@ -440,11 +417,7 @@ class _ListAppsScreenState extends State<ListAppsScreen>
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppTheme.surfaceCard,
-        title: Text(
-          'Could not remove ${outcome.failures.length} item(s)',
-          style: AppTheme.bodyPrimary.copyWith(fontSize: 17),
-        ),
+        title: Text('${outcome.failures.length} item(s) stayed put'),
         content: SizedBox(
           width: 520,
           child: SingleChildScrollView(
@@ -454,21 +427,19 @@ class _ListAppsScreenState extends State<ListAppsScreen>
               children: [
                 Text(
                   'These usually need administrator rights or Full Disk Access.',
-                  style: AppTheme.bodySecondary,
+                  style: ctx.text.bodyM,
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: AppSpacing.md),
                 for (final failure in outcome.failures)
                   Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.only(bottom: AppSpacing.sm),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(failure.path, style: AppTheme.bodyPrimary),
+                        Text(failure.path, style: ctx.text.mono),
                         Text(
                           failure.error,
-                          style: AppTheme.labelSmall.copyWith(
-                            color: AppTheme.accentOrange,
-                          ),
+                          style: ctx.text.caption.copyWith(color: ctx.colors.review),
                         ),
                       ],
                     ),
@@ -484,6 +455,75 @@ class _ListAppsScreenState extends State<ListAppsScreen>
           ),
         ],
       ),
+    );
+  }
+}
+
+/// A headline figure with a label. Replaces `SummaryCard`, which returned an
+/// `Expanded` and so could only ever live inside a `Row`.
+class _Stat extends StatelessWidget {
+  const _Stat({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.color,
+    this.onTap,
+  });
+
+  final String label;
+  final String value;
+  final IconData icon;
+  final Color color;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return TidyCard(
+      onTap: onTap,
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 20, color: color),
+              const Spacer(),
+              if (onTap != null)
+                Icon(
+                  Icons.chevron_right_rounded,
+                  size: 16,
+                  color: context.colors.textMuted,
+                ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Text(value, style: context.text.displayL.copyWith(color: color)),
+          const SizedBox(height: AppSpacing.xxs),
+          Text(label, style: context.text.bodyS),
+        ],
+      ),
+    );
+  }
+}
+
+class _RefreshButton extends StatelessWidget {
+  const _RefreshButton({required this.busy, required this.onPressed});
+
+  final bool busy;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      onPressed: busy ? null : onPressed,
+      tooltip: 'Rescan applications',
+      icon: busy
+          ? const SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : const Icon(Icons.refresh_rounded, size: 18),
     );
   }
 }

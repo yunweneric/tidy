@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:mac_uninstaller/core/theme/app_theme.dart';
+import 'package:mac_uninstaller/core/design/design.dart';
 import 'package:mac_uninstaller/core/widgets/widgets.dart';
 
-/// Table footer with "Displaying X applications  Total size on disk: Y" and pagination.
+/// Row count, total size and pagination.
 class AppTableFooter extends StatelessWidget {
   const AppTableFooter({
     super.key,
@@ -21,32 +21,29 @@ class AppTableFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
+    final emphasis = context.text.bodyM.copyWith(
+      fontWeight: FontWeight.w700,
+      color: colors.textPrimary,
+    );
+
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.xl,
+        vertical: AppSpacing.md,
+      ),
       child: Row(
         children: [
           Flexible(
             child: Text.rich(
               overflow: TextOverflow.ellipsis,
               TextSpan(
-                text: 'Displaying ',
-                style: AppTheme.bodySecondary,
+                style: context.text.bodyM,
                 children: [
-                  TextSpan(
-                    text: '$itemCount',
-                    style: AppTheme.bodySecondary.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: AppTheme.textPrimary,
-                    ),
-                  ),
-                  const TextSpan(text: ' applications  Total size on disk: '),
-                  TextSpan(
-                    text: totalSize,
-                    style: AppTheme.bodySecondary.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: AppTheme.textPrimary,
-                    ),
-                  ),
+                  TextSpan(text: '$itemCount', style: emphasis),
+                  const TextSpan(text: ' shown · '),
+                  TextSpan(text: totalSize, style: emphasis),
+                  const TextSpan(text: ' on disk'),
                 ],
               ),
             ),

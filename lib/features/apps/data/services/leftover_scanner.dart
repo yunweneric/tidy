@@ -98,18 +98,15 @@ class LeftoverScanner {
         for (final path in entry.value) MapEntry(entry.key, path),
     ];
 
-    final sizes = await mapPooled<MapEntry<_SearchRoot, String>, int>(
-      flattened,
-      (entry) => pathSizeBytes(entry.value),
-    );
+    final sizes = await pathSizes(flattened.map((entry) => entry.value).toList());
 
     final items = <LeftoverItem>[
-      for (var i = 0; i < flattened.length; i++)
+      for (final entry in flattened)
         LeftoverItem(
-          path: flattened[i].value,
-          sizeBytes: sizes[i],
-          category: flattened[i].key.category,
-          requiresAdmin: flattened[i].key.requiresAdmin,
+          path: entry.value,
+          sizeBytes: sizes[entry.value] ?? 0,
+          category: entry.key.category,
+          requiresAdmin: entry.key.requiresAdmin,
         ),
     ];
 

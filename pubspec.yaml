@@ -1,5 +1,5 @@
 name: mac_uninstaller
-description: "MacUninstaller — remove macOS apps and the leftovers they hide in ~/Library."
+description: "Tidy — clean, tune and reclaim your Mac."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -29,9 +29,16 @@ environment:
 # versions available, run `flutter pub outdated`.
 dependencies:
   cupertino_icons: ^1.0.8
+  # Value equality for the growing set of bloc states — hand-written `==` across
+  # a dozen state classes is a bug farm.
+  equatable: ^2.0.7
   flutter:
     sdk: flutter
   flutter_bloc: ^9.1.1
+  # Service locator. Seven modules with their own scanners means ~15 services,
+  # and the menu-bar popover runs in a second Flutter engine that cannot see the
+  # main window's BlocProvider — it needs its own registry regardless.
+  get_it: ^8.0.3
   path: ^1.9.0
 
 dev_dependencies:

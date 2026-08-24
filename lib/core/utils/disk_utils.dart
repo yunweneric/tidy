@@ -1,29 +1,39 @@
-import 'dart:io';
+import 'package:mac_uninstaller/core/platform/system_bridge.dart';
 
-/// Default number of concurrent shell-outs. Each unit of work is a short-lived
-/// process, so this hides spawn latency without thrashing the disk.
+/// Default parallelism for [mapPooled].
 const int kDefaultConcurrency = 8;
 
-/// Size of a file or directory in bytes, via `du -sk`.
+/// Allocated size of [path], including everything beneath it.
 ///
-/// Kilobytes rather than `du -sh`: the human-readable form uses a localized
-/// decimal separator and has to be parsed back, which is exactly the round-trip
-/// that used to corrupt totals here.
+/// Prefer [pathSizes] when measuring more than one path — this convenience
+/// wrapper costs a full channel round trip each time.
 Future<int> pathSizeBytes(String path) async {
-  try {
-    final result = await Process.run('du', ['-sk', path]);
-    final firstField = result.stdout.toString().split(RegExp(r'\s+')).first;
-    return (int.tryParse(firstField) ?? 0) * 1024;
-  } catch (_) {
-    return 0;
-  }
+  final sizes = await pathSizes([path]);
+  return sizes[path] ?? 0;
 }
 
-/// Runs [task] over [items] with at most [limit] futures in flight, preserving
-/// input order in the result.
+/// Allocated bytes for each of [paths], in one native call.
+///
+/// This used to spawn one `du -sk` process per path, which meant thousands of
+/// process spawns for a single sweep of `~/Library` and made sizing far and away
+/// the slowest thing in the app. The native side walks with `fts(3)` on a
+/// background thread instead.
+///
+/// The figures are *allocated* size (`st_blocks * 512`), not logical size. On
+/// APFS that distinction is worth real money: a sparse file like Docker's
+/// `Docker.raw` reports 64 GB logically while occupying 8, and quoting the
+/// logical number promises the user space that isn't there.
+Future<Map<String, int>> pathSizes(List<String> paths) =>
+    SystemBridge.sizeOfPaths(paths);
+
+/// Maps [items] through [task] with at most [limit] running at once, preserving
+/// order.
+///
+/// Still the right tool for anything the native side can't batch — per-item
+/// plist reads, icon fetches, sub-scans.
 Future<List<R>> mapPooled<T, R>(
   List<T> items,
-  Future<R> Function(T) task, {
+  Future<R> Function(T item) task, {
   int limit = kDefaultConcurrency,
 }) async {
   if (items.isEmpty) return <R>[];
@@ -39,7 +49,9 @@ Future<List<R>> mapPooled<T, R>(
     }
   }
 
-  final workers = limit.clamp(1, items.length);
-  await Future.wait(List.generate(workers, (_) => worker()));
+  await Future.wait([
+    for (var i = 0; i < limit && i < items.length; i++) worker(),
+  ]);
+
   return results.cast<R>();
 }
