@@ -143,12 +143,27 @@ class CompositionCard extends StatelessWidget {
     required this.rows,
     this.emptyMessage = 'Nothing to show yet.',
     this.color,
+    this.filled = false,
   });
 
   final String title;
   final List<({String label, int bytes, String detail})> rows;
   final String emptyMessage;
   final Color? color;
+
+  /// Whether this card is being stretched to a height its own content did not
+  /// ask for — true when it shares a row with fuller siblings.
+  ///
+  /// It only changes the empty state, which is the case that suffers: one line
+  /// of text pinned to the top of a box sized by a neighbour's five rows reads
+  /// as a card that failed to load rather than one with nothing to say.
+  /// Centred in the space, it reads as deliberate.
+  ///
+  /// A flag rather than always centring, because centring needs a flex child
+  /// to claim the leftover height, and the stacked layout drops these cards
+  /// straight into a scrolling column where the height is unbounded — a flex
+  /// child of an unbounded column throws in layout.
+  final bool filled;
 
   @override
   Widget build(BuildContext context) {
@@ -165,7 +180,7 @@ class CompositionCard extends StatelessWidget {
           Text(title, style: context.text.overline),
           const SizedBox(height: AppSpacing.md),
           if (rows.isEmpty)
-            Text(emptyMessage, style: context.text.bodyM)
+            _emptyState(context)
           else
             for (final row in rows)
               Padding(
@@ -199,6 +214,24 @@ class CompositionCard extends StatelessWidget {
                 ),
               ),
         ],
+      ),
+    );
+  }
+
+  /// The message, centred into the leftover height when there is any.
+  Widget _emptyState(BuildContext context) {
+    final message = Text(
+      emptyMessage,
+      style: context.text.bodyM,
+      textAlign: filled ? TextAlign.center : TextAlign.start,
+    );
+    if (!filled) return message;
+    return Expanded(
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
+          child: message,
+        ),
       ),
     );
   }

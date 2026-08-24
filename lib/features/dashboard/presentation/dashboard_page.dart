@@ -136,7 +136,7 @@ class _DashboardViewState extends State<_DashboardView> {
                 onRange: (range) => bloc.add(TrendRangeChanged(range)),
               ),
               const SizedBox(height: AppSpacing.xl),
-              _BottomRow(state: state),
+              _ActivityAndCompositions(state: state),
             ],
           ),
         );
@@ -167,94 +167,130 @@ class _DashboardViewState extends State<_DashboardView> {
   };
 }
 
-/// Activity beside the compositions — two columns at full width, stacked when
-/// the window is narrow.
-class _BottomRow extends StatelessWidget {
-  const _BottomRow({required this.state});
+/// What Tidy has done, and what the machine is made of.
+///
+/// Two bands rather than two columns. The compositions are three readings of
+/// the same shape — a label, a figure, a proportional bar — and they belong
+/// beside each other, at one height, so the bars can be compared by eye. Recent
+/// activity is not that shape at all: it is a feed, it grows without limit, and
+/// its rows need the width to say what happened without ellipsing it away.
+///
+/// Stacking the three compositions into a column beside it, which is what this
+/// used to do, made the two sides disagree about how tall the section was — a
+/// long stack on one side and a short card marooned at the top of an empty
+/// column on the other.
+class _ActivityAndCompositions extends StatelessWidget {
+  const _ActivityAndCompositions({required this.state});
 
   final DashboardState state;
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.colors;
-
-    final removed = CompositionCard(
-      title: 'REMOVED BY CATEGORY',
-      color: colors.safe,
-      emptyMessage:
-          'Once Tidy has cleaned something up, what it was is broken down here.',
-      rows: [
-        for (final category in state.removedByCategory)
-          (
-            label: category.category,
-            bytes: category.bytes,
-            detail:
-                '${formatBytes(category.bytes)} · ${category.itemCount} items',
-          ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        RecentActivity(state: state),
+        const SizedBox(height: AppSpacing.lg),
+        _Compositions(state: state),
       ],
     );
+  }
+}
 
-    final trash = CompositionCard(
-      title: 'TRASH BY KIND',
-      color: colors.review,
-      emptyMessage: 'The Trash is empty.',
-      rows: _trashRows(state),
-    );
+/// The three breakdowns, side by side and all the same height.
+class _Compositions extends StatelessWidget {
+  const _Compositions({required this.state});
 
-    final developers = CompositionCard(
-      title: 'APPS BY DEVELOPER',
-      color: colors.info,
-      emptyMessage: 'Open Applications once to take stock.',
-      rows: [
-        for (final developer in state.apps.byDeveloper)
-          (
-            label: developer.name,
-            bytes: developer.bytes,
-            detail: formatBytes(developer.bytes),
-          ),
-      ],
-    );
+  final DashboardState state;
 
+  /// Under this the three cards no longer have the width to hold a name, a
+  /// figure and a bar, and the names start ellipsing to nothing.
+  static const double _threeAcross = 900;
+
+  @override
+  Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final wide = constraints.maxWidth >= 900;
-        if (!wide) {
+        final across = constraints.maxWidth >= _threeAcross;
+        final cards = _cards(context, filled: across);
+
+        if (!across) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              RecentActivity(state: state),
-              const SizedBox(height: AppSpacing.lg),
-              removed,
-              const SizedBox(height: AppSpacing.lg),
-              trash,
-              const SizedBox(height: AppSpacing.lg),
-              developers,
+              for (var i = 0; i < cards.length; i++) ...[
+                if (i > 0) const SizedBox(height: AppSpacing.lg),
+                cards[i],
+              ],
             ],
           );
         }
 
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(flex: 3, child: RecentActivity(state: state)),
-            const SizedBox(width: AppSpacing.lg),
-            Expanded(
-              flex: 2,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  removed,
-                  const SizedBox(height: AppSpacing.lg),
-                  trash,
-                  const SizedBox(height: AppSpacing.lg),
-                  developers,
-                ],
-              ),
-            ),
-          ],
+        // IntrinsicHeight, not a stretched Row: the page lives in a scroll
+        // view, so its height is unbounded, and stretching into that hands the
+        // cards an infinite constraint and throws in layout. This measures the
+        // tallest card and matches the other two to it.
+        return IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (var i = 0; i < cards.length; i++) ...[
+                if (i > 0) const SizedBox(width: AppSpacing.lg),
+                Expanded(child: cards[i]),
+              ],
+            ],
+          ),
         );
       },
     );
+  }
+
+  /// [filled] says the cards are about to be stretched to a shared height, so
+  /// an empty one should centre its message rather than leave it stranded
+  /// against the top of a box sized by a fuller neighbour.
+  List<Widget> _cards(BuildContext context, {required bool filled}) {
+    final colors = context.colors;
+
+    return [
+      CompositionCard(
+        title: 'REMOVED BY CATEGORY',
+        color: colors.safe,
+        filled: filled,
+        emptyMessage:
+            'Once Tidy has cleaned something up, what it was is broken down '
+            'here.',
+        rows: [
+          for (final category in state.removedByCategory)
+            (
+              label: category.category,
+              bytes: category.bytes,
+              detail:
+                  '${formatBytes(category.bytes)} · ${category.itemCount} items',
+            ),
+        ],
+      ),
+      CompositionCard(
+        title: 'TRASH BY KIND',
+        color: colors.review,
+        filled: filled,
+        emptyMessage: 'The Trash is empty.',
+        rows: _trashRows(state),
+      ),
+      CompositionCard(
+        title: 'APPS BY DEVELOPER',
+        color: colors.info,
+        filled: filled,
+        emptyMessage: 'Open Applications once to take stock.',
+        rows: [
+          for (final developer in state.apps.byDeveloper)
+            (
+              label: developer.name,
+              bytes: developer.bytes,
+              detail: formatBytes(developer.bytes),
+            ),
+        ],
+      ),
+    ];
   }
 
   static List<({String label, int bytes, String detail})> _trashRows(
