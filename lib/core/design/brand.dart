@@ -1,4 +1,6 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
+
+import 'package:mac_uninstaller/core/design/app_icons.dart';
 
 /// Product identity, in one place.
 ///
@@ -22,5 +24,5 @@ class Brand {
   /// Where the on-disk scan cache lives. Also unchanged, for the same reason.
   static const String supportDirectoryName = 'MacUninstaller';
 
-  static const IconData mark = Icons.auto_awesome_rounded;
+  static const IconData mark = AppIcons.brand;
 }

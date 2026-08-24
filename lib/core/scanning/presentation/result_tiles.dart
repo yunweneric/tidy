@@ -148,7 +148,7 @@ class _ResultTile extends StatelessWidget {
             const SizedBox(height: AppSpacing.sm),
             Row(
               children: [
-                Icon(Icons.lock_outline_rounded, size: 12, color: colors.textMuted),
+                Icon(AppIcons.locked, size: 12, color: colors.textMuted),
                 const SizedBox(width: AppSpacing.xs),
                 Expanded(
                   child: Text(

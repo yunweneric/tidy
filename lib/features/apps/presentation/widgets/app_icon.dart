@@ -13,7 +13,7 @@ class AppIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.colors;
     final placeholder = Icon(
-      Icons.apps_rounded,
+      AppIcons.appPlaceholder,
       size: size * 0.5,
       color: colors.textMuted,
     );

@@ -1,6 +1,7 @@
 /// The design system: tokens, theme builders and token accessors.
 library;
 
+export 'app_icons.dart';
 export 'app_theme.dart';
 export 'brand.dart';
 export 'context_ext.dart';

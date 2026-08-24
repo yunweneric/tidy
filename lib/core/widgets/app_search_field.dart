@@ -24,7 +24,7 @@ class AppSearchField extends StatelessWidget {
       decoration: InputDecoration(
         hintText: hintText,
         prefixIcon: Icon(
-          Icons.search_rounded,
+          AppIcons.search,
           size: 17,
           color: context.colors.textMuted,
         ),

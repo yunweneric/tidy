@@ -20,17 +20,17 @@ class StatusChip extends StatelessWidget {
       SafetyLevel.safe => StatusChip(
         label: 'Safe to remove',
         color: colors.safe,
-        icon: Icons.check_circle_outline_rounded,
+        icon: AppIcons.safe,
       ),
       SafetyLevel.review => StatusChip(
         label: 'Worth a look',
         color: colors.review,
-        icon: Icons.visibility_outlined,
+        icon: AppIcons.review,
       ),
       SafetyLevel.risky => StatusChip(
         label: 'Your data',
         color: colors.risky,
-        icon: Icons.warning_amber_rounded,
+        icon: AppIcons.risky,
       ),
     };
   }

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mac_uninstaller/core/theme/app_theme.dart';
+import 'package:mac_uninstaller/core/design/design.dart';
 import 'package:mac_uninstaller/features/apps/data/models/mac_app_model.dart';
 import 'package:mac_uninstaller/features/apps/presentation/widgets/app_icon.dart';
 import 'package:mac_uninstaller/features/apps/utils/size_utils.dart';
@@ -31,16 +31,21 @@ class MenuBarAppRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-      color: confirming ? AppTheme.surfaceCard : Colors.transparent,
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md + 2,
+        vertical: AppSpacing.xs + 2,
+      ),
+      color: confirming ? colors.surface : Colors.transparent,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Row(
             children: [
-              AppIcon(app: app, size: 26),
-              const SizedBox(width: 10),
+              AppIcon(app: app, size: 24),
+              const SizedBox(width: AppSpacing.sm + 2),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -48,28 +53,19 @@ class MenuBarAppRow extends StatelessWidget {
                   children: [
                     Text(
                       app.name,
-                      style: AppTheme.bodyPrimary.copyWith(fontSize: 13),
+                      style: context.text.label,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    Text(
-                      app.lastUsedLabel,
-                      style: AppTheme.labelSmall.copyWith(
-                        fontSize: 10,
-                        color: AppTheme.textMuted,
-                      ),
-                    ),
+                    Text(app.lastUsedLabel, style: context.text.caption),
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
-              Text(
-                formatBytes(app.sizeBytes),
-                style: AppTheme.bodySecondary.copyWith(fontSize: 12),
-              ),
+              const SizedBox(width: AppSpacing.sm),
+              Text(formatBytes(app.sizeBytes), style: context.text.bodyS),
               if (!confirming)
                 IconButton(
-                  icon: const Icon(Icons.delete_outline, size: 15),
-                  color: AppTheme.accentRed,
+                  icon: const Icon(AppIcons.delete, size: 15),
+                  color: colors.risky,
                   tooltip: 'Uninstall ${app.name}',
                   visualDensity: VisualDensity.compact,
                   constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
@@ -81,29 +77,26 @@ class MenuBarAppRow extends StatelessWidget {
             ],
           ),
           if (confirming) ...[
-            const SizedBox(height: 4),
+            const SizedBox(height: AppSpacing.xs),
             Row(
               children: [
                 Expanded(
                   child: Text(
                     pendingLabel ?? '',
-                    style: AppTheme.labelSmall.copyWith(
-                      fontSize: 11,
-                      color: AppTheme.accentOrange,
-                    ),
+                    style: context.text.caption.copyWith(color: colors.review),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 TextButton(
                   onPressed: onCancel,
-                  style: _compactButtonStyle(AppTheme.textSecondary),
-                  child: const Text('Cancel', style: TextStyle(fontSize: 11)),
+                  style: _compactButtonStyle(colors.textSecondary),
+                  child: const Text('Cancel'),
                 ),
-                const SizedBox(width: 4),
+                const SizedBox(width: AppSpacing.xs),
                 TextButton(
                   onPressed: onConfirm,
-                  style: _compactButtonStyle(AppTheme.accentRed),
-                  child: const Text('Move to Trash', style: TextStyle(fontSize: 11)),
+                  style: _compactButtonStyle(colors.risky),
+                  child: const Text('Move to Trash'),
                 ),
               ],
             ),
@@ -116,7 +109,8 @@ class MenuBarAppRow extends StatelessWidget {
   static ButtonStyle _compactButtonStyle(Color color) {
     return TextButton.styleFrom(
       foregroundColor: color,
-      padding: const EdgeInsets.symmetric(horizontal: 8),
+      textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
       minimumSize: const Size(0, 26),
       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
     );

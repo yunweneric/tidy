@@ -39,6 +39,9 @@ dependencies:
   # and the menu-bar popover runs in a second Flutter engine that cannot see the
   # main window's BlocProvider — it needs its own registry regardless.
   get_it: ^8.0.3
+  # Icon set. Material's glyphs are inconsistent in weight and read as
+  # "generic Android app" on macOS; HugeIcons is a single stroke-weight family.
+  hugeicons: ^0.0.11
   path: ^1.9.0
 
 dev_dependencies:

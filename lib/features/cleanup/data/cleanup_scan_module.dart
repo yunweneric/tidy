@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:mac_uninstaller/core/design/app_icons.dart';
 import 'package:mac_uninstaller/core/scanning/domain/scan_module.dart';
 import 'package:mac_uninstaller/core/scanning/domain/scan_node.dart';
 import 'package:mac_uninstaller/core/utils/byte_format.dart';
@@ -31,7 +32,7 @@ class CleanupScanModule implements ScanModule {
   ModuleId get id => ModuleId.systemJunk;
 
   @override
-  IconData get icon => Icons.cleaning_services_rounded;
+  IconData get icon => AppIcons.cleanup;
 
   @override
   bool get needsFullDiskAccess => true;

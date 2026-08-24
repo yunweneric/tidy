@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mac_uninstaller/core/platform/system_bridge.dart';
-import 'package:mac_uninstaller/core/theme/app_theme.dart';
+import 'package:mac_uninstaller/core/design/design.dart';
+import 'package:mac_uninstaller/core/di/service_locator.dart';
 import 'package:mac_uninstaller/features/apps/data/models/mac_app_model.dart';
 import 'package:mac_uninstaller/features/apps/data/services/apps_service.dart';
 import 'package:mac_uninstaller/features/apps/data/services/junk_scanner.dart';
@@ -19,10 +20,14 @@ class MenuBarPanelApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // The popover has no settings UI of its own, so it simply follows the
+    // system appearance — which is also what the menu bar behind it does.
     return MaterialApp(
-      title: 'MacUninstaller',
-      theme: AppTheme.dark,
+      title: Brand.name,
       debugShowCheckedModeBanner: false,
+      themeMode: ThemeMode.system,
+      theme: TidyTheme.light(),
+      darkTheme: TidyTheme.dark(),
       home: const MenuBarPanel(),
     );
   }
@@ -42,10 +47,10 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
   static const int _topAppCount = 8;
 
   late final PopoverBridge _bridge = PopoverBridge(onPopoverOpened: _onPopoverOpened);
-  final AppManagerService _service = AppManagerService();
-  final ScanCache _cache = ScanCache();
-  final JunkScanner _junkScanner = JunkScanner();
-  final LeftoverScanner _leftoverScanner = LeftoverScanner();
+  final AppManagerService _service = locator<AppManagerService>();
+  final ScanCache _cache = locator<ScanCache>();
+  final JunkScanner _junkScanner = locator<JunkScanner>();
+  final LeftoverScanner _leftoverScanner = locator<LeftoverScanner>();
 
   List<MacApp> _apps = const [];
   DiskUsage _disk = DiskUsage.empty;
@@ -214,7 +219,7 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
     // height-filling widget instead would just report the popover's current
     // size back to itself and never grow.
     return Scaffold(
-      backgroundColor: AppTheme.backgroundSidebar,
+      backgroundColor: context.colors.sidebar,
       body: SingleChildScrollView(
         child: MeasureSize(
           onChange: (size) => _bridge.setHeight(size.height),
@@ -283,12 +288,9 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
       padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
       child: Row(
         children: [
-          const Icon(Icons.cleaning_services, size: 16, color: AppTheme.accentBlue),
-          const SizedBox(width: 8),
-          Text(
-            'MacUninstaller',
-            style: AppTheme.bodyPrimary.copyWith(fontWeight: FontWeight.w700),
-          ),
+          Icon(Brand.mark, size: 15, color: context.colors.accent),
+          const SizedBox(width: AppSpacing.sm),
+          Text(Brand.name, style: context.text.titleS),
           const Spacer(),
           if (_busy)
             const Padding(
@@ -300,7 +302,7 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
               ),
             ),
           _IconAction(
-            icon: Icons.refresh,
+            icon: AppIcons.refresh,
             tooltip: 'Rescan',
             onPressed: _busy
                 ? null
@@ -313,7 +315,7 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
                   },
           ),
           _IconAction(
-            icon: Icons.open_in_new,
+            icon: AppIcons.openExternal,
             tooltip: 'Open full app',
             onPressed: _bridge.openMainWindow,
           ),
@@ -329,14 +331,18 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
       padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
       child: Row(
         children: [
-          const Icon(Icons.delete_sweep_outlined, size: 16, color: AppTheme.accentOrange),
+          Icon(
+            AppIcons.cleanup,
+            size: 15,
+            color: context.colors.review,
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               reclaimable == 0
                   ? 'No cache or log junk found'
                   : '${formatBytes(reclaimable)} in caches, logs & saved state',
-              style: AppTheme.bodySecondary,
+              style: context.text.bodyM,
               overflow: TextOverflow.ellipsis,
             ),
           ),
@@ -347,7 +353,7 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
               minimumSize: const Size(0, 28),
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
-            child: const Text('Clean', style: TextStyle(fontSize: 12)),
+            child: const Text('Clean'),
           ),
         ],
       ),
@@ -362,19 +368,19 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
           Expanded(
             child: Text(
               _status ?? '${formatBytes(_disk.freeBytes)} free',
-              style: AppTheme.labelSmall,
+              style: context.text.caption,
               overflow: TextOverflow.ellipsis,
             ),
           ),
           TextButton(
             onPressed: _bridge.quitApp,
             style: TextButton.styleFrom(
-              foregroundColor: AppTheme.textSecondary,
-              padding: const EdgeInsets.symmetric(horizontal: 10),
+              foregroundColor: context.colors.textSecondary,
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm + 2),
               minimumSize: const Size(0, 28),
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
-            child: const Text('Quit', style: TextStyle(fontSize: 12)),
+            child: const Text('Quit'),
           ),
         ],
       ),
@@ -408,7 +414,7 @@ class _IconAction extends StatelessWidget {
   Widget build(BuildContext context) {
     return IconButton(
       icon: Icon(icon, size: 16),
-      color: AppTheme.textSecondary,
+      color: context.colors.textSecondary,
       tooltip: tooltip,
       visualDensity: VisualDensity.compact,
       constraints: const BoxConstraints(minWidth: 30, minHeight: 30),

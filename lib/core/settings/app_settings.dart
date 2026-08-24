@@ -19,6 +19,11 @@ class AppSettings extends ChangeNotifier {
 
   static const String _themeKey = 'themeMode';
   static const String _reduceMotionKey = 'reduceMotion';
+  static const String _onboardingKey = 'onboardingCompletedVersion';
+
+  /// Bumping this shows onboarding again — for when a release adds a
+  /// permission or a capability the existing copy does not cover.
+  static const int onboardingVersion = 1;
 
   /// Loads from disk, falling back to defaults if anything is missing or
   /// unreadable. Never throws — a corrupt settings file should not stop the app
@@ -74,6 +79,21 @@ class AppSettings extends ChangeNotifier {
 
   set reduceMotion(bool value) {
     _values[_reduceMotionKey] = value;
+    _persist();
+  }
+
+  /// False on first run, and again after [onboardingVersion] is bumped.
+  bool get hasCompletedOnboarding =>
+      (_values[_onboardingKey] as int? ?? 0) >= onboardingVersion;
+
+  void completeOnboarding() {
+    _values[_onboardingKey] = onboardingVersion;
+    _persist();
+  }
+
+  /// Used by the "show me the intro again" affordance in Settings.
+  void resetOnboarding() {
+    _values.remove(_onboardingKey);
     _persist();
   }
 

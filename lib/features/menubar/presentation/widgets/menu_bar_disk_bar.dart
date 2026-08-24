@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:mac_uninstaller/core/design/design.dart';
 import 'package:mac_uninstaller/core/platform/system_bridge.dart';
-import 'package:mac_uninstaller/core/theme/app_theme.dart';
+import 'package:mac_uninstaller/core/widgets/size_bar.dart';
 import 'package:mac_uninstaller/features/apps/utils/size_utils.dart';
 
-/// Disk usage summary at the top of the popover: how full the volume is, and
-/// how much of that this app can hand back.
+/// Disk usage at the top of the popover: how full the volume is, and how much
+/// of that this app can hand back.
 class MenuBarDiskBar extends StatelessWidget {
   const MenuBarDiskBar({super.key, required this.disk, this.reclaimable = 0});
 
@@ -13,7 +14,14 @@ class MenuBarDiskBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final unknown = disk.totalBytes == 0;
+
+    final barColor = switch (disk.usedFraction) {
+      >= 0.95 => colors.risky,
+      >= 0.85 => colors.review,
+      _ => colors.accent,
+    };
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -22,26 +30,20 @@ class MenuBarDiskBar extends StatelessWidget {
           children: [
             Text(
               unknown ? 'Reading disk…' : '${formatBytes(disk.usedBytes)} used',
-              style: AppTheme.bodyPrimary.copyWith(fontWeight: FontWeight.w600),
+              style: context.text.titleS,
             ),
             const Spacer(),
             Text(
               unknown ? '' : '${formatBytes(disk.freeBytes)} free',
-              style: AppTheme.labelSmall,
+              style: context.text.caption,
             ),
           ],
         ),
-        const SizedBox(height: 8),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(4),
-          child: LinearProgressIndicator(
-            value: unknown ? 0 : disk.usedFraction,
-            backgroundColor: AppTheme.borderSubtle,
-            valueColor: AlwaysStoppedAnimation<Color>(
-              disk.usedFraction > 0.9 ? AppTheme.accentRed : AppTheme.accentBlue,
-            ),
-            minHeight: 6,
-          ),
+        const SizedBox(height: AppSpacing.sm),
+        SizeBar(
+          fraction: unknown ? 0 : disk.usedFraction,
+          color: barColor,
+          height: 5,
         ),
       ],
     );

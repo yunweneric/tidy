@@ -202,13 +202,13 @@ class _FullDiskAccessRow extends StatelessWidget {
                             StatusChip(
                               label: 'Granted',
                               color: colors.safe,
-                              icon: Icons.check_circle_outline_rounded,
+                              icon: AppIcons.safe,
                             )
                           else if (granted == false)
                             StatusChip(
                               label: 'Not granted',
                               color: colors.review,
-                              icon: Icons.lock_outline_rounded,
+                              icon: AppIcons.locked,
                             ),
                         ],
                       ),

@@ -117,7 +117,7 @@ class _ApplicationsPageState extends State<ApplicationsPage>
           child: _Stat(
             label: 'Apps installed',
             value: '${removable.length}',
-            icon: Icons.grid_view_rounded,
+            icon: AppIcons.applications,
             color: colors.accent,
           ),
         ),
@@ -126,7 +126,7 @@ class _ApplicationsPageState extends State<ApplicationsPage>
           child: _Stat(
             label: 'Space used by apps',
             value: formatBytes(totalBytes(removable)),
-            icon: Icons.pie_chart_outline_rounded,
+            icon: AppIcons.analytics,
             color: colors.info,
           ),
         ),
@@ -135,7 +135,7 @@ class _ApplicationsPageState extends State<ApplicationsPage>
           child: _Stat(
             label: 'Not opened in 6 months',
             value: '${unused.length}',
-            icon: Icons.hourglass_empty_rounded,
+            icon: AppIcons.activity,
             color: unused.isEmpty ? colors.safe : colors.review,
             onTap: unused.isEmpty
                 ? null
@@ -148,6 +148,7 @@ class _ApplicationsPageState extends State<ApplicationsPage>
 
   Widget _toolbarAndTable(BuildContext context, AppsState state) {
     final colors = context.colors;
+    final loaded = state is AppsLoaded ? state : null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -155,28 +156,34 @@ class _ApplicationsPageState extends State<ApplicationsPage>
         app_widgets.AppListToolbar(
           filter: _filter,
           onFilterChanged: _changeFilter,
-          sort: _sort,
-          onSortChanged: (sort) => setState(() => _sort = sort),
+          counts: _filterCounts(loaded),
           selectedCount: _selectedPaths.length,
           onBulkUninstallPressed: () => _uninstallSelected(context, state),
         ),
+        const SizedBox(height: AppSpacing.md),
         Container(
+          clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
             color: colors.surface,
-            borderRadius: const BorderRadius.only(
-              bottomLeft: Radius.circular(AppRadii.lg),
-              bottomRight: Radius.circular(AppRadii.lg),
-            ),
-            border: Border(
-              left: BorderSide(color: colors.border),
-              right: BorderSide(color: colors.border),
-              bottom: BorderSide(color: colors.border),
-            ),
+            borderRadius: AppRadii.lgAll,
+            border: Border.all(color: colors.border),
           ),
           child: _table(context, state),
         ),
       ],
     );
+  }
+
+  /// Row counts per filter, so the segmented control answers "is there anything
+  /// in there?" before it is clicked.
+  List<int> _filterCounts(AppsLoaded? state) {
+    if (state == null) return const [];
+    final apps = state.apps;
+    return [
+      apps.length,
+      apps.where((a) => a.sizeBytes >= _largeAppThresholdBytes).length,
+      apps.where((a) => !a.isSystem && _isUnused(a)).length,
+    ];
   }
 
   Widget _table(BuildContext context, AppsState state) {
@@ -200,7 +207,7 @@ class _ApplicationsPageState extends State<ApplicationsPage>
       return SizedBox(
         height: 320,
         child: EmptyState(
-          icon: Icons.error_outline_rounded,
+          icon: AppIcons.error,
           accent: context.colors.risky,
           title: 'Could not read your applications',
           message: state.message,
@@ -229,14 +236,31 @@ class _ApplicationsPageState extends State<ApplicationsPage>
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         DataTableHeader(
-          columnLabels: const [
-            'APPLICATION',
-            'DEVELOPER',
-            'VERSION',
-            'LAST OPENED',
-            'SIZE',
+          columnLabels: const [],
+          trailingWidth: app_widgets.AppTableLayout.actions,
+          columns: [
+            TableColumn(
+              'APPLICATION',
+              flex: app_widgets.AppTableLayout.appFlex,
+              sort: _sortIndicatorFor(app_widgets.AppSort.name),
+              onTap: () => _applySort(app_widgets.AppSort.name),
+            ),
+            const TableColumn('DEVELOPER', flex: app_widgets.AppTableLayout.developerFlex),
+            const TableColumn('VERSION', width: app_widgets.AppTableLayout.version),
+            TableColumn(
+              'LAST OPENED',
+              flex: app_widgets.AppTableLayout.lastOpenedFlex,
+              sort: _sortIndicatorFor(app_widgets.AppSort.lastUsed),
+              onTap: () => _applySort(app_widgets.AppSort.lastUsed),
+            ),
+            TableColumn(
+              'SIZE',
+              width: app_widgets.AppTableLayout.size,
+              align: TextAlign.right,
+              sort: _sortIndicatorFor(app_widgets.AppSort.size),
+              onTap: () => _applySort(app_widgets.AppSort.size),
+            ),
           ],
-          flexValues: const [3, 2, 1, 2, 1],
           showSelectAll: true,
           selectAllValue: selectedOnPage == 0
               ? false
@@ -247,7 +271,7 @@ class _ApplicationsPageState extends State<ApplicationsPage>
           SizedBox(
             height: 240,
             child: EmptyState(
-              icon: Icons.search_off_rounded,
+              icon: AppIcons.nothingFound,
               title: _searchQuery.isEmpty
                   ? 'Nothing matches this filter'
                   : 'Nothing matches “$_searchQuery”',
@@ -257,20 +281,20 @@ class _ApplicationsPageState extends State<ApplicationsPage>
             ),
           )
         else
-          ...pageApps.map(
-            (app) => app_widgets.AppTableRow(
-              app: app,
-              selected: _selectedPaths.contains(app.path),
+          for (var i = 0; i < pageApps.length; i++)
+            app_widgets.AppTableRow(
+              app: pageApps[i],
+              isLast: i == pageApps.length - 1,
+              selected: _selectedPaths.contains(pageApps[i].path),
               onSelectionChanged: (selected) => setState(() {
                 if (selected) {
-                  _selectedPaths.add(app.path);
+                  _selectedPaths.add(pageApps[i].path);
                 } else {
-                  _selectedPaths.remove(app.path);
+                  _selectedPaths.remove(pageApps[i].path);
                 }
               }),
-              onUninstall: () => _confirmUninstall(context, [app]),
+              onUninstall: () => _confirmUninstall(context, [pageApps[i]]),
             ),
-          ),
         app_widgets.AppTableFooter(
           itemCount: filtered.length,
           totalSize: formatAppsTotalSize(filtered.where((a) => !a.isSystem)),
@@ -329,6 +353,23 @@ class _ApplicationsPageState extends State<ApplicationsPage>
   static bool _isUnused(MacApp app) {
     final days = app.daysSinceLastUsed;
     return days == null || days >= _unusedThresholdDays;
+  }
+
+  /// Sorting is single-key and always descending except by name, which reads
+  /// backwards that way. Tapping the active column is a no-op rather than a
+  /// direction toggle — there is no meaningful "smallest apps first" view.
+  SortDirection _sortIndicatorFor(app_widgets.AppSort candidate) {
+    if (_sort != candidate) return SortDirection.none;
+    return candidate == app_widgets.AppSort.name
+        ? SortDirection.ascending
+        : SortDirection.descending;
+  }
+
+  void _applySort(app_widgets.AppSort sort) {
+    setState(() {
+      _sort = sort;
+      _currentPage = 1;
+    });
   }
 
   void _changeFilter(app_widgets.AppFilter filter) {
@@ -490,7 +531,7 @@ class _Stat extends StatelessWidget {
               const Spacer(),
               if (onTap != null)
                 Icon(
-                  Icons.chevron_right_rounded,
+                  AppIcons.forward,
                   size: 16,
                   color: context.colors.textMuted,
                 ),
@@ -523,7 +564,7 @@ class _RefreshButton extends StatelessWidget {
               height: 16,
               child: CircularProgressIndicator(strokeWidth: 2),
             )
-          : const Icon(Icons.refresh_rounded, size: 18),
+          : const Icon(AppIcons.refresh, size: 18),
     );
   }
 }

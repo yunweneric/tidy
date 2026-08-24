@@ -134,8 +134,8 @@ class _TreeRowState extends State<_TreeRow> {
                         ? null
                         : Icon(
                             _expanded
-                                ? Icons.keyboard_arrow_down_rounded
-                                : Icons.keyboard_arrow_right_rounded,
+                                ? AppIcons.expand
+                                : AppIcons.collapse,
                             size: 18,
                             color: colors.textMuted,
                           ),
@@ -172,7 +172,7 @@ class _TreeRowState extends State<_TreeRow> {
                     width: 32,
                     child: _hovered && node.paths.isNotEmpty
                         ? IconButton(
-                            icon: const Icon(Icons.folder_open_outlined, size: 15),
+                            icon: const Icon(AppIcons.revealInFinder, size: 15),
                             color: colors.textMuted,
                             tooltip: 'Reveal in Finder',
                             visualDensity: VisualDensity.compact,
@@ -242,7 +242,7 @@ class _TreeRowState extends State<_TreeRow> {
               StatusChip(
                 label: 'Needs admin',
                 color: colors.textMuted,
-                icon: Icons.lock_outline_rounded,
+                icon: AppIcons.locked,
               ),
             ],
             if (node.sharesStorage) ...[
@@ -254,7 +254,7 @@ class _TreeRowState extends State<_TreeRow> {
                 child: StatusChip(
                   label: 'Shared storage',
                   color: colors.info,
-                  icon: Icons.link_rounded,
+                  icon: AppIcons.sharedStorage,
                 ),
               ),
             ],

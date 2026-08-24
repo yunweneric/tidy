@@ -6,10 +6,23 @@ enum SortDirection { none, ascending, descending }
 
 /// One column in a [DataTableHeader].
 class TableColumn {
-  const TableColumn(this.label, {this.flex = 1, this.onTap, this.sort = SortDirection.none});
+  const TableColumn(
+    this.label, {
+    this.flex = 1,
+    this.width,
+    this.align = TextAlign.left,
+    this.onTap,
+    this.sort = SortDirection.none,
+  });
 
   final String label;
   final int flex;
+
+  /// Fixed width. Wins over [flex] — use it for short, predictable values so
+  /// the columns stop shifting as the list filters.
+  final double? width;
+
+  final TextAlign align;
 
   /// When set the header becomes clickable and shows a sort caret.
   final VoidCallback? onTap;
@@ -26,6 +39,7 @@ class DataTableHeader extends StatelessWidget {
     this.showSelectAll = false,
     this.onSelectAll,
     this.selectAllValue = false,
+    this.trailingWidth = 0,
   });
 
   /// Simple form: labels only.
@@ -41,6 +55,10 @@ class DataTableHeader extends StatelessWidget {
 
   /// Tri-state: true = all, false = none, null = some.
   final bool? selectAllValue;
+
+  /// Reserves room for a trailing action column so the header labels line up
+  /// with the data rather than drifting right by the width of a button.
+  final double trailingWidth;
 
   @override
   Widget build(BuildContext context) {
@@ -76,10 +94,17 @@ class DataTableHeader extends StatelessWidget {
               ),
             ),
           for (final column in resolved)
-            Expanded(
-              flex: column.flex,
-              child: _HeaderCell(column: column),
-            ),
+            if (column.width != null)
+              SizedBox(
+                width: column.width,
+                child: _HeaderCell(column: column),
+              )
+            else
+              Expanded(
+                flex: column.flex,
+                child: _HeaderCell(column: column),
+              ),
+          if (trailingWidth > 0) SizedBox(width: trailingWidth),
         ],
       ),
     );
@@ -97,24 +122,30 @@ class _HeaderCell extends StatelessWidget {
     final active = column.sort != SortDirection.none;
 
     final label = Row(
+      mainAxisAlignment: column.align == TextAlign.right
+          ? MainAxisAlignment.end
+          : MainAxisAlignment.start,
       children: [
         Flexible(
           child: Text(
             column.label,
+            textAlign: column.align,
             overflow: TextOverflow.ellipsis,
             style: context.text.overline.copyWith(
               color: active ? colors.accent : colors.textMuted,
             ),
           ),
         ),
-        if (active)
+        if (active) ...[
+          const SizedBox(width: 2),
           Icon(
             column.sort == SortDirection.ascending
-                ? Icons.arrow_drop_up_rounded
-                : Icons.arrow_drop_down_rounded,
-            size: 16,
+                ? AppIcons.sortAscending
+                : AppIcons.sortDescending,
+            size: 11,
             color: colors.accent,
           ),
+        ],
       ],
     );
 

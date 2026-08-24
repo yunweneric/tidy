@@ -1,3 +1,4 @@
+import 'package:mac_uninstaller/core/design/app_icons.dart';
 import 'package:flutter/material.dart';
 
 /// Where a sidebar entry sits.
@@ -20,67 +21,67 @@ enum NavGroup {
 enum AppDestination {
   smartCare(
     label: 'Smart Care',
-    icon: Icons.auto_awesome_rounded,
+    icon: AppIcons.smartCare,
     group: NavGroup.primary,
     blurb: 'One pass over everything, then a single review.',
   ),
   cleanup(
     label: 'Cleanup',
-    icon: Icons.cleaning_services_rounded,
+    icon: AppIcons.cleanup,
     group: NavGroup.primary,
     blurb: 'Reclaim space from caches, logs and build artefacts.',
   ),
   protection(
     label: 'Protection',
-    icon: Icons.shield_rounded,
+    icon: AppIcons.protection,
     group: NavGroup.primary,
     blurb: 'Check for known adware and unusual background items.',
   ),
   performance(
     label: 'Performance',
-    icon: Icons.speed_rounded,
+    icon: AppIcons.performance,
     group: NavGroup.primary,
     blurb: 'Tune startup items and run macOS upkeep.',
   ),
   applications(
     label: 'Applications',
-    icon: Icons.grid_view_rounded,
+    icon: AppIcons.applications,
     group: NavGroup.primary,
     blurb: 'Uninstall apps completely, and clean up after old ones.',
   ),
   clutter(
     label: 'My Clutter',
-    icon: Icons.folder_copy_rounded,
+    icon: AppIcons.clutter,
     group: NavGroup.primary,
     blurb: 'Find duplicates, near-identical photos and forgotten files.',
   ),
   spaceLens(
     label: 'Space Lens',
-    icon: Icons.donut_large_rounded,
+    icon: AppIcons.spaceLens,
     group: NavGroup.secondary,
     blurb: 'See what is actually filling your disk.',
   ),
   allTools(
     label: 'All Tools',
-    icon: Icons.widgets_rounded,
+    icon: AppIcons.allTools,
     group: NavGroup.secondary,
     blurb: 'Every scanner on its own, without the modules.',
   ),
   activity(
     label: 'Activity',
-    icon: Icons.history_rounded,
+    icon: AppIcons.activity,
     group: NavGroup.secondary,
     blurb: 'What has been cleaned, and what to look at next.',
   ),
   assistant(
     label: 'Assistant',
-    icon: Icons.monitor_heart_rounded,
+    icon: AppIcons.assistant,
     group: NavGroup.footer,
     blurb: 'How your Mac is doing, and what would help most.',
   ),
   settings(
     label: 'Settings',
-    icon: Icons.settings_rounded,
+    icon: AppIcons.settings,
     group: NavGroup.footer,
     blurb: 'Appearance, scanning and permissions.',
   );

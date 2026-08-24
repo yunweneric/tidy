@@ -13,7 +13,8 @@ enum AppFilter {
   final String label;
 }
 
-/// Table ordering.
+/// Table ordering. Driven from the column headers now, not a dropdown — the
+/// header is where people reach for sorting in a table.
 enum AppSort {
   size('Size'),
   name('Name'),
@@ -24,62 +25,50 @@ enum AppSort {
   final String label;
 }
 
-/// Filter tabs plus sort and bulk-uninstall actions.
+/// Filter segments on the left, the destructive bulk action on the right.
 class AppListToolbar extends StatelessWidget {
   const AppListToolbar({
     super.key,
     required this.filter,
     required this.onFilterChanged,
-    required this.sort,
-    required this.onSortChanged,
+    this.counts = const [],
     this.selectedCount = 0,
     this.onBulkUninstallPressed,
   });
 
   final AppFilter filter;
   final ValueChanged<AppFilter> onFilterChanged;
-  final AppSort sort;
-  final ValueChanged<AppSort> onSortChanged;
+  final List<int> counts;
   final int selectedCount;
   final VoidCallback? onBulkUninstallPressed;
 
   @override
   Widget build(BuildContext context) {
+    final hasSelection = selectedCount > 0;
+
     return Row(
       children: [
         SegmentedTabs(
           labels: AppFilter.values.map((f) => f.label).toList(),
+          counts: counts,
           selectedIndex: AppFilter.values.indexOf(filter),
           onChanged: (i) => onFilterChanged(AppFilter.values[i]),
         ),
         const Spacer(),
-        PopupMenuButton<AppSort>(
-          tooltip: 'Change sort order',
-          initialValue: sort,
-          onSelected: onSortChanged,
-          itemBuilder: (_) => [
-            for (final option in AppSort.values)
-              PopupMenuItem<AppSort>(
-                value: option,
-                child: Text(option.label, style: context.text.bodyL),
-              ),
-          ],
-          child: IgnorePointer(
-            child: OutlineActionButton(
-              label: 'Sort: ${sort.label}',
-              icon: Icons.swap_vert_rounded,
-              onPressed: () {},
-            ),
+        // The uninstall button only turns destructive once something is
+        // actually selected; a permanently red button stops meaning anything.
+        AnimatedOpacity(
+          duration: context.motion.normal,
+          opacity: hasSelection ? 1 : 0.45,
+          child: ActionButton(
+            label: hasSelection
+                ? 'Uninstall $selectedCount'
+                    '${selectedCount == 1 ? ' app' : ' apps'}'
+                : 'Uninstall selected',
+            icon: AppIcons.delete,
+            variant: ActionButtonVariant.danger,
+            onPressed: hasSelection ? onBulkUninstallPressed : null,
           ),
-        ),
-        const SizedBox(width: AppSpacing.md),
-        ActionButton(
-          label: selectedCount > 1
-              ? 'Uninstall $selectedCount apps'
-              : 'Uninstall selected',
-          icon: Icons.delete_outline_rounded,
-          variant: ActionButtonVariant.danger,
-          onPressed: selectedCount > 0 ? onBulkUninstallPressed : null,
         ),
       ],
     );

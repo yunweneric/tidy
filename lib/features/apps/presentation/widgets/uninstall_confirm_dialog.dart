@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:mac_uninstaller/core/platform/system_bridge.dart';
-import 'package:mac_uninstaller/core/theme/app_theme.dart';
+import 'package:mac_uninstaller/core/design/design.dart';
 import 'package:mac_uninstaller/features/apps/data/models/leftover_item.dart';
 import 'package:mac_uninstaller/features/apps/data/models/mac_app_model.dart';
 import 'package:mac_uninstaller/features/apps/data/services/leftover_scanner.dart';
+import 'package:mac_uninstaller/core/widgets/status_chip.dart';
 import 'package:mac_uninstaller/features/apps/utils/size_utils.dart';
 
 /// What the user approved in the preview.
@@ -115,15 +116,13 @@ class _UninstallConfirmDialogState extends State<UninstallConfirmDialog> {
     final multiple = widget.apps.length > 1;
 
     return AlertDialog(
-      backgroundColor: AppTheme.surfaceCard,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
       contentPadding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
       title: Text(
         multiple
             ? 'Uninstall ${widget.apps.length} applications?'
-            : 'Uninstall "${widget.apps.first.name}"?',
-        style: AppTheme.bodyPrimary.copyWith(fontSize: 18, fontWeight: FontWeight.w700),
+            : 'Uninstall “${widget.apps.first.name}”?',
+        style: context.text.titleM,
       ),
       content: SizedBox(
         width: 580,
@@ -138,15 +137,11 @@ class _UninstallConfirmDialogState extends State<UninstallConfirmDialog> {
                   ? 'No leftover files were found.'
                   : 'Found $_leftoverCount leftover ${_leftoverCount == 1 ? 'item' : 'items'}. '
                         'Uncheck anything you want to keep.',
-              style: AppTheme.bodySecondary,
+              style: context.text.bodyM,
             ),
             if (_scanning) ...[
-              const SizedBox(height: 10),
-              const LinearProgressIndicator(
-                backgroundColor: AppTheme.borderSubtle,
-                valueColor: AlwaysStoppedAnimation<Color>(AppTheme.accentBlue),
-                minHeight: 3,
-              ),
+              const SizedBox(height: AppSpacing.sm),
+              const LinearProgressIndicator(minHeight: 3),
             ],
             const SizedBox(height: 16),
             Flexible(
@@ -166,15 +161,12 @@ class _UninstallConfirmDialogState extends State<UninstallConfirmDialog> {
           children: [
             Text.rich(
               TextSpan(
-                text: 'Frees ',
-                style: AppTheme.bodySecondary,
+                text: _toTrash ? 'Moves ' : 'Removes ',
+                style: context.text.bodyM,
                 children: [
                   TextSpan(
                     text: formatBytes(_selectedBytes),
-                    style: AppTheme.bodyPrimary.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: AppTheme.accentGreen,
-                    ),
+                    style: context.text.titleM.copyWith(color: context.colors.safe),
                   ),
                 ],
               ),
@@ -187,8 +179,8 @@ class _UninstallConfirmDialogState extends State<UninstallConfirmDialog> {
             const SizedBox(width: 8),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.accentRed,
-                foregroundColor: Colors.white,
+                backgroundColor: context.colors.risky,
+                foregroundColor: context.colors.textOnAccent,
               ),
               onPressed: _scanning
                   ? null
@@ -200,7 +192,7 @@ class _UninstallConfirmDialogState extends State<UninstallConfirmDialog> {
                         toTrash: _toTrash,
                       ),
                     ),
-              child: Text(_toTrash ? 'Move to Trash' : 'Delete Permanently'),
+              child: Text(_toTrash ? 'Move to Trash' : 'Delete permanently'),
             ),
           ],
         ),
@@ -239,32 +231,42 @@ class _UninstallConfirmDialogState extends State<UninstallConfirmDialog> {
   }
 
   Widget _buildModeSelector() {
+    final colors = context.colors;
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceElevated,
-        borderRadius: BorderRadius.circular(10),
+        color: colors.surfaceRaised,
+        borderRadius: AppRadii.mdAll,
       ),
       child: Row(
         children: [
           Icon(
-            _toTrash ? Icons.restore_from_trash_outlined : Icons.warning_amber_rounded,
-            size: 18,
-            color: _toTrash ? AppTheme.accentGreen : AppTheme.accentOrange,
+            _toTrash
+                ? AppIcons.restore
+                : AppIcons.risky,
+            size: 17,
+            color: _toTrash ? colors.safe : colors.risky,
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Text(
               _toTrash
-                  ? 'Items move to the Trash and can be restored.'
-                  : 'Items are deleted immediately and cannot be restored.',
-              style: AppTheme.bodySecondary,
+                  ? 'Everything moves to the Trash, so you can put it back. '
+                        'Your disk will not show the space as free until the '
+                        'Trash is emptied.'
+                  : 'Removed immediately. Nothing can be recovered.',
+              style: context.text.bodyS,
             ),
           ),
-          Text('Permanently delete', style: AppTheme.labelSmall),
+          const SizedBox(width: AppSpacing.md),
+          Text('Delete permanently', style: context.text.caption),
           Switch(
             value: !_toTrash,
-            activeThumbColor: AppTheme.accentRed,
+            activeThumbColor: colors.risky,
             onChanged: (value) => setState(() => _toTrash = !value),
           ),
         ],
@@ -319,20 +321,23 @@ class _PreviewRow extends StatelessWidget {
                     Flexible(
                       child: Text(
                         title,
-                        style: AppTheme.bodyPrimary,
+                        style: context.text.label,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    _CategoryChip(label: categoryLabel),
+                    const SizedBox(width: AppSpacing.sm),
+                    StatusChip(
+                      label: categoryLabel,
+                      color: context.colors.textMuted,
+                    ),
                     if (requiresAdmin) ...[
-                      const SizedBox(width: 6),
-                      const Tooltip(
-                        message: 'Needs administrator rights — may fail',
+                      const SizedBox(width: AppSpacing.xs),
+                      Tooltip(
+                        message: 'Needs administrator rights — this one may fail',
                         child: Icon(
-                          Icons.lock_outline,
+                          AppIcons.locked,
                           size: 13,
-                          color: AppTheme.accentOrange,
+                          color: context.colors.review,
                         ),
                       ),
                     ],
@@ -340,19 +345,20 @@ class _PreviewRow extends StatelessWidget {
                 ),
                 Text(
                   subtitle,
-                  style: AppTheme.labelSmall.copyWith(color: AppTheme.textMuted),
+                  style: context.text.caption,
                   overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
           ),
           const SizedBox(width: 12),
-          Text(formatBytes(sizeBytes), style: AppTheme.bodySecondary),
+          Text(formatBytes(sizeBytes), style: context.text.bodyM),
           if (onReveal != null)
             IconButton(
-              icon: const Icon(Icons.folder_open_outlined, size: 16),
-              color: AppTheme.textMuted,
+              icon: const Icon(AppIcons.revealInFinder, size: 15),
+              color: context.colors.textMuted,
               tooltip: 'Reveal in Finder',
+              visualDensity: VisualDensity.compact,
               onPressed: onReveal,
             )
           else
@@ -363,23 +369,3 @@ class _PreviewRow extends StatelessWidget {
   }
 }
 
-class _CategoryChip extends StatelessWidget {
-  const _CategoryChip({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: AppTheme.backgroundPrimary,
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Text(
-        label,
-        style: AppTheme.labelSmall.copyWith(fontSize: 10, color: AppTheme.textMuted),
-      ),
-    );
-  }
-}

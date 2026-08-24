@@ -42,7 +42,7 @@ class RemovalSummary extends StatelessWidget {
                 color: colors.safe.withValues(alpha: 0.14),
                 borderRadius: AppRadii.xlAll,
               ),
-              child: Icon(Icons.check_rounded, size: 36, color: colors.safe),
+              child: Icon(AppIcons.check, size: 36, color: colors.safe),
             ),
             const SizedBox(height: AppSpacing.xl),
             AnimatedBytes(
@@ -107,7 +107,7 @@ class _Failures extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.info_outline_rounded, size: 16, color: colors.review),
+              Icon(AppIcons.info, size: 16, color: colors.review),
               const SizedBox(width: AppSpacing.sm),
               Text(
                 '${failures.length} item${failures.length == 1 ? '' : 's'} stayed put',

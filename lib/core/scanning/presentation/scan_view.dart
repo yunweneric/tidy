@@ -58,7 +58,7 @@ class ScanView extends StatelessWidget {
             if (focused != null)
               TextButton.icon(
                 onPressed: () => bloc.add(const FocusCategory(null)),
-                icon: const Icon(Icons.arrow_back_rounded, size: 16),
+                icon: const Icon(AppIcons.back, size: 16),
                 label: const Text('All categories'),
               ),
             if (state.phase == ScanPhase.results && focused == null)
@@ -113,7 +113,7 @@ class ScanView extends StatelessWidget {
 
       case ScanPhase.failed:
         return EmptyState(
-          icon: Icons.error_outline_rounded,
+          icon: AppIcons.error,
           accent: context.colors.risky,
           title: 'That scan could not finish',
           message: state.error,

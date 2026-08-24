@@ -32,7 +32,7 @@ class PermissionBanner extends StatelessWidget {
     if (compact) {
       return TextButton.icon(
         onPressed: onOpenSettings,
-        icon: Icon(Icons.lock_outline_rounded, size: 14, color: colors.review),
+        icon: Icon(AppIcons.locked, size: 14, color: colors.review),
         label: Text(
           'Grant Full Disk Access',
           style: context.text.caption.copyWith(color: colors.review),
@@ -57,7 +57,7 @@ class PermissionBanner extends StatelessWidget {
               color: colors.review.withValues(alpha: 0.14),
               borderRadius: AppRadii.mdAll,
             ),
-            child: Icon(Icons.lock_outline_rounded, size: 18, color: colors.review),
+            child: Icon(AppIcons.locked, size: 18, color: colors.review),
           ),
           const SizedBox(width: AppSpacing.md),
           Expanded(

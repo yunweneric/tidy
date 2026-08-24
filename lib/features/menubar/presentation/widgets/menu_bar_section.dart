@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mac_uninstaller/core/theme/app_theme.dart';
+import 'package:mac_uninstaller/core/design/design.dart';
 
 /// Small section heading inside the popover, with an optional trailing note.
 class MenuBarSection extends StatelessWidget {
@@ -11,16 +11,17 @@ class MenuBarSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 10, 14, 6),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.md + 2,
+        AppSpacing.sm + 2,
+        AppSpacing.md + 2,
+        AppSpacing.xs + 2,
+      ),
       child: Row(
         children: [
-          Text(title.toUpperCase(), style: AppTheme.sectionHeader),
+          Text(title.toUpperCase(), style: context.text.overline),
           const Spacer(),
-          if (trailing != null)
-            Text(
-              trailing!,
-              style: AppTheme.labelSmall.copyWith(color: AppTheme.textMuted),
-            ),
+          if (trailing != null) Text(trailing!, style: context.text.caption),
         ],
       ),
     );

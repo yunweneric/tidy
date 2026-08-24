@@ -133,7 +133,7 @@ class ScanHero extends StatelessWidget {
     return ScanHero(
       headline: headline,
       message: message,
-      icon: Icons.check_rounded,
+      icon: AppIcons.check,
       actionLabel: 'Scan again',
       onAction: onRescan,
     );
