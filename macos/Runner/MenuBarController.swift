@@ -88,7 +88,33 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
 
   // MARK: - Status item
 
+  /// Names an item and puts it back on the menu bar.
+  ///
+  /// Both halves matter, and neither is belt-and-braces.
+  ///
+  /// **The name.** An `NSStatusItem` with no `autosaveName` is filed by AppKit
+  /// under an ordinal — `Item-0`, `Item-1`, `Item-2` — allocated in creation
+  /// order. That is a shared namespace, not a private one, and macOS 26 keeps
+  /// the menu bar's visibility state centrally now that Control Center owns the
+  /// bar: `com.apple.controlcenter` here carries `NSStatusItem Visible Item-0`
+  /// through `Item-9`, every one of them `0`. Any app whose items are unnamed
+  /// inherits that "hidden" verdict — which is exactly what happened to all
+  /// three of ours, and to at least one other app's on this machine. A stable
+  /// name of our own takes the items out of the shared bucket.
+  ///
+  /// **The visibility.** `behavior` deliberately does not include
+  /// `.removalAllowed`, so there is no supported gesture that hides these
+  /// items — a stored `false` is an artefact of the ordinal collision above,
+  /// never something the user asked for. Setting it back on every launch is
+  /// therefore not overriding a preference; it is refusing to inherit someone
+  /// else's.
+  private static func claim(_ item: NSStatusItem, as name: String) {
+    item.autosaveName = name
+    item.isVisible = true
+  }
+
   private func configureStatusItem() {
+    Self.claim(statusItem, as: "TidyVitals")
     guard let button = statusItem.button else { return }
 
     button.image = Self.statusImage()
@@ -128,6 +154,7 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
   }
 
   private func configureClipboardItem() {
+    Self.claim(clipboardItem, as: "TidyClipboard")
     guard let button = clipboardItem.button else { return }
 
     button.image = Self.clipboardImage()
@@ -186,6 +213,10 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     // wide it needs to be depends on how fast the machine is moving bytes.
     let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     networkItem = item
+    // Named, like the other two — and named rather than positional especially
+    // here, because this item comes and goes with the preference and an
+    // ordinal would land on a different item each time it did.
+    Self.claim(item, as: "TidyNetwork")
 
     guard let button = item.button else { return }
     button.toolTip = "Network activity"

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:tidy/core/design/design.dart';
 import 'package:tidy/core/di/service_locator.dart';
+import 'package:tidy/core/store/tidy_store.dart';
 import 'package:tidy/core/platform/full_disk_access_service.dart';
 import 'package:tidy/core/settings/app_settings.dart';
 import 'package:tidy/core/scanning/logic/scan_bloc.dart';
@@ -29,6 +30,7 @@ class SmartCarePage extends StatelessWidget {
           (_) => ScanBloc(
             locator<SmartCareModule>(),
             hasFullDiskAccess: fullDiskAccess.granted ?? true,
+            store: locator<TidyStore>(),
           ),
       child: ScanView(
         title: 'Smart Care',

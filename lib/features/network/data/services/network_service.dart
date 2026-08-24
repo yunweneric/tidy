@@ -2,7 +2,7 @@ import 'package:tidy/core/platform/action_outcome.dart';
 import 'package:tidy/core/settings/app_settings.dart';
 import 'package:tidy/features/network/data/models/network_prefs.dart';
 import 'package:tidy/features/network/data/models/network_sample.dart';
-import 'package:tidy/features/network/data/models/network_series.dart';
+import 'package:tidy/core/models/network_series.dart';
 import 'package:tidy/features/network/data/services/network_bridge.dart';
 
 /// Reads the native monitor, and keeps the native side's settings in step with

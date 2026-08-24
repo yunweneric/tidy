@@ -2,13 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:tidy/core/design/design.dart';
 import 'package:tidy/core/di/service_locator.dart';
+import 'package:tidy/core/store/metric_sampler.dart';
+import 'package:tidy/core/store/tidy_store.dart';
 import 'package:tidy/core/feedback/feedback.dart';
 import 'package:tidy/core/platform/full_disk_access_service.dart';
 import 'package:tidy/core/platform/system_bridge.dart';
 import 'package:tidy/core/utils/byte_format.dart';
 import 'package:tidy/core/utils/home_dir.dart';
 import 'package:tidy/core/widgets/widgets.dart';
-import 'package:tidy/features/recycle_bin/data/models/trash_item.dart';
+import 'package:tidy/core/models/trash_item.dart';
 import 'package:tidy/features/recycle_bin/data/services/recycle_bin_service.dart';
 import 'package:tidy/features/recycle_bin/logic/recycle_bin_bloc.dart';
 import 'package:tidy/features/recycle_bin/logic/recycle_bin_event.dart';
@@ -37,7 +39,11 @@ class RecycleBinPage extends StatelessWidget {
     return BlocProvider(
       create:
           (_) =>
-              RecycleBinBloc(locator<RecycleBinService>())
+              RecycleBinBloc(
+                    locator<RecycleBinService>(),
+                    store: locator<TidyStore>(),
+                    sampler: locator<MetricSampler>(),
+                  )
                 ..add(const LoadBin()),
       child: const _RecycleBinView(),
     );

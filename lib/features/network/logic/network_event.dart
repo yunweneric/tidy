@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:tidy/features/network/data/models/network_sample.dart';
-import 'package:tidy/features/network/data/models/network_series.dart';
+import 'package:tidy/core/models/network_series.dart';
 
 sealed class NetworkEvent extends Equatable {
   const NetworkEvent();

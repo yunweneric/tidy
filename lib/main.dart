@@ -3,6 +3,9 @@ import 'package:tidy/core/design/design.dart';
 import 'package:tidy/core/di/service_locator.dart';
 import 'package:tidy/core/router/app_router.dart';
 import 'package:tidy/core/settings/app_settings.dart';
+import 'package:tidy/core/store/metric_sampler.dart';
+import 'package:tidy/core/store/tidy_store.dart';
+import 'package:tidy/features/performance/data/services/performance_bridge.dart';
 import 'package:tidy/features/menubar/platform/popover_bridge.dart';
 import 'package:tidy/features/menubar/presentation/menu_bar_panel.dart';
 import 'package:tidy/features/splash/presentation/splash_gate.dart';
@@ -46,6 +49,19 @@ class _TidyAppState extends State<TidyApp> {
     // The menu bar popover cannot reach this router across the isolate
     // boundary, so "Open Clipboard" arrives as a route over the channel.
     PopoverRoutes.listen(_router.go);
+
+    // Vitals are read through a closure rather than imported by the sampler:
+    // `PerformanceBridge` belongs to a feature, and `docs/feature.md` §2 does
+    // not let `core/` reach into one. This is the composition root, so it is
+    // the one place allowed to know about both halves.
+    locator<MetricSampler>().start(readVitals: PerformanceBridge.systemVitals);
+  }
+
+  @override
+  void dispose() {
+    locator<MetricSampler>().stop();
+    locator<TidyStore>().close();
+    super.dispose();
   }
 
   @override

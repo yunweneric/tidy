@@ -1,6 +1,6 @@
 import 'package:tidy/core/platform/system_bridge.dart';
 import 'package:tidy/core/platform/trash_ledger.dart';
-import 'package:tidy/features/recycle_bin/data/models/trash_item.dart';
+import 'package:tidy/core/models/trash_item.dart';
 import 'package:tidy/features/recycle_bin/data/models/trash_location.dart';
 import 'package:tidy/features/recycle_bin/data/services/recycle_bin_bridge.dart';
 

@@ -1,10 +1,12 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:tidy/core/design/design.dart';
 import 'package:tidy/core/di/service_locator.dart';
 import 'package:tidy/core/settings/app_settings.dart';
 import 'package:tidy/core/widgets/widgets.dart';
-import 'package:tidy/features/network/data/models/network_series.dart';
+import 'package:tidy/core/models/network_series.dart';
 import 'package:tidy/features/network/data/models/network_units.dart';
 import 'package:tidy/features/network/data/services/network_service.dart';
 import 'package:tidy/features/network/logic/network_bloc.dart';
@@ -153,60 +155,92 @@ class _NetworkViewState extends State<_NetworkView> with WidgetsBindingObserver 
     );
   }
 
+  /// The chart's floor.
+  ///
+  /// Below this the bars stop being a chart and become a texture, so the card
+  /// scrolls rather than squeezing it any further.
+  static const double _minChartHeight = 200;
+
+  /// How much of the card the chart takes when there is room to spare.
+  static const double _chartShare = 0.42;
+
   Widget _history(BuildContext context, NetworkState state) {
     return TidyCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              const SectionLabel(label: 'Usage over time', padding: EdgeInsets.zero),
-              const Spacer(),
-              NetworkLegend(
-                downBytes: state.series.totalDownBytes,
-                upBytes: state.series.totalUpBytes,
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: SegmentedTabs(
-              labels: [for (final range in _ranges) range.label],
-              selectedIndex: _ranges.indexOf(state.range).clamp(0, _ranges.length - 1),
-              onChanged:
-                  (index) => context.read<NetworkBloc>().add(
-                    NetworkRangeChanged(_ranges[index]),
-                  ),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          Expanded(
-            child: FadeThrough(
-              trigger: state.range.index,
-              child:
-                  state.series.isEmpty
-                      ? Center(
-                        child: Text(
-                          state.isLoading
-                              ? 'Reading the history…'
-                              : 'Nothing recorded in this period.',
-                          style: context.text.caption,
+      // The chart used to be an `Expanded`, which made the card a fixed pie:
+      // the interface table and the coverage line had to fit in whatever the
+      // chart left over. They do not always — a Mac with several interfaces
+      // listed, or a short window, overflowed the bottom of the card instead
+      // of scrolling. The chart now takes a share of the card with a floor
+      // under it, and the card scrolls when the rest no longer fits.
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final chartHeight =
+              constraints.hasBoundedHeight
+                  ? math.max(_minChartHeight, constraints.maxHeight * _chartShare)
+                  : _minChartHeight;
+
+          return SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    const SectionLabel(
+                      label: 'Usage over time',
+                      padding: EdgeInsets.zero,
+                    ),
+                    const Spacer(),
+                    NetworkLegend(
+                      downBytes: state.series.totalDownBytes,
+                      upBytes: state.series.totalUpBytes,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.md),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: SegmentedTabs(
+                    labels: [for (final range in _ranges) range.label],
+                    selectedIndex: _ranges
+                        .indexOf(state.range)
+                        .clamp(0, _ranges.length - 1),
+                    onChanged:
+                        (index) => context.read<NetworkBloc>().add(
+                          NetworkRangeChanged(_ranges[index]),
                         ),
-                      )
-                      : NetworkUsageChart(series: state.series),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                SizedBox(
+                  height: chartHeight,
+                  child: FadeThrough(
+                    trigger: state.range.index,
+                    child:
+                        state.series.isEmpty
+                            ? Center(
+                              child: Text(
+                                state.isLoading
+                                    ? 'Reading the history…'
+                                    : 'Nothing recorded in this period.',
+                                style: context.text.caption,
+                              ),
+                            )
+                            : NetworkUsageChart(series: state.series),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                const Divider(height: 1),
+                const SizedBox(height: AppSpacing.md),
+                NetworkInterfaceTable(
+                  totals: state.series.byInterface,
+                  live: state.sample.interfaces,
+                ),
+                const SizedBox(height: AppSpacing.md),
+                Text(_coverage(state), style: context.text.caption),
+              ],
             ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          const Divider(height: 1),
-          const SizedBox(height: AppSpacing.md),
-          NetworkInterfaceTable(
-            totals: state.series.byInterface,
-            live: state.sample.interfaces,
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Text(_coverage(state), style: context.text.caption),
-        ],
+          );
+        },
       ),
     );
   }

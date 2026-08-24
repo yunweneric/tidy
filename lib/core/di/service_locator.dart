@@ -1,6 +1,8 @@
 import 'package:get_it/get_it.dart';
 import 'package:tidy/core/platform/full_disk_access_service.dart';
 import 'package:tidy/core/settings/app_settings.dart';
+import 'package:tidy/core/store/metric_sampler.dart';
+import 'package:tidy/core/store/tidy_store.dart';
 import 'package:tidy/features/apps/data/services/apps_service.dart';
 import 'package:tidy/features/apps/data/services/junk_scanner.dart';
 import 'package:tidy/features/apps/data/services/leftover_scanner.dart';
@@ -30,6 +32,12 @@ Future<void> setUpLocator({required bool includeUi}) async {
   locator.registerLazySingleton<FullDiskAccessService>(
     FullDiskAccessService.new,
   );
+
+  // ─── History store ───────────────────────────────────────────────────────
+  // Registered for both engines: the popover reads the same database (WAL, so
+  // its reads never block the window's writes). Opened below, and only the main
+  // engine ever samples into it.
+  locator.registerSingleton<TidyStore>(TidyStore());
 
   // ─── Data ────────────────────────────────────────────────────────────────
   locator.registerLazySingleton<ScanCache>(ScanCache.new);
@@ -66,7 +74,9 @@ Future<void> setUpLocator({required bool includeUi}) async {
   // Singletons rather than per-page instances: each holds an icon cache, and
   // rebuilding that every time the user switches tabs is visible.
   locator.registerLazySingleton<LaunchItemsService>(LaunchItemsService.new);
-  locator.registerLazySingleton<MaintenanceService>(MaintenanceService.new);
+  locator.registerLazySingleton<MaintenanceService>(
+    () => MaintenanceService(store: locator<TidyStore>()),
+  );
   locator.registerLazySingleton<ProcessMonitorService>(
     ProcessMonitorService.new,
   );
@@ -89,6 +99,19 @@ Future<void> setUpLocator({required bool includeUi}) async {
   if (includeUi) {
     final settings = await AppSettings.load();
     locator.registerSingleton<AppSettings>(settings);
+
+    // Opened before the first frame so the Dashboard never has to render an
+    // "opening the database" state. Failure is survivable by design: the store
+    // stays closed, every call on it becomes a no-op, and the app loses its
+    // charts rather than its ability to run.
+    await locator<TidyStore>().open();
+
+    // One owner for the samplers. Both engines could run them and both would
+    // write the same minute, so the popover — which has no `includeUi` — does
+    // not get one.
+    locator.registerSingleton<MetricSampler>(
+      MetricSampler(store: locator<TidyStore>()),
+    );
 
     // One funnel for pushing the clipboard preferences to the native recorder,
     // registered here so no individual setter can forget. The popover engine

@@ -7,9 +7,9 @@ import 'package:tidy/core/platform/system_bridge.dart';
 import 'package:tidy/core/utils/byte_format.dart';
 import 'package:tidy/features/apps/data/services/junk_scanner.dart';
 import 'package:tidy/features/apps/data/services/scan_cache.dart';
-import 'package:tidy/features/clipboard/data/models/clipboard_entry.dart';
+import 'package:tidy/core/models/clipboard_entry.dart';
 import 'package:tidy/features/clipboard/data/services/clipboard_service.dart';
-import 'package:tidy/features/menubar/domain/menu_bar_insight.dart';
+import 'package:tidy/core/insights/health_insight.dart';
 import 'package:tidy/features/menubar/platform/popover_bridge.dart';
 import 'package:tidy/features/menubar/presentation/widgets/measure_size.dart';
 import 'package:tidy/features/menubar/presentation/widgets/menu_bar_button.dart';
@@ -21,14 +21,14 @@ import 'package:tidy/features/menubar/presentation/widgets/menu_bar_reclaim_row.
 import 'package:tidy/features/menubar/presentation/widgets/menu_bar_section.dart';
 import 'package:tidy/features/menubar/presentation/widgets/menu_bar_vitals.dart';
 import 'package:tidy/features/network/data/models/network_sample.dart';
-import 'package:tidy/features/network/data/models/network_series.dart';
+import 'package:tidy/core/models/network_series.dart';
 import 'package:tidy/features/network/data/models/network_units.dart';
 import 'package:tidy/features/network/data/services/network_service.dart';
-import 'package:tidy/features/performance/data/models/process_sample.dart';
-import 'package:tidy/features/performance/data/models/system_vitals.dart';
+import 'package:tidy/core/vitals/process_sample.dart';
+import 'package:tidy/core/vitals/system_vitals.dart';
 import 'package:tidy/features/performance/data/services/performance_bridge.dart';
 import 'package:tidy/features/performance/data/services/process_monitor_service.dart';
-import 'package:tidy/features/recycle_bin/data/models/trash_item.dart';
+import 'package:tidy/core/models/trash_item.dart';
 import 'package:tidy/features/recycle_bin/data/services/recycle_bin_service.dart';
 import 'package:tidy/features/shell/domain/app_destination.dart';
 
@@ -421,11 +421,11 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
     await _sample();
   }
 
-  void _runInsightAction(MenuBarInsightAction action) {
+  void _runInsightAction(HealthInsightAction action) {
     switch (action) {
-      case MenuBarInsightAction.cleanJunk:
+      case HealthInsightAction.cleanJunk:
         _clearJunk();
-      case MenuBarInsightAction.openApp:
+      case HealthInsightAction.openApp:
         _bridge.openMainWindow();
     }
   }
@@ -438,7 +438,7 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
         _sort,
       ).take(_consumerCount).toList();
 
-  MenuBarInsight get _insight {
+  HealthInsight get _insight {
     final byCpu = ProcessMonitorService.sorted(
       _snapshot.processes,
       ProcessSort.cpu,
@@ -448,7 +448,7 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
       ProcessSort.memory,
     );
 
-    return MenuBarInsight.of(
+    return HealthInsight.of(
       vitals: _vitals,
       disk: _disk,
       junkBytes: _junk.safeBytes,

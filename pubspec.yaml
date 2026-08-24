@@ -47,6 +47,17 @@ dependencies:
   go_router: ^14.6.2
   hugeicons: ^0.0.11
   path: ^1.9.0
+  # The local history store. Tidy used to forget everything it did — every
+  # outcome lived for one bloc emission — so "how much have I reclaimed this
+  # month?" was unanswerable. Per-file removal records over years is a row count
+  # JSON cannot carry, and the dashboard's charts are GROUP BY queries.
+  #
+  # Pinned to the 2.x line on purpose. sqlite3 3.x bundles SQLite through Dart
+  # hooks, which still needs --enable-experiment=native-assets on Flutter 3.38
+  # stable and so cannot build a release .app. 2.x + sqlite3_flutter_libs is the
+  # combination that works without experiments. Revisit once hooks ship stable.
+  sqlite3: ^2.4.0
+  sqlite3_flutter_libs: ^0.5.26
 
 dev_dependencies:
   flutter_lints: ^5.0.0

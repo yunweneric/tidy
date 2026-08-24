@@ -1,12 +1,12 @@
 import 'package:tidy/core/platform/system_bridge.dart';
 import 'package:tidy/core/utils/byte_format.dart';
-import 'package:tidy/features/performance/data/models/process_sample.dart';
-import 'package:tidy/features/performance/data/models/system_vitals.dart';
+import 'package:tidy/core/vitals/process_sample.dart';
+import 'package:tidy/core/vitals/system_vitals.dart';
 
 /// How worried a reading should make you.
 enum VitalLevel { good, watch, urgent }
 
-/// What the panel has decided is the single most relevant thing right now.
+/// The single most relevant thing about the machine right now.
 ///
 /// The old popover led with "largest apps", which answers a question nobody
 /// standing in the menu bar is asking: it is a list of things you deliberately
@@ -14,7 +14,13 @@ enum VitalLevel { good, watch, urgent }
 /// destructive action in the app one click away from a hover. This picks the
 /// one fact that *is* time-sensitive — the disk filling up, memory under
 /// pressure, the machine throttling, junk worth clearing — and says it.
-enum MenuBarInsightKind {
+///
+/// Lives in `core/` because the menu bar popover and the Dashboard both read
+/// it, and `docs/feature.md` §2 forbids a feature importing from a sibling.
+/// That shared home is also the point: the two must never disagree about
+/// whether the disk is a problem, so they resolve the same ladder rather than
+/// each carrying their own thresholds.
+enum HealthInsightKind {
   diskCritical,
   diskFilling,
   memoryPressure,
@@ -25,10 +31,10 @@ enum MenuBarInsightKind {
 }
 
 /// The button an insight offers, if any.
-enum MenuBarInsightAction { cleanJunk, openApp }
+enum HealthInsightAction { cleanJunk, openApp }
 
-class MenuBarInsight {
-  const MenuBarInsight({
+class HealthInsight {
+  const HealthInsight({
     required this.kind,
     required this.level,
     required this.headline,
@@ -37,7 +43,7 @@ class MenuBarInsight {
     this.actionLabel,
   });
 
-  final MenuBarInsightKind kind;
+  final HealthInsightKind kind;
   final VitalLevel level;
 
   /// One line, in the app's voice, saying what is true.
@@ -46,7 +52,7 @@ class MenuBarInsight {
   /// The number or the culprit behind it.
   final String detail;
 
-  final MenuBarInsightAction? action;
+  final HealthInsightAction? action;
   final String? actionLabel;
 
   /// Reads the machine and returns the one thing worth saying.
@@ -55,7 +61,7 @@ class MenuBarInsight {
   /// which outranks junk worth clearing, which outranks saying everything is
   /// fine. Only one is ever shown — a panel with four warnings on it has told
   /// the user to ignore all four.
-  static MenuBarInsight of({
+  static HealthInsight of({
     required SystemVitals vitals,
     required DiskUsage disk,
     required int junkBytes,
@@ -67,8 +73,8 @@ class MenuBarInsight {
     final free = formatBytes(disk.freeBytes);
 
     if (diskKnown && disk.usedFraction >= 0.95) {
-      return MenuBarInsight(
-        kind: MenuBarInsightKind.diskCritical,
+      return HealthInsight(
+        kind: HealthInsightKind.diskCritical,
         level: VitalLevel.urgent,
         headline: 'Your startup disk is almost full',
         detail:
@@ -77,16 +83,16 @@ class MenuBarInsight {
                 : '$free left of ${formatBytes(disk.totalBytes)}',
         action:
             junkBytes > 0
-                ? MenuBarInsightAction.cleanJunk
-                : MenuBarInsightAction.openApp,
+                ? HealthInsightAction.cleanJunk
+                : HealthInsightAction.openApp,
         actionLabel: junkBytes > 0 ? 'Clean' : 'Find space',
       );
     }
 
     final pressure = vitals.pressureFraction;
     if (pressure >= 0.85 || (vitals.isSwapHeavy && pressure >= 0.70)) {
-      return MenuBarInsight(
-        kind: MenuBarInsightKind.memoryPressure,
+      return HealthInsight(
+        kind: HealthInsightKind.memoryPressure,
         level: VitalLevel.urgent,
         headline:
             vitals.isSwapHeavy
@@ -102,8 +108,8 @@ class MenuBarInsight {
     }
 
     if (vitals.thermal.isNotable) {
-      return MenuBarInsight(
-        kind: MenuBarInsightKind.thermal,
+      return HealthInsight(
+        kind: HealthInsightKind.thermal,
         level:
             vitals.thermal == ThermalState.critical
                 ? VitalLevel.urgent
@@ -118,22 +124,22 @@ class MenuBarInsight {
     }
 
     if (diskKnown && disk.usedFraction >= 0.88) {
-      return MenuBarInsight(
-        kind: MenuBarInsightKind.diskFilling,
+      return HealthInsight(
+        kind: HealthInsightKind.diskFilling,
         level: VitalLevel.watch,
         headline: 'Your disk is filling up',
         detail: '$free left of ${formatBytes(disk.totalBytes)}',
         action:
             junkBytes > 0
-                ? MenuBarInsightAction.cleanJunk
-                : MenuBarInsightAction.openApp,
+                ? HealthInsightAction.cleanJunk
+                : HealthInsightAction.openApp,
         actionLabel: junkBytes > 0 ? 'Clean' : 'Find space',
       );
     }
 
     if (pressure >= 0.70) {
-      return MenuBarInsight(
-        kind: MenuBarInsightKind.memoryPressure,
+      return HealthInsight(
+        kind: HealthInsightKind.memoryPressure,
         level: VitalLevel.watch,
         headline: 'Memory is getting tight',
         detail:
@@ -147,8 +153,8 @@ class MenuBarInsight {
 
     final cpu = vitals.cpuPercent;
     if (cpu != null && cpu >= 85) {
-      return MenuBarInsight(
-        kind: MenuBarInsightKind.cpuBusy,
+      return HealthInsight(
+        kind: HealthInsightKind.cpuBusy,
         level: VitalLevel.watch,
         headline: 'The CPU is pinned',
         detail:
@@ -164,8 +170,8 @@ class MenuBarInsight {
     // information rather than a prompt.
     final reclaimable = junkBytes + trashBytes;
     if (reclaimable >= 1024 * 1024 * 1024) {
-      return MenuBarInsight(
-        kind: MenuBarInsightKind.reclaimable,
+      return HealthInsight(
+        kind: HealthInsightKind.reclaimable,
         level: VitalLevel.watch,
         headline: '${formatBytes(reclaimable)} can be reclaimed',
         detail:
@@ -173,13 +179,13 @@ class MenuBarInsight {
                 ? 'Caches, logs and saved app state'
                 : '${formatBytes(junkBytes)} in caches and logs · '
                     '${formatBytes(trashBytes)} in the Trash',
-        action: junkBytes > 0 ? MenuBarInsightAction.cleanJunk : null,
+        action: junkBytes > 0 ? HealthInsightAction.cleanJunk : null,
         actionLabel: junkBytes > 0 ? 'Clean' : null,
       );
     }
 
-    return MenuBarInsight(
-      kind: MenuBarInsightKind.healthy,
+    return HealthInsight(
+      kind: HealthInsightKind.healthy,
       level: VitalLevel.good,
       headline: 'Everything looks healthy',
       detail:

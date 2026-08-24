@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:tidy/core/design/design.dart';
 import 'package:tidy/core/utils/byte_format.dart';
 import 'package:tidy/core/utils/home_dir.dart';
-import 'package:tidy/features/recycle_bin/data/models/trash_item.dart';
+import 'package:tidy/core/models/trash_item.dart';
 
 /// Column geometry, shared by the header and every row.
 ///

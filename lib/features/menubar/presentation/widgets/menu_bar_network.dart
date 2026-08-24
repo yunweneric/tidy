@@ -3,7 +3,7 @@ import 'package:tidy/core/design/design.dart';
 import 'package:tidy/core/utils/byte_format.dart';
 import 'package:tidy/core/widgets/spark_chart.dart';
 import 'package:tidy/features/network/data/models/network_sample.dart';
-import 'package:tidy/features/network/data/models/network_series.dart';
+import 'package:tidy/core/models/network_series.dart';
 import 'package:tidy/features/network/data/models/network_units.dart';
 
 /// The two current rates, over a chart of the last minute.

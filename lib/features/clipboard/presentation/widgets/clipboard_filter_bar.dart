@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:tidy/core/design/design.dart';
 import 'package:tidy/core/widgets/widgets.dart';
-import 'package:tidy/features/clipboard/data/models/clipboard_entry.dart';
+import 'package:tidy/core/models/clipboard_entry.dart';
 import 'package:tidy/features/clipboard/logic/clipboard_state.dart';
 
 /// The kind tabs, with counts.

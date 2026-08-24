@@ -5,7 +5,7 @@ import 'package:tidy/core/design/design.dart';
 import 'package:tidy/core/utils/byte_format.dart';
 import 'package:tidy/core/widgets/bundle_icon.dart';
 import 'package:tidy/features/menubar/presentation/widgets/menu_bar_button.dart';
-import 'package:tidy/features/performance/data/models/process_sample.dart';
+import 'package:tidy/core/vitals/process_sample.dart';
 
 /// One live process in the panel.
 ///

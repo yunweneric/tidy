@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:tidy/core/feedback/feedback.dart';
-import 'package:tidy/features/clipboard/data/models/clipboard_entry.dart';
+import 'package:tidy/core/models/clipboard_entry.dart';
 
 enum ClipboardHistoryStatus { initial, loading, ready, failed }
 

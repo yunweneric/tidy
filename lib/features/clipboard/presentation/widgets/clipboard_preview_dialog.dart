@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:tidy/core/design/design.dart';
 import 'package:tidy/core/feedback/feedback.dart';
 import 'package:tidy/core/utils/byte_format.dart';
-import 'package:tidy/features/clipboard/data/models/clipboard_entry.dart';
+import 'package:tidy/core/models/clipboard_entry.dart';
 import 'package:tidy/features/clipboard/data/services/clipboard_service.dart';
 import 'package:tidy/features/clipboard/presentation/widgets/clipboard_row.dart';
 

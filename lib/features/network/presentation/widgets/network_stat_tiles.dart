@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:tidy/core/design/design.dart';
 import 'package:tidy/core/utils/byte_format.dart';
 import 'package:tidy/core/widgets/widgets.dart';
-import 'package:tidy/features/network/data/models/network_series.dart';
+import 'package:tidy/core/models/network_series.dart';
 import 'package:tidy/features/network/data/models/network_units.dart';
 import 'package:tidy/features/network/logic/network_state.dart';
 

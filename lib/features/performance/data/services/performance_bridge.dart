@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:tidy/core/platform/action_outcome.dart';
-import 'package:tidy/features/performance/data/models/system_vitals.dart';
+import 'package:tidy/core/vitals/system_vitals.dart';
 
 // Moved to core/ when Clipboard needed it too; re-exported so the services that
 // already speak in outcomes keep their single import.

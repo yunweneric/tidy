@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:tidy/features/network/data/models/network_sample.dart';
-import 'package:tidy/features/network/data/models/network_series.dart';
+import 'package:tidy/core/models/network_series.dart';
 import 'package:tidy/features/network/data/services/network_service.dart';
 import 'package:tidy/features/network/logic/network_event.dart';
 import 'package:tidy/features/network/logic/network_state.dart';

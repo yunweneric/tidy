@@ -4,8 +4,8 @@ import 'package:tidy/core/platform/system_bridge.dart';
 import 'package:tidy/core/utils/byte_format.dart';
 import 'package:tidy/core/widgets/size_bar.dart';
 import 'package:tidy/core/widgets/tidy_card.dart';
-import 'package:tidy/features/menubar/domain/menu_bar_insight.dart';
-import 'package:tidy/features/performance/data/models/system_vitals.dart';
+import 'package:tidy/core/insights/health_insight.dart';
+import 'package:tidy/core/vitals/system_vitals.dart';
 
 /// The colour a [VitalLevel] wears, everywhere in the panel.
 Color colorForLevel(BuildContext context, VitalLevel level) => switch (level) {

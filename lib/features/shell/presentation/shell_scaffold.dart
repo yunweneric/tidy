@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:tidy/core/design/design.dart';
 import 'package:tidy/core/di/service_locator.dart';
+import 'package:tidy/core/store/metric_sampler.dart';
+import 'package:tidy/core/store/tidy_store.dart';
 import 'package:tidy/core/platform/full_disk_access_service.dart';
 import 'package:tidy/core/platform/system_bridge.dart';
 import 'package:tidy/core/scanning/logic/scan_bloc.dart';
@@ -90,7 +92,11 @@ class _ShellScaffoldState extends State<ShellScaffold>
       providers: [
         BlocProvider(
           create:
-              (_) => AppsBloc(locator<AppManagerService>())..add(LoadApps()),
+              (_) => AppsBloc(
+                locator<AppManagerService>(),
+                store: locator<TidyStore>(),
+                sampler: locator<MetricSampler>(),
+              )..add(LoadApps()),
         ),
         // Hoisted above the branches so the sidebar can show the reclaimable
         // figure without running a second scan of its own.
@@ -99,6 +105,7 @@ class _ShellScaffoldState extends State<ShellScaffold>
               (_) => ScanBloc(
                 locator<CleanupScanModule>(),
                 hasFullDiskAccess: _fullDiskAccess.granted ?? true,
+                store: locator<TidyStore>(),
               ),
         ),
       ],

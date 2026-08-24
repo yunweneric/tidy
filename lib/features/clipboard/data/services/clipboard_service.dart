@@ -2,7 +2,7 @@ import 'dart:typed_data';
 
 import 'package:tidy/core/platform/action_outcome.dart';
 import 'package:tidy/core/settings/app_settings.dart';
-import 'package:tidy/features/clipboard/data/models/clipboard_entry.dart';
+import 'package:tidy/core/models/clipboard_entry.dart';
 import 'package:tidy/features/clipboard/data/models/clipboard_prefs.dart';
 import 'package:tidy/features/clipboard/data/services/clipboard_bridge.dart';
 

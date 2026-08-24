@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:tidy/core/platform/action_outcome.dart';
 import 'package:tidy/features/network/data/models/network_prefs.dart';
 import 'package:tidy/features/network/data/models/network_sample.dart';
-import 'package:tidy/features/network/data/models/network_series.dart';
+import 'package:tidy/core/models/network_series.dart';
 
 /// Thin wrapper over `macos/Runner/NetworkChannel.swift`.
 ///

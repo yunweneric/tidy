@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:tidy/core/design/design.dart';
 import 'package:tidy/core/widgets/tidy_card.dart';
-import 'package:tidy/features/menubar/domain/menu_bar_insight.dart';
+import 'package:tidy/core/insights/health_insight.dart';
 import 'package:tidy/features/menubar/presentation/widgets/menu_bar_button.dart';
 import 'package:tidy/features/menubar/presentation/widgets/menu_bar_vitals.dart';
 
@@ -15,9 +15,9 @@ class MenuBarInsightCard extends StatelessWidget {
     this.onAction,
   });
 
-  final MenuBarInsight insight;
+  final HealthInsight insight;
   final bool enabled;
-  final ValueChanged<MenuBarInsightAction>? onAction;
+  final ValueChanged<HealthInsightAction>? onAction;
 
   @override
   Widget build(BuildContext context) {
@@ -78,13 +78,13 @@ class MenuBarInsightCard extends StatelessWidget {
     );
   }
 
-  static IconData _iconFor(MenuBarInsightKind kind) => switch (kind) {
-    MenuBarInsightKind.diskCritical ||
-    MenuBarInsightKind.diskFilling => AppIcons.storage,
-    MenuBarInsightKind.memoryPressure => AppIcons.memory,
-    MenuBarInsightKind.thermal => AppIcons.risky,
-    MenuBarInsightKind.cpuBusy => AppIcons.cpu,
-    MenuBarInsightKind.reclaimable => AppIcons.cleanup,
-    MenuBarInsightKind.healthy => AppIcons.safe,
+  static IconData _iconFor(HealthInsightKind kind) => switch (kind) {
+    HealthInsightKind.diskCritical ||
+    HealthInsightKind.diskFilling => AppIcons.storage,
+    HealthInsightKind.memoryPressure => AppIcons.memory,
+    HealthInsightKind.thermal => AppIcons.risky,
+    HealthInsightKind.cpuBusy => AppIcons.cpu,
+    HealthInsightKind.reclaimable => AppIcons.cleanup,
+    HealthInsightKind.healthy => AppIcons.safe,
   };
 }

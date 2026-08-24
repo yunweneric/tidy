@@ -7,7 +7,27 @@ import 'package:tidy/features/recycle_bin/data/models/trash_location.dart';
 /// Deliberately coarse. macOS hands back a localized type description
 /// ("Portable Network Graphics image") which is right for a details column and
 /// far too specific to pick an icon from.
-enum TrashItemKind { folder, app, image, video, audio, archive, document, other }
+enum TrashItemKind {
+  folder('Folders'),
+  app('Applications'),
+  image('Images'),
+  video('Video'),
+  audio('Audio'),
+  archive('Archives'),
+  document('Documents'),
+  other('Other');
+
+  const TrashItemKind(this.label);
+
+  /// A coarse, stable bucket name.
+  ///
+  /// Not [TrashItem.kindLabel], which is whatever macOS calls the specific type
+  /// in the user's language — "PNG image", "Plain text document". Fine on a row,
+  /// useless as a chart category: it is localised, so the same file groups
+  /// differently on a French Mac, and high-cardinality enough that a hundred
+  /// files become a hundred slices.
+  final String label;
+}
 
 /// One item sitting in a Trash folder.
 class TrashItem extends Equatable {

@@ -7,7 +7,7 @@ import 'package:tidy/core/design/design.dart';
 import 'package:tidy/core/feedback/feedback.dart';
 import 'package:tidy/core/utils/byte_format.dart';
 import 'package:tidy/core/widgets/widgets.dart';
-import 'package:tidy/features/performance/data/models/process_sample.dart';
+import 'package:tidy/core/vitals/process_sample.dart';
 import 'package:tidy/features/performance/logic/process_monitor_bloc.dart';
 
 /// Column geometry, declared once and used by the header and every row — a
