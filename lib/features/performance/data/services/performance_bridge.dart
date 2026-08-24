@@ -1,5 +1,5 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:tidy/core/logging/logging.dart';
 import 'package:tidy/core/platform/action_outcome.dart';
 import 'package:tidy/core/vitals/system_vitals.dart';
 
@@ -30,7 +30,7 @@ class PerformanceBridge {
       if (result == null) return const [];
       return result.map((raw) => (raw as Map).cast<String, dynamic>()).toList();
     } catch (e) {
-      debugPrint('launchItems failed: $e');
+      AppLog.performance.failed('read the launch items', e);
       return const [];
     }
   }
@@ -77,7 +77,7 @@ class PerformanceBridge {
       );
       return result ?? const {};
     } catch (e) {
-      debugPrint('processSamples failed: $e');
+      AppLog.performance.failed('read the process samples', e);
       return const {};
     }
   }
@@ -89,7 +89,7 @@ class PerformanceBridge {
     try {
       await _channel.invokeMethod<void>('resetProcessSamples');
     } catch (e) {
-      debugPrint('resetProcessSamples failed: $e');
+      AppLog.performance.failed('reset the process samples', e);
     }
   }
 
@@ -108,7 +108,7 @@ class PerformanceBridge {
       );
       return result == null ? SystemVitals.empty : SystemVitals.fromMap(result);
     } catch (e) {
-      debugPrint('systemVitals failed: $e');
+      AppLog.performance.failed('read the system vitals', e);
       return SystemVitals.empty;
     }
   }
@@ -118,7 +118,7 @@ class PerformanceBridge {
     try {
       await _channel.invokeMethod<void>('resetSystemVitals');
     } catch (e) {
-      debugPrint('resetSystemVitals failed: $e');
+      AppLog.performance.failed('reset the vitals baseline', e);
     }
   }
 
@@ -132,7 +132,7 @@ class PerformanceBridge {
       if (result == null) return const [];
       return result.map((raw) => (raw as Map).cast<String, dynamic>()).toList();
     } catch (e) {
-      debugPrint('maintenanceTasks failed: $e');
+      AppLog.performance.failed('read the maintenance tasks', e);
       return const [];
     }
   }
@@ -145,7 +145,11 @@ class PerformanceBridge {
       );
       return result ?? const {'ok': false, 'message': 'No answer from macOS.'};
     } catch (e) {
-      debugPrint('runMaintenanceTask failed: $e');
+      AppLog.performance.failed(
+        'run a maintenance task',
+        e,
+        fields: {'task': id},
+      );
       return {'ok': false, 'message': 'That task could not be run. $e'};
     }
   }
@@ -161,7 +165,7 @@ class PerformanceBridge {
     try {
       await _channel.invokeMethod<void>('openLoginItemsSettings');
     } catch (e) {
-      debugPrint('openLoginItemsSettings failed: $e');
+      AppLog.performance.failed('open the Login Items settings', e);
     }
   }
 

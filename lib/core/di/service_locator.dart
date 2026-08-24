@@ -40,9 +40,11 @@ Future<void> setUpLocator({required bool includeUi}) async {
   );
 
   // ─── History store ───────────────────────────────────────────────────────
-  // Registered for both engines: the popover reads the same database (WAL, so
-  // its reads never block the window's writes). Opened below, and only the main
-  // engine ever samples into it.
+  // Registered for both engines so that anything resolving it compiles in
+  // either, but **opened by neither unless `includeUi`** — see below. Hive has
+  // no cross-isolate locking, so the popover engine opening the same boxes as
+  // the window would be two writers on one file. In the popover the store
+  // simply stays closed and every call on it is a no-op.
   locator.registerSingleton<TidyStore>(TidyStore());
 
   // ─── Data ────────────────────────────────────────────────────────────────
@@ -107,9 +109,10 @@ Future<void> setUpLocator({required bool includeUi}) async {
     locator.registerSingleton<AppSettings>(settings);
 
     // Opened before the first frame so the Dashboard never has to render an
-    // "opening the database" state. Failure is survivable by design: the store
-    // stays closed, every call on it becomes a no-op, and the app loses its
-    // charts rather than its ability to run.
+    // "opening the store" state, and only here — this is the `includeUi` branch,
+    // so the popover engine never reaches it. Failure is survivable by design:
+    // the store stays closed, every call on it becomes a no-op, and the app
+    // loses its charts rather than its ability to run.
     await locator<TidyStore>().open();
 
     // One owner for the samplers. Both engines could run them and both would

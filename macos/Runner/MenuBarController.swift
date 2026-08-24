@@ -68,7 +68,6 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
   private var currentWidth: CGFloat = 460
 
   private lazy var preview = ClipPreviewPanel()
-  static var probe: NSStatusItem?
 
   override init() {
     statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
@@ -80,26 +79,11 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     )
     super.init()
 
-    NSLog("TIDYDBG init start")
     configureStatusItem()
     configureClipboardItem()
     configureNetworkItem()
     configurePopover()
     observeNetwork()
-    NSLog("TIDYDBG init done")
-    DispatchQueue.main.asyncAfter(deadline: .now() + 5) { [weak self] in
-      guard let self else { NSLog("TIDYDBG controller DEALLOCATED"); return }
-      NSLog("TIDYDBG later vitals visible=\(self.statusItem.isVisible) len=\(self.statusItem.length) img=\(String(describing: self.statusItem.button?.image)) win=\(String(describing: self.statusItem.button?.window?.frame))")
-      NSLog("TIDYDBG later clip visible=\(self.clipboardItem.isVisible) len=\(self.clipboardItem.length) win=\(String(describing: self.clipboardItem.button?.window?.frame))")
-      NSLog("TIDYDBG later net item=\(String(describing: self.networkItem)) ")
-      NSLog("TIDYDBG thickness=\(NSStatusBar.system.thickness) policy=\(NSApp.activationPolicy().rawValue) screens=\(NSScreen.screens.map { $0.frame })")
-      let probe = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-      probe.button?.title = "P"
-      Self.probe = probe
-      DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-        NSLog("TIDYDBG probe visible=\(probe.isVisible) win=\(String(describing: probe.button?.window?.frame))")
-      }
-    }
   }
 
   // MARK: - Status item
@@ -122,11 +106,8 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
   /// chooses the slot, and on a notched Mac with a full menu bar the slot it
   /// chooses can be underneath the notch — but it is the half we control.
   private static func claim(_ item: NSStatusItem, as name: String) {
-    NSLog("TIDYDBG claim BEFORE \(name) visible=\(item.isVisible) len=\(item.length)")
     item.autosaveName = name
-    NSLog("TIDYDBG claim AFTERNAME \(name) visible=\(item.isVisible)")
     item.isVisible = true
-    NSLog("TIDYDBG claim AFTER \(name) visible=\(item.isVisible) len=\(item.length) win=\(String(describing: item.button?.window?.frame))")
   }
 
   private func configureStatusItem() {

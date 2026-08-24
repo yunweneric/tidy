@@ -254,6 +254,55 @@ everything after it.
 
 ---
 
+## 4b. Logging
+
+Everything goes through `AppLog` in `lib/core/logging/`. There is no `print` and
+no `debugPrint` left in `lib/`, and adding one back is a review comment.
+
+```dart
+import 'package:tidy/core/logging/logging.dart';
+
+AppLog.apps.debug('scan started', fields: {'root': root});
+AppLog.apps.failed('list an applications folder', e, fields: {'root': root});
+```
+
+**Pick the channel your feature already owns** — the list is the constants on
+`AppLog`. A feature with no channel adds one there rather than passing a string;
+the channel is the column that makes the interleaved output of a dozen
+concurrent services readable, and one-off names defeat that.
+
+**Put the values in `fields`, not in the sentence.** `failed('list an
+applications folder', e, fields: {'root': root})` and not
+`failed('list $root', e)`. The message is what makes two occurrences the same
+event; the fields are what makes one of them findable.
+
+**Level means "how broken", not "how interesting".**
+
+| Level | Means |
+|---|---|
+| `trace` | per-item work inside a loop; off by default |
+| `debug` | one operation narrating itself |
+| `info` | something the user could feel — a scan's totals, the app starting |
+| `warn` / `failed` | it failed and the caller carried on with a fallback |
+| `error` | it failed and the feature did not recover |
+| `fatal` | the app cannot continue |
+
+Nearly every log in this app is `failed` — the catch block that returns an empty
+list so a page renders without its numbers rather than not at all. Name the
+operation as a bare verb phrase (`'read the trash ledger'`); the method prints
+it as `could not read the trash ledger`.
+
+**A swallowed exception must be logged.** A `catch` that returns a fallback and
+says nothing is indistinguishable from success, and in this app the fallback is
+usually an empty result — which reads on screen as "there is nothing here"
+rather than "we could not look".
+
+Debug builds log at `debug`, release at `warning`; `--dart-define=TIDY_LOG_LEVEL=trace`
+overrides both, including in a release build, which is how you turn the noise up
+on a shipped app without changing the timings that caused the bug.
+
+---
+
 ## 5. The rules that are not negotiable
 
 This app deletes files. These are the parts where a bug is not a bug report, it
@@ -331,6 +380,8 @@ other route silently costs the user that.
 ## 6. Before you call it done
 
 - [ ] `dart analyze lib` is clean.
+- [ ] No `print` or `debugPrint` — every log goes through `AppLog`, and every
+      swallowed exception logs something.
 - [ ] Ran with Full Disk Access **granted and revoked**
       (`tccutil reset SystemPolicyAllFiles com.yunweneric.tidy`).
       Denied must degrade to a partial result with the banner, never a crash and

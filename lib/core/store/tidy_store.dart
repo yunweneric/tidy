@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:hive/hive.dart';
 import 'package:path/path.dart' as p;
 import 'package:tidy/core/design/brand.dart';
+import 'package:tidy/core/logging/logging.dart';
 import 'package:tidy/core/store/migrations.dart';
 import 'package:tidy/core/store/models/store_models.dart';
 
@@ -99,8 +100,19 @@ class TidyStore {
 
       compact();
       if (_overridePath == null) await _removeLegacyDatabase();
+      AppLog.store.info(
+        'history store opened',
+        fields: {'path': directory, 'created': created},
+      );
     } catch (e) {
-      debugPrint('Could not open the history store: $e');
+      // Error rather than [AppLog.failed]: every other log in this file is one
+      // lost row, and this one is the whole subsystem. Nothing below will do
+      // anything for the rest of the session, and the Dashboard's empty charts
+      // are the only other symptom.
+      AppLog.store.error(
+        'history store unavailable for this session',
+        error: e,
+      );
       _boxes = null;
     }
   }
@@ -117,7 +129,7 @@ class TidyStore {
     try {
       await boxes.close();
     } catch (e) {
-      debugPrint('Could not close the history store: $e');
+      AppLog.store.failed('close the history store', e);
     }
   }
 
@@ -150,7 +162,7 @@ class TidyStore {
       );
       return id;
     } catch (e) {
-      debugPrint('Could not record the start of an operation: $e');
+      AppLog.store.failed('record the start of an operation', e);
       return null;
     }
   }
@@ -181,7 +193,7 @@ class TidyStore {
       }
       _flushLater(boxes.removedItems.putAll(entries), 'record removed items');
     } catch (e) {
-      debugPrint('Could not record removed items: $e');
+      AppLog.store.failed('record removed items', e);
     }
   }
 
@@ -208,7 +220,7 @@ class TidyStore {
         'record the end of an operation',
       );
     } catch (e) {
-      debugPrint('Could not record the end of an operation: $e');
+      AppLog.store.failed('record the end of an operation', e);
     }
   }
 
@@ -229,7 +241,7 @@ class TidyStore {
         'record a scan',
       );
     } catch (e) {
-      debugPrint('Could not record a scan: $e');
+      AppLog.store.failed('record a scan', e);
     }
   }
 
@@ -262,7 +274,7 @@ class TidyStore {
         'mark items as restored',
       );
     } catch (e) {
-      debugPrint('Could not mark items as restored: $e');
+      AppLog.store.failed('mark items as restored', e);
     }
   }
 
@@ -293,7 +305,11 @@ class TidyStore {
         'record a ${series.name} sample',
       );
     } catch (e) {
-      debugPrint('Could not record a ${series.name} sample: $e');
+      AppLog.store.failed(
+        'record a sample',
+        e,
+        fields: {'series': series.name},
+      );
     }
   }
 
@@ -317,7 +333,11 @@ class TidyStore {
         'record a daily ${series.name} sample',
       );
     } catch (e) {
-      debugPrint('Could not record a daily ${series.name} sample: $e');
+      AppLog.store.failed(
+        'record a daily sample',
+        e,
+        fields: {'series': series.name},
+      );
     }
   }
 
@@ -333,7 +353,7 @@ class TidyStore {
         _metricKey(series.name, Granularity.day, day),
       );
     } catch (e) {
-      debugPrint('Could not check for a daily sample: $e');
+      AppLog.store.failed('check for a daily sample', e);
       return false;
     }
   }
@@ -366,7 +386,7 @@ class TidyStore {
         olderThan: at.subtract(const Duration(days: 90)),
       );
     } catch (e) {
-      debugPrint('Could not compact the history store: $e');
+      AppLog.store.failed('compact the history store', e);
     }
   }
 
@@ -446,7 +466,7 @@ class TidyStore {
             );
       return [for (final row in rows.take(limit)) _operationFrom(row)];
     } catch (e) {
-      debugPrint('Could not read recent operations: $e');
+      AppLog.store.failed('read recent operations', e);
       return const [];
     }
   }
@@ -496,7 +516,11 @@ class TidyStore {
       }
       return slots;
     } catch (e) {
-      debugPrint('Could not read the ${series.name} series: $e');
+      AppLog.store.failed(
+        'read a metric series',
+        e,
+        fields: {'series': series.name},
+      );
       return const [];
     }
   }
@@ -540,7 +564,7 @@ class TidyStore {
       }
       return slots;
     } catch (e) {
-      debugPrint('Could not read the reclaim series: $e');
+      AppLog.store.failed('read the reclaim series', e);
       return const [];
     }
   }
@@ -571,7 +595,7 @@ class TidyStore {
         operationCount: operations.length,
       );
     } catch (e) {
-      debugPrint('Could not read reclaim totals: $e');
+      AppLog.store.failed('read reclaim totals', e);
       return ReclaimTotals.empty;
     }
   }
@@ -611,7 +635,7 @@ class TidyStore {
 
       return totals.take(limit).toList();
     } catch (e) {
-      debugPrint('Could not read removals by category: $e');
+      AppLog.store.failed('read removals by category', e);
       return const [];
     }
   }
@@ -645,7 +669,7 @@ class TidyStore {
           _removedItemFrom(row, boxes.operations.get(row['operation_id'])),
       ];
     } catch (e) {
-      debugPrint('Could not read removed items: $e');
+      AppLog.store.failed('read removed items', e);
       return const [];
     }
   }
@@ -693,7 +717,7 @@ class TidyStore {
 
       return totals;
     } catch (e) {
-      debugPrint('Could not read scan totals: $e');
+      AppLog.store.failed('read scan totals', e);
       return const [];
     }
   }
@@ -727,7 +751,7 @@ class TidyStore {
         recordingSince: _recordingSince,
       );
     } catch (e) {
-      debugPrint('Could not read store stats: $e');
+      AppLog.store.failed('read store stats', e);
       return StoreStats.empty;
     }
   }
@@ -755,7 +779,7 @@ class TidyStore {
       _flushLater(boxes.removedItems.compact(), 'compact removed items');
       return stale.length;
     } catch (e) {
-      debugPrint('Could not trim removed items: $e');
+      AppLog.store.failed('trim removed items', e);
       return 0;
     }
   }
@@ -792,7 +816,7 @@ class TidyStore {
       await boxes.scans.compact();
       if (!keepMetrics) await boxes.metrics.compact();
     } catch (e) {
-      debugPrint('Could not clear the history store: $e');
+      AppLog.store.failed('clear the history store', e);
     }
   }
 
@@ -842,7 +866,7 @@ class TidyStore {
       );
       return file;
     } catch (e) {
-      debugPrint('Could not export the history store: $e');
+      AppLog.store.failed('export the history store', e);
       return null;
     }
   }
@@ -858,7 +882,7 @@ class TidyStore {
   void _flushLater(Future<void> write, String what) {
     unawaited(
       write.catchError((Object e) {
-        debugPrint('Could not $what: $e');
+        AppLog.store.failed(what, e);
       }),
     );
   }
@@ -1026,7 +1050,11 @@ class TidyStore {
     try {
       if (!dir.existsSync()) await dir.create(recursive: true);
     } on FileSystemException catch (e) {
-      debugPrint('Cannot create the support directory: ${e.message}');
+      AppLog.store.failed(
+        'create the support directory',
+        e,
+        fields: {'path': dir.path},
+      );
       return null;
     }
     return dir;
@@ -1042,7 +1070,11 @@ class TidyStore {
     try {
       if (!dir.existsSync()) await dir.create(recursive: true);
     } on FileSystemException catch (e) {
-      debugPrint('Cannot create the history directory: ${e.message}');
+      AppLog.store.failed(
+        'create the history directory',
+        e,
+        fields: {'path': dir.path},
+      );
       return null;
     }
     return dir.path;
@@ -1063,7 +1095,11 @@ class TidyStore {
       try {
         if (file.existsSync()) await file.delete();
       } catch (e) {
-        debugPrint('Could not remove the old $name: $e');
+        AppLog.store.failed(
+          'remove the legacy database file',
+          e,
+          fields: {'name': name},
+        );
       }
     }
   }

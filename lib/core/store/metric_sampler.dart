@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
+import 'package:tidy/core/logging/logging.dart';
 import 'package:tidy/core/platform/system_bridge.dart';
 import 'package:tidy/core/store/models/store_models.dart';
 import 'package:tidy/core/store/tidy_store.dart';
@@ -11,7 +11,9 @@ import 'package:tidy/core/vitals/system_vitals.dart';
 ///
 /// **One owner.** Both Flutter engines could run this, and both would write the
 /// same minute — so only the main window starts it (see `setUpLocator`'s
-/// `includeUi`). The popover reads the same database and samples nothing.
+/// `includeUi`). The popover never opens the store at all, so it neither reads
+/// nor samples; `_store.isOpen` is false there and every call below returns
+/// early.
 ///
 /// Deliberately cheap. The roadmap's warning is the design constraint here: a
 /// menu-bar app burning 3% CPU while idle gets uninstalled, and statistics are
@@ -82,7 +84,7 @@ class MetricSampler {
         ..sample(MetricSeries.diskFree, disk.freeBytes.toDouble())
         ..sample(MetricSeries.diskTotal, disk.totalBytes.toDouble());
     } catch (e) {
-      debugPrint('Could not sample disk usage: $e');
+      AppLog.metrics.failed('sample disk usage', e);
     }
   }
 
@@ -119,7 +121,7 @@ class MetricSampler {
       // Stored as its index so the chart can show "how often was this Mac hot".
       _store.sample(MetricSeries.thermal, vitals.thermal.index.toDouble());
     } catch (e) {
-      debugPrint('Could not sample vitals: $e');
+      AppLog.metrics.failed('sample the system vitals', e);
     }
   }
 

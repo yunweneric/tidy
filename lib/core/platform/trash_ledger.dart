@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:tidy/core/logging/logging.dart';
 import 'package:tidy/core/design/brand.dart';
 import 'package:path/path.dart' as p;
 
@@ -108,7 +109,7 @@ class TrashLedger {
         }
       }
     } catch (e) {
-      debugPrint('Could not read the trash ledger: $e');
+      AppLog.platform.failed('read the trash ledger', e);
     }
   }
 
@@ -163,7 +164,11 @@ class TrashLedger {
           }),
         );
       } catch (e) {
-        debugPrint('Could not write the trash ledger: $e');
+        AppLog.platform.failed(
+          'write the trash ledger',
+          e,
+          fields: {'entries': kept.length},
+        );
       }
     });
   }
@@ -179,7 +184,11 @@ class TrashLedger {
     try {
       if (!dir.existsSync()) await dir.create(recursive: true);
     } on FileSystemException catch (e) {
-      debugPrint('Cannot create the support directory: ${e.message}');
+      AppLog.platform.failed(
+        'create the support directory',
+        e,
+        fields: {'path': dir.path},
+      );
       return null;
     }
     return File(p.join(dir.path, 'trash_ledger.json'));

@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:tidy/core/logging/logging.dart';
 import 'package:flutter/services.dart';
 
 /// Where one item ended up after being restored.
@@ -59,7 +60,7 @@ class RecycleBinBridge {
       final result = await _channel.invokeMapMethod<String, dynamic>('readBins');
       return result ?? const {};
     } catch (e) {
-      debugPrint('readBins failed: $e');
+      AppLog.recycleBin.failed('read the trash folders', e);
       return const {};
     }
   }
@@ -119,7 +120,7 @@ class RecycleBinBridge {
         'message': message,
       });
     } catch (e) {
-      debugPrint('chooseFolder failed: $e');
+      AppLog.recycleBin.failed('open the folder picker', e);
       return null;
     }
   }

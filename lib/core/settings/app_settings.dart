@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' show ThemeMode;
+import 'package:tidy/core/logging/logging.dart';
 import 'package:tidy/core/design/brand.dart';
 import 'package:tidy/features/clipboard/data/models/clipboard_prefs.dart';
 import 'package:tidy/features/network/data/models/network_prefs.dart';
@@ -63,7 +64,11 @@ class AppSettings extends ChangeNotifier {
         final decoded = jsonDecode(await file.readAsString());
         if (decoded is Map<String, dynamic>) values = decoded;
       } catch (e) {
-        debugPrint('Could not read settings: $e');
+        AppLog.settings.failed(
+          'read the settings file',
+          e,
+          fields: {'path': file.path},
+        );
       }
     }
 
@@ -85,7 +90,11 @@ class AppSettings extends ChangeNotifier {
     try {
       if (!dir.existsSync()) await dir.create(recursive: true);
     } on FileSystemException catch (e) {
-      debugPrint('Cannot create settings directory: ${e.message}');
+      AppLog.settings.failed(
+        'create the settings directory',
+        e,
+        fields: {'path': dir.path},
+      );
       return null;
     }
     return File(p.join(dir.path, 'settings.json'));
@@ -265,7 +274,11 @@ class AppSettings extends ChangeNotifier {
     final file = _file;
     if (file == null) return;
     file.writeAsString(jsonEncode(_values)).catchError((Object e) {
-      debugPrint('Could not write settings: $e');
+      AppLog.settings.failed(
+        'write the settings file',
+        e,
+        fields: {'path': file.path},
+      );
       return file;
     });
   }

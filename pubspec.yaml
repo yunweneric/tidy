@@ -60,6 +60,7 @@ dependencies:
   # left to get wrong. The cost is that queries are Dart rather than SQL; see
   # `lib/core/store/tidy_store.dart` for what that means in practice.
   hive: ^2.2.3
+  logger: ^2.7.0
 
 dev_dependencies:
   flutter_lints: ^5.0.0

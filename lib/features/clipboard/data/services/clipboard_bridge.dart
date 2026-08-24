@@ -1,6 +1,6 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:tidy/core/logging/logging.dart';
 import 'package:tidy/core/platform/action_outcome.dart';
 import 'package:tidy/features/clipboard/data/models/clipboard_prefs.dart';
 
@@ -50,7 +50,7 @@ class ClipboardBridge {
       if (result == null) return const [];
       return result.map((raw) => (raw as Map).cast<String, dynamic>()).toList();
     } catch (e) {
-      debugPrint('clipboard history failed: $e');
+      AppLog.clipboard.failed('read the history', e);
       return const [];
     }
   }
@@ -60,7 +60,7 @@ class ClipboardBridge {
     try {
       return await _channel.invokeMethod<Uint8List>('blob', {'id': id});
     } catch (e) {
-      debugPrint('clipboard blob failed: $e');
+      AppLog.clipboard.failed('read a blob', e, fields: {'id': id});
       return null;
     }
   }
@@ -71,7 +71,7 @@ class ClipboardBridge {
     try {
       return await _channel.invokeMethod<String>('fullText', {'id': id});
     } catch (e) {
-      debugPrint('clipboard fullText failed: $e');
+      AppLog.clipboard.failed('read the full text', e, fields: {'id': id});
       return null;
     }
   }
@@ -110,7 +110,11 @@ class ClipboardBridge {
     } catch (e) {
       final message =
           e is PlatformException ? (e.message ?? e.code) : e.toString();
-      debugPrint('clipboard $method failed: $message');
+      AppLog.clipboard.failed(
+        'run a clipboard action',
+        e,
+        fields: {'method': method},
+      );
       return ActionOutcome(ok: false, message: message);
     }
   }

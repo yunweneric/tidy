@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
+import 'package:tidy/core/logging/logging.dart';
 import 'package:tidy/core/platform/system_bridge.dart';
 import 'package:tidy/core/utils/disk_utils.dart';
 import 'package:tidy/features/apps/data/models/mac_app_model.dart';
@@ -163,7 +163,11 @@ class AppManagerService {
       try {
         entries = dir.listSync(followLinks: false);
       } on FileSystemException catch (e) {
-        debugPrint('Cannot list $root: ${e.message}');
+        AppLog.apps.failed(
+          'list an applications folder',
+          e,
+          fields: {'root': root},
+        );
         return;
       }
 
@@ -285,7 +289,11 @@ class AppManagerService {
           }
         }
       } catch (e) {
-        debugPrint('mdls chunk failed: $e');
+        AppLog.apps.failed(
+          'read last-used dates from Spotlight',
+          e,
+          fields: {'chunk': chunk.length},
+        );
       }
     }
 

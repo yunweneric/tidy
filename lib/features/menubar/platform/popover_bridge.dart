@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:tidy/core/logging/logging.dart';
 import 'package:flutter/services.dart';
 
 /// Talks to `macos/Runner/MenuBarController.swift`, which owns the status item
@@ -61,7 +61,7 @@ class PopoverBridge {
       );
       return result?['dark'] as bool? ?? false;
     } catch (e) {
-      debugPrint('appearance failed: $e');
+      AppLog.menuBar.failed('read the popover appearance', e);
       return false;
     }
   }
@@ -77,7 +77,11 @@ class PopoverBridge {
     try {
       await _channel.invokeMethod<void>('setPopoverHeight', {'height': height});
     } catch (e) {
-      debugPrint('setPopoverHeight failed: $e');
+      AppLog.menuBar.failed(
+        'set the popover height',
+        e,
+        fields: {'height': height},
+      );
     }
   }
 
@@ -103,7 +107,11 @@ class PopoverBridge {
         if (route != null) 'route': route,
       });
     } catch (e) {
-      debugPrint('openMainWindow failed: $e');
+      AppLog.menuBar.failed(
+        'open the main window',
+        e,
+        fields: {'route': route},
+      );
     }
   }
 
@@ -115,7 +123,11 @@ class PopoverBridge {
     try {
       await _channel.invokeMethod<void>(method, arguments);
     } catch (e) {
-      debugPrint('$method failed: $e');
+      AppLog.menuBar.failed(
+        'call the menu bar',
+        e,
+        fields: {'method': method},
+      );
     }
   }
 }

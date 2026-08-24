@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:tidy/core/logging/logging.dart';
 import 'package:tidy/core/models/clipboard_entry.dart';
 import 'package:tidy/core/models/network_series.dart';
 import 'package:tidy/core/models/trash_item.dart';
@@ -163,7 +163,7 @@ class DashboardRepository {
     try {
       return await read();
     } catch (e) {
-      debugPrint('Dashboard could not read $what: $e');
+      AppLog.dashboard.failed('read $what', e);
       return null;
     }
   }

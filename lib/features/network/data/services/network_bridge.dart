@@ -1,7 +1,7 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:tidy/core/logging/logging.dart';
 import 'package:tidy/core/platform/action_outcome.dart';
 import 'package:tidy/features/network/data/models/network_prefs.dart';
 import 'package:tidy/features/network/data/models/network_sample.dart';
@@ -62,7 +62,7 @@ class NetworkBridge {
     try {
       await _channel.invokeMethod<void>('stopLive');
     } catch (e) {
-      debugPrint('network stopLive failed: $e');
+      AppLog.network.failed('stop the live tap', e);
     }
   }
 
@@ -72,7 +72,11 @@ class NetworkBridge {
       if (result == null) return NetworkSample.unknown;
       return NetworkSample.fromMap(result);
     } catch (e) {
-      debugPrint('network $method failed: $e');
+      AppLog.network.failed(
+        'read a sample',
+        e,
+        fields: {'method': method},
+      );
       return NetworkSample.unknown;
     }
   }
@@ -86,7 +90,11 @@ class NetworkBridge {
       if (result == null) return NetworkSeries.empty;
       return NetworkSeries.fromMap(result);
     } catch (e) {
-      debugPrint('network history failed: $e');
+      AppLog.network.failed(
+        'read the history',
+        e,
+        fields: {'range': range.id},
+      );
       return NetworkSeries.empty;
     }
   }
@@ -98,7 +106,7 @@ class NetworkBridge {
       if (result == null) return NetworkHeadline.empty;
       return NetworkHeadline.fromMap(result);
     } catch (e) {
-      debugPrint('network headline failed: $e');
+      AppLog.network.failed('read the headline totals', e);
       return NetworkHeadline.empty;
     }
   }
@@ -107,7 +115,7 @@ class NetworkBridge {
     try {
       await _channel.invokeMethod<void>('configure', prefs.toMap());
     } catch (e) {
-      debugPrint('network configure failed: $e');
+      AppLog.network.failed('apply the network preferences', e);
     }
   }
 
@@ -119,7 +127,7 @@ class NetworkBridge {
       final result = await _channel.invokeMapMethod<String, dynamic>('reset');
       return ActionOutcome.fromMap(result);
     } catch (e) {
-      debugPrint('network reset failed: $e');
+      AppLog.network.failed('reset the network history', e);
       return const ActionOutcome(ok: false, message: 'That could not be done.');
     }
   }

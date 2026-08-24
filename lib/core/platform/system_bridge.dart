@@ -1,5 +1,5 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:tidy/core/logging/logging.dart';
 import 'package:tidy/core/platform/action_outcome.dart';
 import 'package:tidy/core/platform/trash_ledger.dart';
 
@@ -121,6 +121,14 @@ class SystemBridge {
       );
     } catch (e) {
       final message = e is PlatformException ? (e.message ?? e.code) : e.toString();
+      // Error, not warning: nothing downstream recovers from this. Every path
+      // in the request comes back as a failure and the user is told the clean
+      // did not happen.
+      AppLog.platform.error(
+        'removal call failed',
+        error: e,
+        fields: {'method': method, 'count': paths.length},
+      );
       return RemovalResult(
         removed: const [],
         failures: paths.map((p) => RemovalFailure(path: p, error: message)).toList(),
@@ -138,7 +146,7 @@ class SystemBridge {
         freeBytes: (result['free'] as num?)?.toInt() ?? 0,
       );
     } catch (e) {
-      debugPrint('diskUsage failed: $e');
+      AppLog.platform.failed('read disk usage', e);
       return DiskUsage.empty;
     }
   }
@@ -155,7 +163,7 @@ class SystemBridge {
       if (result == null) return const {};
       return result.map((path, size) => MapEntry(path, (size as num).toInt()));
     } catch (e) {
-      debugPrint('sizeOfPaths failed: $e');
+      AppLog.platform.failed('size paths', e, fields: {'count': paths.length});
       return const {};
     }
   }
@@ -181,7 +189,7 @@ class SystemBridge {
         );
       }).toList();
     } catch (e) {
-      debugPrint('childSizes failed: $e');
+      AppLog.platform.failed('list child sizes', e, fields: {'path': path});
       return const [];
     }
   }
@@ -206,7 +214,7 @@ class SystemBridge {
         (path, bytes) => MapEntry(path, bytes as Uint8List),
       );
     } catch (e) {
-      debugPrint('iconsForPaths failed: $e');
+      AppLog.platform.failed('read icons', e, fields: {'count': paths.length});
       return const {};
     }
   }
@@ -216,7 +224,7 @@ class SystemBridge {
     try {
       await _channel.invokeMethod<void>('revealInFinder', {'path': path});
     } catch (e) {
-      debugPrint('revealInFinder failed: $e');
+      AppLog.platform.failed('reveal in Finder', e, fields: {'path': path});
     }
   }
 
@@ -225,7 +233,7 @@ class SystemBridge {
     try {
       await _channel.invokeMethod<void>('openFullDiskAccessSettings');
     } catch (e) {
-      debugPrint('openFullDiskAccessSettings failed: $e');
+      AppLog.platform.failed('open the Full Disk Access settings', e);
     }
   }
 
@@ -244,7 +252,7 @@ class SystemBridge {
         enabled: result?['enabled'] as bool? ?? false,
       );
     } catch (e) {
-      debugPrint('loginItemStatus failed: $e');
+      AppLog.platform.failed('read the login item status', e);
       return (available: false, enabled: false);
     }
   }
@@ -259,6 +267,11 @@ class SystemBridge {
     } catch (e) {
       final message =
           e is PlatformException ? (e.message ?? e.code) : e.toString();
+      AppLog.platform.failed(
+        'change the login item',
+        e,
+        fields: {'enabled': enabled},
+      );
       return ActionOutcome(ok: false, message: message);
     }
   }
@@ -268,7 +281,7 @@ class SystemBridge {
     try {
       await _channel.invokeMethod<void>('openSettingsPane', {'anchor': anchor});
     } catch (e) {
-      debugPrint('openSettingsPane failed: $e');
+      AppLog.platform.failed('open a Settings pane', e, fields: {'anchor': anchor});
     }
   }
 
@@ -285,7 +298,7 @@ class SystemBridge {
       );
       return result?['granted'] as bool? ?? false;
     } catch (e) {
-      debugPrint('fullDiskAccessStatus failed: $e');
+      AppLog.platform.failed('probe Full Disk Access', e);
       // Assume access rather than hiding features behind a failed probe.
       return true;
     }
@@ -302,7 +315,11 @@ class SystemBridge {
       if (result == null) return const {};
       return result.map((path, readable) => MapEntry(path, readable as bool));
     } catch (e) {
-      debugPrint('canReadPaths failed: $e');
+      AppLog.platform.failed(
+        'check which paths are readable',
+        e,
+        fields: {'count': paths.length},
+      );
       return {for (final path in paths) path: true};
     }
   }

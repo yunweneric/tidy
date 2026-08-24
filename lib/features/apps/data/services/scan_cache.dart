@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:tidy/core/logging/logging.dart';
 import 'package:tidy/features/apps/data/models/mac_app_model.dart';
 import 'package:path/path.dart' as p;
 
@@ -42,7 +43,11 @@ class ScanCache {
       final icons = Directory(p.join(dir.path, 'icons'));
       if (!icons.existsSync()) await icons.create(recursive: true);
     } on FileSystemException catch (e) {
-      debugPrint('Cannot create cache directory: ${e.message}');
+      AppLog.apps.failed(
+        'create the cache directory',
+        e,
+        fields: {'path': dir.path},
+      );
       return null;
     }
 
@@ -82,7 +87,7 @@ class ScanCache {
       }
       return CachedScan(apps: apps, scannedAt: scannedAt);
     } catch (e) {
-      debugPrint('Failed to read scan cache: $e');
+      AppLog.apps.failed('read the scan cache', e);
       return null;
     }
   }
@@ -106,7 +111,7 @@ class ScanCache {
         }),
       );
     } catch (e) {
-      debugPrint('Failed to write scan cache: $e');
+      AppLog.apps.failed('write the scan cache', e);
     }
   }
 
@@ -149,7 +154,11 @@ class ScanCache {
     try {
       await file.writeAsBytes(bytes);
     } on FileSystemException catch (e) {
-      debugPrint('Failed to cache icon for ${app.name}: ${e.message}');
+      AppLog.apps.failed(
+        'cache an app icon',
+        e,
+        fields: {'app': app.name},
+      );
     }
   }
 }
