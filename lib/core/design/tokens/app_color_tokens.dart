@@ -11,6 +11,24 @@ import 'package:flutter/material.dart';
 /// signature violet rather than inventing another hue.
 enum ModuleTone {
   brand,
+
+  /// Smart Care. It used to wear the brand violet, which stopped working the
+  /// moment the Dashboard sat directly above it wearing the same one — two
+  /// adjacent rows opening into an identical window is the one thing the tone
+  /// exists to prevent.
+  ///
+  /// A citrine gold at ~58°, sat in the middle of the widest unused arc on the
+  /// wheel — 37° from Performance's burnt orange and 44° from Cleanup's green.
+  ///
+  /// Placed by maximising distance from the other *module* tones rather than
+  /// from the status ones, because no new hue can clear all four of those: the
+  /// status hues (amber 39°, green 143°, azure 198°, red 355°) are spread right
+  /// across the wheel and the modules fill what is left. What keeps that safe is
+  /// the rule in ui.md §3 — a module's colour appears in the backdrop and the
+  /// CTA and nowhere else — so an amber "worth a look" chip still reads as a
+  /// warning on this window and not as a location. Deliberately yellower than
+  /// that amber all the same: 19° of separation, where Performance has 18°.
+  smartCare,
   cleanup,
   protection,
   performance,
@@ -291,6 +309,11 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
         lift: Color(0xFF5B45E0),
         accent: Color(0xFF8B79FF),
       ),
+      ModuleTone.smartCare: ModulePalette(
+        base: Color(0xFF2E2C09),
+        lift: Color(0xFFBAB41E),
+        accent: Color(0xFFE4DC55),
+      ),
       ModuleTone.cleanup: ModulePalette(
         base: Color(0xFF0A2A12),
         lift: Color(0xFF3F961B),
@@ -364,6 +387,11 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
         base: Color(0xFFE8E2FF),
         lift: Color(0xFFBCA8FF),
         accent: Color(0xFF5B45E0),
+      ),
+      ModuleTone.smartCare: ModulePalette(
+        base: Color(0xFFF7F2C6),
+        lift: Color(0xFFE2D97F),
+        accent: Color(0xFF7E7409),
       ),
       ModuleTone.cleanup: ModulePalette(
         base: Color(0xFFDFF0DA),

@@ -136,6 +136,18 @@ they cannot look the palette up for themselves — `showTidyDialog` and
 and re-provide it. That is also what makes a dialog's primary `GradientButton`
 wear the module's ramp instead of falling back to the brand one.
 
+### Traffic
+| Token | Use |
+|---|---|
+| `downstream` | Bytes coming in — the download series on every network chart |
+| `upstream` | Bytes going out |
+
+A pair of their own rather than borrowed status colours. `safe` / `review` /
+`risky` mean the same thing on every module in the app, and a green "download"
+against an amber "upload" would quietly teach that one direction is fine and the
+other needs looking at. They cannot be the module ramp either: a two-series chart
+needs two colours, and a ramp is one.
+
 ### Lines
 | Token | Use |
 |---|---|
@@ -176,24 +188,37 @@ mistake with extra steps.
 
 ### Module tones
 
-Each of the six modules owns a colour of light, so the window tells you where
-you are before you have read the page title:
+A view that owns a colour of light tells you where you are before you have read
+the page title:
 
 | Module | Tone | | Module | Tone |
 |---|---|---|---|---|
-| Smart Care | violet | | Applications | indigo-blue |
-| Cleanup | green | | My Clutter | teal |
-| Protection | magenta | | Space Lens | purple |
-| Performance | amber | | | |
+| Smart Care | gold | | Space Lens | purple |
+| Cleanup | green | | Network | azure |
+| Protection | magenta | | Dashboard | brand violet |
+| Performance | amber | | Clipboard | brand violet |
+| Applications | indigo-blue | | My Clutter | teal |
+
+Smart Care was violet until the Dashboard arrived above it in the rail wearing
+the same brand violet. Two adjacent rows opening into an identical window is
+exactly what the tone exists to prevent, so Smart Care took the widest unused
+arc on the wheel instead — a citrine gold at ~58°, 37° clear of Performance's
+burnt orange and 44° clear of Cleanup's green.
 
 `AppDestination.tone` names the tone; `colors.modulePalette(tone)` resolves it.
 `AmbientBackground` paints the window with it and cross-fades the whole palette
 over `motion.slow` when you change module — base and lift move together, so the
 window never passes through a hue neither module owns.
 
-Supporting views (All Tools, Activity, Assistant, Settings) keep the brand
-tone. A hue per module means something while there are six of them; it stops
-meaning anything at eleven.
+Supporting views (All Tools, Activity, Assistant, Settings, Recycle Bin) keep
+the brand tone. A hue per destination means nothing; a hue per *place you spend
+time in* means something, and that is the line — the six working modules, plus
+the two you go to in order to watch something (Space Lens, Network). If a ninth
+tone is ever proposed, the question to answer first is which of these it is.
+
+Azure and indigo-blue are close, and deliberately not adjacent in the sidebar:
+Applications is a working module and Network is under MORE, so the two are never
+one click apart.
 
 Status colours stay `safe`/`review`/`risky` on every module — those mean what
 they mean regardless of what colour the window is. Amber has to keep reading as
@@ -366,6 +391,9 @@ Reach for these before building anything.
 | `PaginationBar` | Windowed pagination (1 … 7 8 9 … 19) |
 | `PermissionBanner` | Full Disk Access prompt, full or compact |
 | `FadeThrough` | Fades content back in when a trigger changes |
+| `BucketBarChart` | A time series as stacked bars. Unrecorded periods draw as gaps, never as zeroes |
+| `BucketLineChart` | A level over time as a filled line, broken across gaps rather than interpolated |
+| `StackedBar` | A composition as one horizontal bar — what makes up a whole |
 | `AmbientBackground` | The window backdrop — wash, glows, shapes, dot grid. Wraps the whole window |
 | `GradientButton` | The primary call to action, wearing `accentGradient` |
 | `TidyToast` | Transient result in the corner of the window — `context.toastSuccess('…')` |

@@ -3,6 +3,7 @@ library;
 
 // Token-driven primitives — the ones new code should reach for.
 export 'ambient_background.dart';
+export 'bucket_bar_chart.dart';
 export 'animated_bytes.dart';
 export 'brand_mark.dart';
 export 'bundle_icon.dart';
@@ -14,6 +15,7 @@ export 'module_scaffold.dart';
 export 'permission_banner.dart';
 export 'size_bar.dart';
 export 'spark_chart.dart';
+export 'stacked_bar.dart';
 export 'stat_tile.dart';
 export 'status_chip.dart';
 export 'tidy_card.dart';

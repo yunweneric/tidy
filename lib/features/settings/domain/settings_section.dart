@@ -31,6 +31,13 @@ enum SettingsSection {
     icon: AppIcons.network,
     blurb: 'The menu bar readout, and what the usage history keeps.',
   ),
+  history(
+    label: 'Data & History',
+    icon: AppIcons.analytics,
+    blurb:
+        'What ${Brand.name} remembers about what it has done, and how to '
+        'export or erase it.',
+  ),
   permissions(
     label: 'Permissions',
     icon: AppIcons.locked,

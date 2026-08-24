@@ -216,13 +216,23 @@ class AppSettings extends ChangeNotifier {
 
   /// Whether the live readout appears in the menu bar.
   ///
-  /// On by default, unlike the clipboard recorder: reading interface counters
-  /// needs no permission, records nothing about *what* was sent, and a network
-  /// monitor nobody can see is not a network monitor. The switch exists because
-  /// the readout permanently occupies menu bar width, which is the scarcest
-  /// space on the machine — not because the recording is sensitive.
+  /// This is the *readout*, not the recording: sampling runs from launch either
+  /// way, so turning this off costs no history — the Network page and the
+  /// popover still show everything.
+  ///
+  /// Off by default, and the reason is arithmetic rather than taste. The two
+  /// glyph icons ask macOS for about 76 points of menu bar; the readout is text
+  /// and asks for 70 to 160 more depending on style and units. A menu bar has
+  /// only what is left after the frontmost app's menus, and on a notched Mac
+  /// only what is left to the *right* of the notch — when the app asks for more
+  /// than that, macOS does not shrink it or drop the widest item. It hands out
+  /// slots underneath the notch, where nothing is drawn, and the user loses the
+  /// icons they already had along with the one they just enabled.
+  ///
+  /// So the app defaults to the two icons it needs and lets the user spend the
+  /// remaining width deliberately, in Settings → Network.
   bool get networkMenuBarEnabled =>
-      _values[_networkMenuBarKey] as bool? ?? true;
+      _values[_networkMenuBarKey] as bool? ?? false;
 
   set networkMenuBarEnabled(bool value) {
     _values[_networkMenuBarKey] = value;

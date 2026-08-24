@@ -232,6 +232,28 @@ found" from a scanner that does not exist is lying.
 
 ---
 
+## 4a. Settings the native side reads
+
+Most preferences are read by Dart and pushed to Swift over a channel. Two
+features cannot wait for that: the **clipboard recorder** and the **network
+readout** both run before any Flutter engine has finished starting, so they read
+`settings.json` themselves — `ClipboardStore.readPrefsFromSettings()` and
+`NetworkStore.readPrefsFromSettings()`.
+
+That makes the key names a contract across the language boundary. `AppSettings`
+owns them; `ClipboardPrefs.fromMap` and `NetworkPrefs.fromMap` on the Swift side
+read the same strings. **Renaming a key in one place and not the other fails
+silently** — the native side simply falls back to its default, which for the
+clipboard means recording more than the user asked for, and for the network
+readout means the wrong style in the menu bar for the first second of every
+launch. Both sets carry a comment saying so; keep it there.
+
+The Dart side still pushes on change, through `ClipboardService.bindTo` and
+`NetworkService.bindTo`. The file read is for launch; the channel is for
+everything after it.
+
+---
+
 ## 5. The rules that are not negotiable
 
 This app deletes files. These are the parts where a bug is not a bug report, it
@@ -273,9 +295,29 @@ scanner is being refused, the scanner is wrong.
 lockfiles consistent, and "we ran `brew cleanup`" is a far better story than
 "we deleted 4 GB of unknown files".
 
+**A missing sample is not a zero.** Anything that records over time — the
+network history is the first, and will not be the last — only records while
+Tidy is running. A period with no row is a period the app was quit for, and it
+has to be drawn as a gap and said out loud. Rendering it as a zero tells the
+user they used nothing overnight, which is the same class of lie as a scanner
+reporting "0 threats found" from a scanner that does not exist.
+
 **Trashing frees nothing** until the Trash is emptied. Copy says "moved to
 Trash", never "freed". Recycle Bin's permanent delete is the one exception —
 that one genuinely frees the bytes, and is allowed to say so.
+
+**Every removal is written down.** `lib/core/store/tidy_store.dart` records one
+row per operation and one per file removed — path, size, category, and whether it
+was trashed or deleted outright. It is what the Dashboard's charts are drawn from
+and, more importantly, it is the only thing that makes a wrong deletion
+auditable after the fact. Unlike `TrashLedger` this cannot live at a single choke
+point, because the sizes and categories only exist at the caller: if you add a
+path that removes things, record it where you build the outcome. `ScanBloc`,
+`AppsBloc`, `RecycleBinBloc` and `MaintenanceService` are the four that do.
+
+`bytes_trashed` and `bytes_deleted` are separate columns and must stay that way.
+Trashing frees nothing until the Trash is emptied, so summing them into one
+"space reclaimed" figure promises the user space they do not have.
 
 **Every route to the Trash goes through `SystemBridge.trashItems`**, which
 records where each item came from in `TrashLedger`. macOS keeps Finder's

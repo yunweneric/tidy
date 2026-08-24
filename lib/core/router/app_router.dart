@@ -6,6 +6,7 @@ import 'package:tidy/core/settings/app_settings.dart';
 import 'package:tidy/core/widgets/fade_through.dart';
 import 'package:tidy/features/apps/presentation/screens/applications_page.dart';
 import 'package:tidy/features/cleanup/presentation/cleanup_page.dart';
+import 'package:tidy/features/dashboard/presentation/dashboard_page.dart';
 import 'package:tidy/features/onboarding/presentation/onboarding_screen.dart';
 import 'package:tidy/features/performance/presentation/performance_page.dart';
 import 'package:tidy/features/clipboard/presentation/clipboard_page.dart';
@@ -88,6 +89,7 @@ StatefulShellBranch _branch(AppDestination destination) {
 }
 
 Widget _pageFor(AppDestination destination) => switch (destination) {
+  AppDestination.dashboard => const DashboardPage(),
   AppDestination.cleanup => const CleanupPage(),
   AppDestination.applications => const ApplicationsPage(),
   AppDestination.settings => const SettingsPage(),

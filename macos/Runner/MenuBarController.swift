@@ -68,6 +68,7 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
   private var currentWidth: CGFloat = 460
 
   private lazy var preview = ClipPreviewPanel()
+  static var probe: NSStatusItem?
 
   override init() {
     statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
@@ -79,38 +80,53 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     )
     super.init()
 
+    NSLog("TIDYDBG init start")
     configureStatusItem()
     configureClipboardItem()
     configureNetworkItem()
     configurePopover()
     observeNetwork()
+    NSLog("TIDYDBG init done")
+    DispatchQueue.main.asyncAfter(deadline: .now() + 5) { [weak self] in
+      guard let self else { NSLog("TIDYDBG controller DEALLOCATED"); return }
+      NSLog("TIDYDBG later vitals visible=\(self.statusItem.isVisible) len=\(self.statusItem.length) img=\(String(describing: self.statusItem.button?.image)) win=\(String(describing: self.statusItem.button?.window?.frame))")
+      NSLog("TIDYDBG later clip visible=\(self.clipboardItem.isVisible) len=\(self.clipboardItem.length) win=\(String(describing: self.clipboardItem.button?.window?.frame))")
+      NSLog("TIDYDBG later net item=\(String(describing: self.networkItem)) ")
+      NSLog("TIDYDBG thickness=\(NSStatusBar.system.thickness) policy=\(NSApp.activationPolicy().rawValue) screens=\(NSScreen.screens.map { $0.frame })")
+      let probe = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
+      probe.button?.title = "P"
+      Self.probe = probe
+      DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+        NSLog("TIDYDBG probe visible=\(probe.isVisible) win=\(String(describing: probe.button?.window?.frame))")
+      }
+    }
   }
 
   // MARK: - Status item
 
-  /// Names an item and puts it back on the menu bar.
+  /// Names an item, and asks for it to be shown.
   ///
-  /// Both halves matter, and neither is belt-and-braces.
-  ///
-  /// **The name.** An `NSStatusItem` with no `autosaveName` is filed by AppKit
-  /// under an ordinal — `Item-0`, `Item-1`, `Item-2` — allocated in creation
-  /// order. That is a shared namespace, not a private one, and macOS 26 keeps
-  /// the menu bar's visibility state centrally now that Control Center owns the
-  /// bar: `com.apple.controlcenter` here carries `NSStatusItem Visible Item-0`
-  /// through `Item-9`, every one of them `0`. Any app whose items are unnamed
-  /// inherits that "hidden" verdict — which is exactly what happened to all
-  /// three of ours, and to at least one other app's on this machine. A stable
-  /// name of our own takes the items out of the shared bucket.
+  /// **The name.** Without an `autosaveName`, AppKit files an item under an
+  /// ordinal — `Item-0`, `Item-1`, `Item-2` — handed out in creation order.
+  /// That makes the readout's preference destructive: turn it off and the item
+  /// after it inherits its slot and its remembered position, because the
+  /// ordinals shift underneath. A stable name per item is what makes "where
+  /// this icon sits" a property of the icon rather than of how many icons
+  /// happened to exist when it was made.
   ///
   /// **The visibility.** `behavior` deliberately does not include
-  /// `.removalAllowed`, so there is no supported gesture that hides these
-  /// items — a stored `false` is an artefact of the ordinal collision above,
-  /// never something the user asked for. Setting it back on every launch is
-  /// therefore not overriding a preference; it is refusing to inherit someone
-  /// else's.
+  /// `.removalAllowed`, so there is no gesture that hides these items: a stored
+  /// `false` can only be something macOS decided, never something the user
+  /// asked for. Asking for `true` on every launch is how an item that was left
+  /// hidden comes back. It is not a guarantee of being *seen* — macOS still
+  /// chooses the slot, and on a notched Mac with a full menu bar the slot it
+  /// chooses can be underneath the notch — but it is the half we control.
   private static func claim(_ item: NSStatusItem, as name: String) {
+    NSLog("TIDYDBG claim BEFORE \(name) visible=\(item.isVisible) len=\(item.length)")
     item.autosaveName = name
+    NSLog("TIDYDBG claim AFTERNAME \(name) visible=\(item.isVisible)")
     item.isVisible = true
+    NSLog("TIDYDBG claim AFTER \(name) visible=\(item.isVisible) len=\(item.length) win=\(String(describing: item.button?.window?.frame))")
   }
 
   private func configureStatusItem() {
@@ -213,10 +229,6 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     // wide it needs to be depends on how fast the machine is moving bytes.
     let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     networkItem = item
-    // Named, like the other two — and named rather than positional especially
-    // here, because this item comes and goes with the preference and an
-    // ordinal would land on a different item each time it did.
-    Self.claim(item, as: "TidyNetwork")
 
     guard let button = item.button else { return }
     button.toolTip = "Network activity"
@@ -224,6 +236,18 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     button.action = #selector(networkItemClicked(_:))
     button.sendAction(on: [.leftMouseUp, .rightMouseUp])
     renderNetwork(NetworkMonitor.shared.latest)
+
+    // Claimed *after* the readout is in it, unlike the two glyph items. Those
+    // are `squareLength` and have a width from the moment they exist; this one
+    // is `variableLength`, so until the first `renderNetwork` its width is
+    // whatever its empty button draws, which is nothing. Asking to be shown
+    // while measuring zero is a question with no good answer, so it is asked
+    // once the item has a size to ask with.
+    //
+    // Named rather than positional for the same reason as the others, and more
+    // sharply here: this is the one item that comes and goes with a preference,
+    // so an ordinal would land on a different item every time it did.
+    Self.claim(item, as: "TidyNetwork")
   }
 
   private func observeNetwork() {

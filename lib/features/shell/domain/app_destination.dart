@@ -20,13 +20,28 @@ enum NavGroup {
 /// and the applications table's filter were the same enum — fine with one
 /// screen, impossible with ten.
 enum AppDestination {
+  /// First on purpose, and the only value ever inserted rather than appended.
+  ///
+  /// The warnings below about branch indices being positional are about not
+  /// *accidentally* reordering the sidebar. Here the reorder is the point: this
+  /// is the screen the app opens on and the first row in the rail. It is safe
+  /// because nothing persists a branch index — `branchIndex` is derived from
+  /// this list, `AppSettings` stores no route, and the menu-bar popover deep
+  /// links by `path` string.
+  dashboard(
+    path: '/dashboard',
+    label: 'Dashboard',
+    icon: AppIcons.dashboard,
+    group: NavGroup.primary,
+    blurb: 'How your Mac is doing, and what Tidy has done about it.',
+  ),
   smartCare(
     path: '/smart-care',
     label: 'Smart Care',
     icon: AppIcons.smartCare,
     group: NavGroup.primary,
     blurb: 'One pass over everything, then a single review.',
-    tone: ModuleTone.brand,
+    tone: ModuleTone.smartCare,
   ),
   cleanup(
     path: '/cleanup',
@@ -182,5 +197,5 @@ enum AppDestination {
       values[index.clamp(0, values.length - 1)];
 
   /// Where the app opens.
-  static const AppDestination initial = AppDestination.smartCare;
+  static const AppDestination initial = AppDestination.dashboard;
 }

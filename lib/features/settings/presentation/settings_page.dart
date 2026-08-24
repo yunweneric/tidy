@@ -10,6 +10,7 @@ import 'package:tidy/features/settings/presentation/sections/about_section.dart'
 import 'package:tidy/features/settings/presentation/sections/appearance_section.dart';
 import 'package:tidy/features/settings/presentation/sections/clipboard_section.dart';
 import 'package:tidy/features/settings/presentation/sections/general_section.dart';
+import 'package:tidy/features/settings/presentation/sections/history_section.dart';
 import 'package:tidy/features/settings/presentation/sections/network_section.dart';
 import 'package:tidy/features/settings/presentation/sections/permissions_section.dart';
 import 'package:tidy/features/settings/presentation/widgets/settings_rail.dart';
@@ -92,6 +93,7 @@ class _SettingsPageState extends State<SettingsPage> {
     SettingsSection.appearance => AppearanceSection(settings: settings),
     SettingsSection.clipboard => ClipboardSection(settings: settings),
     SettingsSection.network => NetworkSection(settings: settings),
+    SettingsSection.history => const HistorySection(),
     SettingsSection.permissions => PermissionsSection(
       service: locator<FullDiskAccessService>(),
     ),

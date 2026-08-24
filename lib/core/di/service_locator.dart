@@ -1,5 +1,7 @@
 import 'package:get_it/get_it.dart';
 import 'package:tidy/core/platform/full_disk_access_service.dart';
+import 'package:tidy/core/insights/dashboard_repository.dart';
+import 'package:tidy/core/platform/system_bridge.dart';
 import 'package:tidy/core/settings/app_settings.dart';
 import 'package:tidy/core/store/metric_sampler.dart';
 import 'package:tidy/core/store/tidy_store.dart';
@@ -15,6 +17,10 @@ import 'package:tidy/features/performance/data/services/launch_items_service.dar
 import 'package:tidy/features/performance/data/services/maintenance_service.dart';
 import 'package:tidy/features/performance/data/services/process_monitor_service.dart';
 import 'package:tidy/features/recycle_bin/data/services/recycle_bin_service.dart';
+import 'package:tidy/features/performance/data/models/launch_item.dart';
+import 'package:tidy/features/performance/data/services/performance_bridge.dart';
+import 'package:tidy/features/recycle_bin/data/services/recycle_bin_service.dart'
+    show RecycleBinService;
 import 'package:tidy/features/smart_care/data/smart_care_module.dart';
 
 final GetIt locator = GetIt.instance;
@@ -113,6 +119,29 @@ Future<void> setUpLocator({required bool includeUi}) async {
       MetricSampler(store: locator<TidyStore>()),
     );
 
+    // ─── Dashboard ─────────────────────────────────────────────────────────
+    // Assembled here rather than inside the feature because this is the only
+    // file allowed to see both `core/` and every module: `docs/feature.md` §2
+    // forbids a feature importing a sibling, and the Dashboard reads nine of
+    // them. Each read goes in as a closure, so `DashboardRepository` depends on
+    // function types instead of on Network, Clipboard, Recycle Bin and the rest.
+    locator.registerLazySingleton<DashboardRepository>(
+      () => DashboardRepository(
+        store: locator<TidyStore>(),
+        sampler: locator<MetricSampler>(),
+        readDisk: SystemBridge.diskUsage,
+        readVitals: PerformanceBridge.systemVitals,
+        readProcesses: locator<ProcessMonitorService>().sample,
+        readTrash: locator<RecycleBinService>().load,
+        readClips: locator<ClipboardService>().history,
+        readNetworkHeadline: locator<NetworkService>().headline,
+        readNetworkSeries: locator<NetworkService>().series,
+        readFullDiskAccess: SystemBridge.hasFullDiskAccess,
+        readAppInventory: () => _appInventory(locator<ScanCache>()),
+        readLaunchItems: () => _launchItemFacts(locator<LaunchItemsService>()),
+      ),
+    );
+
     // One funnel for pushing the clipboard preferences to the native recorder,
     // registered here so no individual setter can forget. The popover engine
     // skips it: it has no settings UI, and the native side reads the same file
@@ -120,4 +149,62 @@ Future<void> setUpLocator({required bool includeUi}) async {
     locator<ClipboardService>().bindTo(settings);
     locator<NetworkService>().bindTo(settings);
   }
+}
+
+/// Reads the installed-app inventory from the on-disk cache.
+///
+/// The cache, never a scan: the Dashboard is the first thing the user sees, and
+/// walking `/Applications` before the first frame would trade a fast window for
+/// a number that barely changes between launches. An empty cache reports
+/// [AppInventory.empty], whose `isKnown` is false — the tile then says so
+/// rather than claiming zero apps are installed.
+Future<AppInventory> _appInventory(ScanCache cache) async {
+  final cached = await cache.read();
+  if (cached == null || cached.apps.isEmpty) return AppInventory.empty;
+
+  final apps = cached.apps.where((app) => !app.isSystem).toList();
+  final bySize = [...apps]..sort((a, b) => b.sizeBytes.compareTo(a.sizeBytes));
+
+  final perDeveloper = <String, int>{};
+  for (final app in apps) {
+    final developer = app.developer;
+    if (developer == null || developer.isEmpty) continue;
+    perDeveloper[developer] = (perDeveloper[developer] ?? 0) + app.sizeBytes;
+  }
+  final developers =
+      perDeveloper.entries.map((e) => (name: e.key, bytes: e.value)).toList()
+        ..sort((a, b) => b.bytes.compareTo(a.bytes));
+
+  return AppInventory(
+    count: apps.length,
+    totalBytes: apps.fold<int>(0, (sum, app) => sum + app.sizeBytes),
+    // 180 days, matching `UnusedAppsModule.unusedAfter`. An app with no
+    // recorded last-used date is not counted: Spotlight simply may not have
+    // indexed it, and calling that "unused" would put apps on the list for
+    // being unindexed rather than for being unopened.
+    unusedCount:
+        apps.where((app) {
+          final days = app.daysSinceLastUsed;
+          return days != null && days >= 180;
+        }).length,
+    largest: [
+      for (final app in bySize.take(5)) (name: app.name, bytes: app.sizeBytes),
+    ],
+    byDeveloper: developers.take(5).toList(),
+    scannedAt: cached.scannedAt,
+  );
+}
+
+/// Counts the launch items without dragging `LaunchItem` into `core/`.
+///
+/// "Broken" means the same thing here as in `PerformanceState.brokenCount` —
+/// the program the job points at is not there — so the Dashboard tile and the
+/// Performance page cannot report different numbers.
+Future<LaunchItemFacts> _launchItemFacts(LaunchItemsService service) async {
+  final items = await service.load();
+  return LaunchItemFacts(
+    total: items.length,
+    enabled: items.where((item) => item.enabled).length,
+    broken: items.where((item) => item.health == LaunchItemHealth.broken).length,
+  );
 }

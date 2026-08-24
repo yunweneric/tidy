@@ -19,7 +19,10 @@ enum NetworkMenuBarStyle: String {
 /// `lib/core/settings/app_settings.dart`.** Renaming one there means renaming it
 /// here.
 struct NetworkPrefs {
-  var menuBarEnabled = true
+  /// Off until asked for. See `AppSettings.networkMenuBarEnabled` for why —
+  /// and keep this default in step with the one there and in `NetworkPrefs`
+  /// on the Dart side.
+  var menuBarEnabled = false
   var menuBarStyle = NetworkMenuBarStyle.twoLine
 
   /// Bits per second rather than bytes. Off by default: the rest of the app

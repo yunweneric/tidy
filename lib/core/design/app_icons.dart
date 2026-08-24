@@ -15,6 +15,11 @@ class AppIcons {
 
   // ─── Navigation ──────────────────────────────────────────────────────────
   static const IconData brand = HugeIcons.strokeRoundedSparkles;
+
+  /// A house rather than another grid or dial: Performance already wears a
+  /// speedometer and Applications a square grid, and a third dashboard-ish
+  /// glyph at the top of the same rail would read as a duplicate of one of them.
+  static const IconData dashboard = HugeIcons.strokeRoundedHome01;
   static const IconData smartCare = HugeIcons.strokeRoundedAiMagic;
   static const IconData cleanup = HugeIcons.strokeRoundedClean;
   static const IconData protection = HugeIcons.strokeRoundedShield01;

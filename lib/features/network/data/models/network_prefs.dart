@@ -33,7 +33,7 @@ enum NetworkMenuBarStyle {
 /// channel when something actually moved.
 class NetworkPrefs extends Equatable {
   const NetworkPrefs({
-    this.menuBarEnabled = true,
+    this.menuBarEnabled = false,
     this.menuBarStyle = NetworkMenuBarStyle.twoLine,
     this.units = NetworkUnits.bytes,
   });
