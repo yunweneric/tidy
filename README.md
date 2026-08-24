@@ -99,41 +99,73 @@ flutter run -d macos
 Test Full Disk Access from the **built** `.app`, not `flutter run` — TCC grants
 are keyed to the bundle.
 
-## Building a DMG
+## Building and releasing
+
+Two paths, for two different purposes.
+
+**A quick unsigned build**, to hand to someone or to test packaging:
 
 ```bash
 ./scripts/build_dmg.sh          # release build, then package
 ./scripts/build_dmg.sh --open   # ... and reveal it in Finder
-./scripts/build_dmg.sh --help   # signing and notarization options
 ```
 
-Produces `dist/Tidy-<version>.dmg`. How it is signed depends on what the
-machine has:
+Produces `dist/Tidy-<version>.dmg`, ad-hoc signed. macOS quarantines it after
+download, so on the target Mac open **System Settings → Privacy & Security** and
+choose **Open Anyway**, or:
 
-- **A Developer ID Application certificate in the keychain** — the app and the
-  disk image are signed with it under the hardened runtime. Add `--notarize`
-  with `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD` and `APPLE_TEAM_ID` in the
-  environment and the script also submits both to Apple and staples the
-  tickets, which is what lets the DMG open with a plain double-click.
-- **Nothing** — the app is ad-hoc signed (`codesign --sign -`), so macOS
-  quarantines it after download. On the target Mac open **System Settings →
-  Privacy & Security** and choose **Open Anyway**, or:
+```bash
+xattr -dr com.apple.quarantine /Applications/Tidy.app
+```
 
-  ```bash
-  xattr -dr com.apple.quarantine /Applications/Tidy.app
-  ```
+An app built this way can still update itself, but only against a published
+checksum — see below.
 
-## Releases
+**A real release**, signed with a Developer ID, notarized and published:
 
-`.github/workflows/ci.yml` runs the same script on a macOS runner:
-tag `v1.2.0`, push it, and CI builds, signs, notarizes and publishes
-`Tidy-1.2.0.dmg` to a GitHub Release. Pushes to `main` build the DMG as a
-downloadable artifact without publishing anything.
+```bash
+./scripts/release.sh --publish
+```
 
-Signing credentials come from repository secrets; without them the pipeline
-still succeeds and falls back to an ad-hoc build. See
-[.github/workflows/README.md](.github/workflows/README.md) for the secret list
-and how to obtain each one.
+That builds, signs the frameworks and the bundle under the hardened runtime,
+notarizes and staples both artifacts, and creates the GitHub release tagged
+`v<version>` with `Tidy-<version>-macos.zip`, `Tidy-<version>.dmg` and
+`SHA256SUMS.txt` attached. It needs a Developer ID Application certificate and a
+`notarytool` keychain profile — [docs/release.md](docs/release.md) covers the
+one-time setup, what the updater expects of a release, and the two things that
+bite on the first signed build.
+
+**Unsigned releases from CI.** `.github/workflows/ci.yml` lints and builds every
+push and PR, and on a `v*` tag publishes the zip, the DMG and `SHA256SUMS.txt`
+to a GitHub Release. It runs `scripts/build_dmg.sh`, so what it ships is ad-hoc
+signed and never notarized — Gatekeeper blocks the first launch, and the updater
+verifies downloads against the published checksum instead of a code signature.
+No Apple credentials are involved. See
+[.github/workflows/README.md](.github/workflows/README.md).
+
+## Updating
+
+Tidy updates itself, the way ChatGPT and Claude for Mac do. Once a day — and
+shortly after launch — it asks GitHub whether a newer release exists. If there
+is one, it says so; you press Download, watch it arrive, and press **Install and
+Relaunch**. Settings → Updates has the controls, including the switch that turns
+the check off.
+
+That check is the only network request the app makes. It sends nothing but the
+question.
+
+Before anything is installed, the download is checked against the release
+checksum, unpacked, confirmed to be Tidy and to be *newer*, and verified against
+the code signature of the copy already running — an update has to be signed by
+whoever signed what is installed. Then the two bundles are exchanged with a
+single atomic `renamex_np(RENAME_SWAP)` and a detached helper reopens the app
+once this one has exited.
+
+An unsigned build cannot use that last check: an ad-hoc designated requirement
+is a hash of one specific binary, so no future build could ever match it. There
+the SHA-256 digest published with the release stands in its place, and becomes
+mandatory — an unsigned build refuses an update that announces no checksum,
+because that would be no verification at all.
 
 ## Project structure
 
@@ -149,6 +181,7 @@ lib/
       logic/            ScanBloc
       presentation/     ScanView: scan → tiles → review → clean, written once
     settings/         Theme, reduce motion, onboarding state
+    updates/          Check GitHub, download, hand off to the installer
     utils/            Batched sizing, byte formatting, concurrency pool
     widgets/          Shared components
   features/
@@ -171,12 +204,17 @@ macos/Runner/
   RecycleBinChannel.swift   Trash bins and Put Back
   MenuBarController.swift   NSStatusItem + NSPopover + second Flutter engine
   HotKey.swift              Carbon global shortcut
+  UpdateChannel.swift       The updater's native surface
+  Updater.swift             Verify a download, swap the bundle, relaunch
 scripts/
-  build_dmg.sh              Release build → sign → notarize → DMG
+  build_dmg.sh              Quick ad-hoc build → DMG
+  release.sh                Build → Developer ID sign → notarize → publish
   add_swift_file.py         Register a Swift file with the Xcode target
+  generate_icons.py         Regenerate the app icon and menu bar glyphs
 docs/
   feature.md                How to build a feature, and the safety rules
   ui.md                     Theming, tokens, components, copy
+  release.md                Cutting a release, and what the updater expects
 ```
 
 ## Architecture

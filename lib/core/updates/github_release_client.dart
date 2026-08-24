@@ -84,14 +84,17 @@ class GitHubReleaseClient {
               : decoded;
       if (json is! Map<String, dynamic>) return null;
 
-      return _parse(json);
+      return await _parse(json, currentVersion);
     } catch (e) {
       AppLog.updates.failed('check for updates', e, fields: {'repo': _repo});
       return null;
     }
   }
 
-  UpdateRelease? _parse(Map<String, dynamic> json) {
+  Future<UpdateRelease?> _parse(
+    Map<String, dynamic> json,
+    String currentVersion,
+  ) async {
     if (json['draft'] == true) return null;
 
     final tag = json['tag_name'] as String? ?? '';
@@ -118,6 +121,19 @@ class GitHubReleaseClient {
 
     final dmg = _asset(assets, (name) => name.endsWith('.dmg'));
 
+    // GitHub only records `digest` for assets uploaded recently enough, and
+    // reports nothing at all for older releases, so it cannot be relied on.
+    // `scripts/release.sh` publishes a SHA256SUMS.txt alongside the artifacts
+    // for exactly this reason: falling back to it means every release has a
+    // digest whether or not GitHub happened to record one.
+    final digest =
+        _digest(zip['digest'] as String?) ??
+        await _checksum(
+          assets,
+          forAsset: zip['name'] as String? ?? '',
+          currentVersion: currentVersion,
+        );
+
     return UpdateRelease(
       version: version,
       tag: tag,
@@ -129,10 +145,51 @@ class GitHubReleaseClient {
       zipUrl: url,
       zipBytes: (zip['size'] as num?)?.toInt() ?? 0,
       publishedAt: DateTime.tryParse(json['published_at'] as String? ?? ''),
-      sha256: _digest(zip['digest'] as String?),
+      sha256: digest,
       dmgUrl: Uri.tryParse(dmg?['browser_download_url'] as String? ?? ''),
       isPrerelease: json['prerelease'] == true,
     );
+  }
+
+  /// Reads the digest for [forAsset] out of the release's `SHA256SUMS.txt`.
+  ///
+  /// Null when there is no such asset, or it does not mention the file. The
+  /// caller treats a missing digest as "no integrity check available" — which
+  /// a Developer ID signature covers for, and which an unsigned build refuses
+  /// to install without.
+  Future<String?> _checksum(
+    List<dynamic> assets, {
+    required String forAsset,
+    required String currentVersion,
+  }) async {
+    if (forAsset.isEmpty) return null;
+    final sums = _asset(assets, (name) => name == 'sha256sums.txt');
+    final url = Uri.tryParse(sums?['browser_download_url'] as String? ?? '');
+    if (url == null) return null;
+
+    try {
+      final request = await _client.getUrl(url).timeout(_timeout);
+      request.headers.set(
+        HttpHeaders.userAgentHeader,
+        'Tidy/$currentVersion (macOS)',
+      );
+      final response = await request.close().timeout(_timeout);
+      if (response.statusCode != HttpStatus.ok) {
+        await response.drain<void>();
+        return null;
+      }
+
+      final body = await response.transform(utf8.decoder).join();
+      for (final line in const LineSplitter().convert(body)) {
+        final parts = line.trim().split(RegExp(r'\s+'));
+        if (parts.length < 2 || parts.last != forAsset) continue;
+        final hex = parts.first.toLowerCase();
+        if (hex.length == 64) return hex;
+      }
+    } catch (e) {
+      AppLog.updates.failed('read the release checksums', e);
+    }
+    return null;
   }
 
   static Map<String, dynamic>? _asset(

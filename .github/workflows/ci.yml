@@ -25,9 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.meta.outputs.version }}
-      numeric_version: ${{ steps.meta.outputs.numeric_version }}
       flutter_version: ${{ steps.meta.outputs.flutter_version }}
-      is_release: ${{ steps.meta.outputs.is_release }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -46,28 +44,28 @@ jobs:
           fi
           FLUTTER_VERSION="${FLUTTER_VERSION:-3.38.10}"
 
-          # Artifact version: tag name for releases, pubspec version + sha otherwise.
+          PUBSPEC_VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}' | cut -d'+' -f1)
+
+          # A tag is the release version and must match what pubspec ships:
+          # the updater compares the tag against the running app's
+          # CFBundleShortVersionString, which comes from pubspec.
           if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
             VERSION="${GITHUB_REF#refs/tags/}"
             VERSION="${VERSION#v}"
-            IS_RELEASE=true
+            if [ "${VERSION}" != "${PUBSPEC_VERSION}" ]; then
+              echo "::error::Tag ${VERSION} does not match pubspec version ${PUBSPEC_VERSION}."
+              exit 1
+            fi
           else
-            PUBSPEC_VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}' | cut -d'+' -f1)
             VERSION="${PUBSPEC_VERSION}-$(echo "${GITHUB_SHA}" | cut -c1-7)"
-            IS_RELEASE=false
           fi
-
-          # Info.plist only accepts a plain x.y.z version.
-          NUMERIC_VERSION="${VERSION%%-*}"
 
           {
             echo "version=${VERSION}"
-            echo "numeric_version=${NUMERIC_VERSION}"
             echo "flutter_version=${FLUTTER_VERSION}"
-            echo "is_release=${IS_RELEASE}"
           } >> "$GITHUB_OUTPUT"
 
-          echo "Version: ${VERSION} | Flutter: ${FLUTTER_VERSION} | Release: ${IS_RELEASE}"
+          echo "Version: ${VERSION} | Flutter: ${FLUTTER_VERSION}"
 
   verify:
     name: Analyze & test
@@ -93,6 +91,9 @@ jobs:
       - name: Analyze code
         run: flutter analyze
 
+      # Tidy has no Dart tests yet; `flutter test` fails outright on a missing
+      # test/ directory, so the step waits for one to exist instead of being a
+      # permanent red X.
       - name: Run tests
         run: |
           set -euo pipefail
@@ -103,12 +104,9 @@ jobs:
           fi
 
   build-macos:
-    name: Build & sign macOS DMG
+    name: Build macOS app
     runs-on: macos-latest
     needs: [prepare, verify]
-    outputs:
-      signed: ${{ steps.signing.outputs.signed }}
-      notarized: ${{ steps.package.outputs.notarized }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -120,133 +118,31 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Get dependencies
-        run: flutter pub get
-
-      # The certificate lands in a throwaway keychain rather than the runner's
-      # login keychain: it is deleted at the end of the job, and codesign is
-      # given explicit access so it never blocks on an interactive unlock
-      # prompt that nobody can answer.
-      - name: Import Developer ID certificate
-        id: signing
+      # The same script a developer runs locally, so a CI artifact and a
+      # hand-built one are the same thing: ad-hoc signed, never notarized.
+      - name: Build & package
         env:
-          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
-          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
-        run: |
-          set -euo pipefail
-
-          if [ -z "${MACOS_CERTIFICATE}" ]; then
-            echo "::warning::MACOS_CERTIFICATE is not set — falling back to an ad-hoc signed build."
-            echo "signed=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          KEYCHAIN_PATH="$RUNNER_TEMP/signing.keychain-db"
-          KEYCHAIN_PASSWORD="$(uuidgen)"
-          CERT_PATH="$RUNNER_TEMP/certificate.p12"
-
-          echo -n "$MACOS_CERTIFICATE" | base64 --decode > "$CERT_PATH"
-
-          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-          # The default 5-minute auto-lock would expire mid-build; notarization
-          # alone can hold the job for several minutes.
-          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-
-          security import "$CERT_PATH" \
-            -k "$KEYCHAIN_PATH" \
-            -P "$MACOS_CERTIFICATE_PASSWORD" \
-            -T /usr/bin/codesign \
-            -T /usr/bin/security
-          security set-key-partition-list \
-            -S apple-tool:,apple:,codesign: \
-            -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH" > /dev/null
-          security list-keychains -d user -s "$KEYCHAIN_PATH" login.keychain-db
-
-          rm -f "$CERT_PATH"
-
-          IDENTITY=$(security find-identity -v -p codesigning "$KEYCHAIN_PATH" \
-            | grep 'Developer ID Application' \
-            | head -1 \
-            | sed -n 's/.*"\(.*\)"/\1/p')
-
-          if [ -z "$IDENTITY" ]; then
-            echo "::error::The imported certificate contains no 'Developer ID Application' identity." >&2
-            security find-identity -v -p codesigning "$KEYCHAIN_PATH" >&2
-            exit 1
-          fi
-
-          echo "Signing identity: $IDENTITY"
-          {
-            echo "signed=true"
-            echo "identity=$IDENTITY"
-            echo "keychain=$KEYCHAIN_PATH"
-          } >> "$GITHUB_OUTPUT"
-
-      - name: Build, sign, notarize & package
-        id: package
-        env:
-          SIGNING_IDENTITY: ${{ steps.signing.outputs.identity }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           VERSION: ${{ needs.prepare.outputs.version }}
-          SIGNED: ${{ steps.signing.outputs.signed }}
-          IS_PR: ${{ github.event_name == 'pull_request' }}
+        run: ./scripts/build_dmg.sh --zip --version "$VERSION" --output-dir build/dist
+
+      # The updater reads a digest out of SHA256SUMS.txt rather than trusting
+      # GitHub's asset `digest`, which is only recorded for recent uploads. It
+      # is also the only integrity check an unsigned build gets, so the release
+      # is worthless to the updater without it.
+      - name: Generate checksums
+        working-directory: build/dist
         run: |
           set -euo pipefail
+          shasum -a 256 *.zip *.dmg > SHA256SUMS.txt
+          cat SHA256SUMS.txt
 
-          NOTARIZED=false
-          if [ "$IS_PR" = "true" ]; then
-            # A PR build only has to prove that signing and packaging still
-            # work. Notarization is a multi-minute round trip to Apple for an
-            # artifact nobody downloads.
-            echo "Pull request build — signing only, no notarization."
-          elif [ "$SIGNED" = "true" ] && [ -n "${APPLE_ID}" ] \
-             && [ -n "${APPLE_APP_SPECIFIC_PASSWORD}" ] && [ -n "${APPLE_TEAM_ID}" ]; then
-            NOTARIZED=true
-          else
-            echo "::warning::Notarization credentials incomplete — the DMG will not be notarized."
-          fi
-
-          # --notarize turns missing credentials into a hard failure, so a
-          # release can never silently ship un-notarized when it meant to.
-          ARGS=(--version "$VERSION" --output-dir build/dist)
-          if [ "$NOTARIZED" = "true" ]; then
-            ARGS+=(--notarize)
-          else
-            ARGS+=(--no-notarize)
-          fi
-
-          ./scripts/build_dmg.sh "${ARGS[@]}"
-
-          echo "notarized=${NOTARIZED}" >> "$GITHUB_OUTPUT"
-          ls -lh build/dist
-
-      - name: Verify signature
-        run: |
-          set -euo pipefail
-          DMG=$(ls build/dist/*.dmg | head -1)
-          codesign --verify --verbose=2 "$DMG" || echo "DMG is not Developer ID signed"
-          # Only a notarized-and-stapled image passes this; it is the same check
-          # Gatekeeper runs on the downloader's Mac.
-          spctl --assess --type open --context context:primary-signature -vv "$DMG" \
-            || echo "::warning::Gatekeeper would not accept this DMG (expected for unsigned builds)."
-
-      - name: Upload DMG
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: tidy-macos-dmg
-          path: build/dist/*.dmg
+          name: tidy-macos
+          path: build/dist/*
           retention-days: 90
           if-no-files-found: error
-
-      # Runs even on failure so a leaked private key never outlives the job.
-      - name: Clean up keychain
-        if: always()
-        run: |
-          security list-keychains -d user -s login.keychain-db || true
-          rm -f "$RUNNER_TEMP/signing.keychain-db" "$RUNNER_TEMP/certificate.p12" || true
 
   release:
     name: Publish GitHub Release
@@ -263,54 +159,25 @@ jobs:
       - name: List artifacts
         run: ls -lhR dist
 
-      - name: Generate checksums
-        run: |
-          set -euo pipefail
-          cd dist
-          shopt -s nullglob
-          files=(*.dmg)
-          if [ ${#files[@]} -eq 0 ]; then
-            echo "No release artifacts found to checksum" >&2
-            exit 1
-          fi
-          sha256sum "${files[@]}" > SHA256SUMS.txt
-          cat SHA256SUMS.txt
-
-      # The install instructions differ completely between a notarized build and
-      # a fallback unsigned one, so the body is composed from what actually
-      # happened rather than assuming the happy path.
       - name: Compose release notes
         env:
           VERSION: ${{ needs.prepare.outputs.version }}
           TAG: ${{ github.ref_name }}
-          NOTARIZED: ${{ needs.build-macos.outputs.notarized }}
-          SIGNED: ${{ needs.build-macos.outputs.signed }}
         run: |
           set -euo pipefail
           {
             echo "## 🧹 Tidy ${TAG}"
             echo ""
-            echo "### 📦 Download"
-            echo ""
-            echo "| Platform | File |"
+            echo "| Download | For |"
             echo "| --- | --- |"
-            echo "| macOS 11+ | \`Tidy-${VERSION}.dmg\` |"
+            echo "| \`Tidy-${VERSION}.dmg\` | A first install — drag Tidy to Applications |"
+            echo "| \`Tidy-${VERSION}-macos.zip\` | What the in-app updater downloads |"
             echo ""
-            echo "The macOS build is a universal binary — one download runs natively"
-            echo "on both Apple Silicon and Intel."
-            echo ""
-            if [ "$NOTARIZED" = "true" ]; then
-              echo "> **Signed and notarized by Apple.** Open the DMG, drag Tidy to"
-              echo "> Applications, and launch it — no Gatekeeper warning."
-            elif [ "$SIGNED" = "true" ]; then
-              echo "> **Signed but not notarized.** macOS shows a warning on first"
-              echo "> launch: open **System Settings → Privacy & Security** and choose"
-              echo "> **Open Anyway**."
-            else
-              echo "> **Unsigned build.** The first launch is blocked: open"
-              echo "> **System Settings → Privacy & Security** and choose **Open Anyway**"
-              echo "> (right-click → Open no longer bypasses Gatekeeper on macOS 15+)."
-            fi
+            echo "> **Unsigned build.** Tidy is not signed with a Developer ID and not"
+            echo "> notarized, so the first launch is blocked: open **System Settings →"
+            echo "> Privacy & Security** and choose **Open Anyway** (right-click → Open no"
+            echo "> longer bypasses Gatekeeper on macOS 15+). Updates are verified against"
+            echo "> the SHA-256 digest published below rather than a code signature."
             echo ""
             echo "Tidy runs outside the App Sandbox so it can inspect \`/Applications\`"
             echo "and \`~/Library\`. Grant it **Full Disk Access** in System Settings and"
@@ -333,6 +200,9 @@ jobs:
           # stop pointing at the commit history and just carry it.
           generate_release_notes: true
           draft: false
+          # A prerelease is invisible to the updater unless the app was built
+          # with TIDY_UPDATE_PRERELEASE=true, so shipping one by accident would
+          # look like the release simply never arrived.
           prerelease: false
           fail_on_unmatched_files: true
         env:
@@ -348,8 +218,6 @@ jobs:
         env:
           VERSION: ${{ needs.prepare.outputs.version }}
           MACOS_RESULT: ${{ needs.build-macos.result }}
-          SIGNED: ${{ needs.build-macos.outputs.signed }}
-          NOTARIZED: ${{ needs.build-macos.outputs.notarized }}
         run: |
           {
             echo "## 🧹 Tidy — \`${VERSION}\`"
@@ -357,8 +225,7 @@ jobs:
             echo "| Item | Value |"
             echo "| --- | --- |"
             echo "| Build | ${MACOS_RESULT} |"
-            echo "| Developer ID signed | ${SIGNED:-false} |"
-            echo "| Notarized | ${NOTARIZED:-false} |"
+            echo "| Signing | ad-hoc (unsigned, not notarized) |"
             echo ""
             echo "> 💡 Actions tab → this run → **Artifacts** to download the DMG."
           } >> "$GITHUB_STEP_SUMMARY"

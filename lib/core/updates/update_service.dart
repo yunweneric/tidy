@@ -53,6 +53,17 @@ class UpdateService {
 
   AppBundleInfo? _bundle;
   StreamSubscription<List<int>>? _download;
+
+  /// Completed by whichever of `onDone`, `onError` or [cancelDownload] gets
+  /// there first. Held as a field precisely so cancelling can settle it:
+  /// `StreamSubscription.cancel` fires neither callback, so without this a
+  /// cancelled download would leave the awaiting caller hanging forever.
+  Completer<File?>? _pending;
+
+  /// The scratch directory the download is written into, tracked separately
+  /// from [_downloaded] because a cancelled or failed download leaves a partial
+  /// file behind and never sets that.
+  Directory? _workDir;
   File? _downloaded;
   String? _staged;
 
@@ -125,12 +136,14 @@ class UpdateService {
     final file = File(p.join(dir.path, p.basename(release.zipUrl.path)));
 
     final completer = Completer<File?>();
+    _pending = completer;
     IOSink? sink;
     HttpClient? client;
 
     try {
       if (dir.existsSync()) dir.deleteSync(recursive: true);
       dir.createSync(recursive: true);
+      _workDir = dir;
 
       client = HttpClient()..connectionTimeout = const Duration(seconds: 20);
       final request = await client.getUrl(release.zipUrl);
@@ -143,6 +156,7 @@ class UpdateService {
           fields: {'status': response.statusCode},
         );
         client.close(force: true);
+        _pending = null;
         return null;
       }
 
@@ -163,6 +177,7 @@ class UpdateService {
           await sink?.close();
           client?.close();
           _download = null;
+          _pending = null;
           _downloaded = file;
           AppLog.updates.info(
             'update downloaded',
@@ -174,6 +189,7 @@ class UpdateService {
           await sink?.close();
           client?.close(force: true);
           _download = null;
+          _pending = null;
           AppLog.updates.failed('download the update', e);
           if (!completer.isCompleted) completer.complete(null);
         },
@@ -183,6 +199,7 @@ class UpdateService {
       await sink?.close();
       client?.close(force: true);
       _download = null;
+      _pending = null;
       AppLog.updates.failed('download the update', e);
       return null;
     }
@@ -190,11 +207,17 @@ class UpdateService {
     return completer.future;
   }
 
-  /// Stops an in-flight download and removes the partial file.
+  /// Stops an in-flight download.
   Future<void> cancelDownload() async {
     final subscription = _download;
     _download = null;
     if (subscription != null) await subscription.cancel();
+
+    // Settle the future `download` handed out. `cancel` fires neither `onDone`
+    // nor `onError`, so this is the only thing that unblocks the caller.
+    final pending = _pending;
+    _pending = null;
+    if (pending != null && !pending.isCompleted) pending.complete(null);
   }
 
   /// Hands the downloaded zip to the native side to be checked and staged.
@@ -233,11 +256,11 @@ class UpdateService {
     _staged = null;
     if (staged != null) await UpdateBridge.discard(staged);
 
-    final file = _downloaded;
     _downloaded = null;
-    if (file == null) return;
+    final dir = _workDir;
+    _workDir = null;
+    if (dir == null) return;
     try {
-      final dir = file.parent;
       if (dir.existsSync()) dir.deleteSync(recursive: true);
     } catch (e) {
       AppLog.updates.failed('remove the downloaded update', e);
