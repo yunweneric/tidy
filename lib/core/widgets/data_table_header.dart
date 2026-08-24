@@ -10,12 +10,16 @@ class DataTableHeader extends StatelessWidget {
     this.flexValues,
     this.showSelectAll = false,
     this.onSelectAll,
+    this.selectAllValue = false,
   });
 
   final List<String> columnLabels;
   final List<int>? flexValues;
   final bool showSelectAll;
   final ValueChanged<bool?>? onSelectAll;
+
+  /// Tristate: true = all selected, false = none, null = some.
+  final bool? selectAllValue;
 
   @override
   Widget build(BuildContext context) {
@@ -31,9 +35,14 @@ class DataTableHeader extends StatelessWidget {
             SizedBox(
               width: 40,
               child: Checkbox(
-                value: false,
+                value: selectAllValue,
+                tristate: true,
                 onChanged: onSelectAll,
-                fillColor: WidgetStateProperty.all(Colors.transparent),
+                fillColor: WidgetStateProperty.resolveWith(
+                  (states) => states.contains(WidgetState.selected)
+                      ? AppTheme.accentBlue
+                      : Colors.transparent,
+                ),
                 side: const BorderSide(color: AppTheme.borderLight),
               ),
             ),

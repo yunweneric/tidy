@@ -1,28 +1,23 @@
 import 'package:mac_uninstaller/features/apps/data/models/mac_app_model.dart';
 
-/// Formats total size of a list of apps by parsing each app's size string.
-String formatAppsTotalSize(List<MacApp> apps) {
-  double totalBytes = 0;
-  for (final app in apps) {
-    final s = app.size.replaceAll(RegExp(r'[^0-9.]'), '');
-    final num? n = double.tryParse(s);
-    if (n != null) {
-      if (app.size.toUpperCase().contains('G')) {
-        totalBytes += n * 1024 * 1024 * 1024;
-      } else if (app.size.toUpperCase().contains('M')) {
-        totalBytes += n * 1024 * 1024;
-      } else if (app.size.toUpperCase().contains('K')) {
-        totalBytes += n * 1024;
-      } else {
-        totalBytes += n;
-      }
-    }
-  }
-  if (totalBytes >= 1024 * 1024 * 1024) {
-    return '${(totalBytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
-  }
-  if (totalBytes >= 1024 * 1024) {
-    return '${(totalBytes / (1024 * 1024)).toStringAsFixed(1)} MB';
-  }
-  return '${(totalBytes / 1024).toStringAsFixed(1)} KB';
+const int _kb = 1024;
+const int _mb = _kb * 1024;
+const int _gb = _mb * 1024;
+const int _tb = _gb * 1024;
+
+/// Formats a byte count using binary units, e.g. `1.4 GB`.
+String formatBytes(int bytes) {
+  if (bytes <= 0) return '0 B';
+  if (bytes >= _tb) return '${(bytes / _tb).toStringAsFixed(2)} TB';
+  if (bytes >= _gb) return '${(bytes / _gb).toStringAsFixed(1)} GB';
+  if (bytes >= _mb) return '${(bytes / _mb).toStringAsFixed(1)} MB';
+  if (bytes >= _kb) return '${(bytes / _kb).toStringAsFixed(0)} KB';
+  return '$bytes B';
 }
+
+/// Total bytes occupied by [apps].
+int totalBytes(Iterable<MacApp> apps) =>
+    apps.fold<int>(0, (sum, app) => sum + app.sizeBytes);
+
+/// Formatted total size of [apps].
+String formatAppsTotalSize(Iterable<MacApp> apps) => formatBytes(totalBytes(apps));

@@ -33,6 +33,9 @@ migrate_working_dir/
 .pub/
 /build/
 
+# Release artifacts produced by scripts/build_dmg.sh
+/dist/
+
 # Symbolication related
 app.*.symbols
 

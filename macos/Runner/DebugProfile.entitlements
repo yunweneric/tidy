@@ -2,8 +2,12 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<!-- The sandbox is intentionally disabled: the app scans /Applications and
+	     ~/Library and shells out to plutil/du/mdls/iconutil. None of that is
+	     possible inside the sandbox. This rules out Mac App Store distribution,
+	     which is fine for direct DMG distribution. -->
 	<key>com.apple.security.app-sandbox</key>
-	<true/>
+	<false/>
 	<key>com.apple.security.cs.allow-jit</key>
 	<true/>
 	<key>com.apple.security.network.server</key>

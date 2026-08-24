@@ -1,35 +1,35 @@
 import 'package:flutter/material.dart';
+import 'package:mac_uninstaller/core/platform/system_bridge.dart';
 import 'package:mac_uninstaller/core/theme/app_theme.dart';
 import 'package:mac_uninstaller/core/widgets/widgets.dart';
+import 'package:mac_uninstaller/features/apps/presentation/widgets/app_list_toolbar.dart';
+import 'package:mac_uninstaller/features/apps/utils/size_utils.dart';
 
-/// Application sidebar with logo, navigation, and storage card.
+/// Sidebar with logo, navigation, and live storage status.
+///
+/// Every entry maps to a view that actually exists — there are no decorative
+/// destinations.
 class AppSidebar extends StatelessWidget {
   const AppSidebar({
     super.key,
-    this.currentRoute = 'Applications',
-    this.onNavTap,
-    this.storageUsed = 342,
-    this.storageTotal = 512,
-    this.onUpgradeStorage,
+    required this.filter,
+    required this.onFilterChanged,
+    required this.disk,
+    required this.reclaimableBytes,
+    this.onCleanupPressed,
   });
 
-  final String currentRoute;
-  final ValueChanged<String>? onNavTap;
-  final int storageUsed;
-  final int storageTotal;
-  final VoidCallback? onUpgradeStorage;
+  final AppFilter filter;
+  final ValueChanged<AppFilter> onFilterChanged;
+  final DiskUsage disk;
+  final int reclaimableBytes;
+  final VoidCallback? onCleanupPressed;
 
-  static const List<({String label, IconData icon})> _mainNav = [
-    (label: 'Dashboard', icon: Icons.dashboard_outlined),
-    (label: 'Applications', icon: Icons.apps),
-    (label: 'System Junk', icon: Icons.delete_outline),
-    (label: 'Cleanup History', icon: Icons.history),
-  ];
-
-  static const List<({String label, IconData icon})> _managementNav = [
-    (label: 'Unused Apps', icon: Icons.download_outlined),
-    (label: 'Settings', icon: Icons.settings_outlined),
-  ];
+  static const Map<AppFilter, IconData> _navIcons = {
+    AppFilter.all: Icons.apps,
+    AppFilter.large: Icons.folder_outlined,
+    AppFilter.unused: Icons.hourglass_empty,
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -47,27 +47,35 @@ class AppSidebar extends StatelessWidget {
             const SizedBox(height: 24),
             _buildLogo(),
             const SizedBox(height: 32),
-            ..._mainNav.map((e) => NavItem(
-                  icon: e.icon,
-                  label: e.label,
-                  active: e.label == currentRoute,
-                  onTap: () => onNavTap?.call(e.label),
-                )),
-            const SizedBox(height: 16),
-            const SectionLabel(label: 'MANAGEMENT'),
+            const SectionLabel(label: 'APPLICATIONS'),
             const SizedBox(height: 8),
-            ..._managementNav.map((e) => NavItem(
-                  icon: e.icon,
-                  label: e.label,
-                  active: e.label == currentRoute,
-                  onTap: () => onNavTap?.call(e.label),
-                )),
+            for (final entry in _navIcons.entries)
+              NavItem(
+                icon: entry.value,
+                label: entry.key.label,
+                active: filter == entry.key,
+                onTap: () => onFilterChanged(entry.key),
+              ),
+            const SizedBox(height: 16),
+            const SectionLabel(label: 'STORAGE'),
+            const SizedBox(height: 8),
+            NavItem(
+              icon: Icons.delete_outline,
+              label: 'Reclaimable Space',
+              onTap: onCleanupPressed,
+            ),
             const Spacer(),
+            _buildFullDiskAccessHint(),
+            const SizedBox(height: 12),
             StorageCard(
-              usedLabel: '$storageUsed GB of $storageTotal GB used',
-              progress: storageTotal > 0 ? storageUsed / storageTotal : 0,
-              buttonLabel: 'Upgrade Storage',
-              onButtonPressed: onUpgradeStorage,
+              usedLabel: disk.totalBytes == 0
+                  ? 'Reading disk usage…'
+                  : '${formatBytes(disk.usedBytes)} of ${formatBytes(disk.totalBytes)} used',
+              progress: disk.usedFraction,
+              buttonLabel: reclaimableBytes > 0
+                  ? 'Free up ${formatBytes(reclaimableBytes)}'
+                  : 'Free up space',
+              onButtonPressed: onCleanupPressed,
             ),
             const SizedBox(height: 24),
           ],
@@ -107,11 +115,29 @@ class AppSidebar extends StatelessWidget {
                     fontSize: 16,
                   ),
                 ),
-                Text('PRO EDITION', style: AppTheme.labelSmall),
+                Text('Menu bar + full app', style: AppTheme.labelSmall),
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// Some leftovers live in TCC-protected folders; this is the only way to
+  /// reach them, so surface it rather than silently under-reporting.
+  Widget _buildFullDiskAccessHint() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: TextButton.icon(
+        onPressed: SystemBridge.openFullDiskAccessSettings,
+        icon: const Icon(Icons.lock_open_outlined, size: 15),
+        label: const Text('Full Disk Access', style: TextStyle(fontSize: 12)),
+        style: TextButton.styleFrom(
+          foregroundColor: AppTheme.textSecondary,
+          padding: EdgeInsets.zero,
+          alignment: Alignment.centerLeft,
+        ),
       ),
     );
   }

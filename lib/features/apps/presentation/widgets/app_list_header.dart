@@ -10,14 +10,16 @@ class AppListHeader extends StatelessWidget {
     this.selectedCount = 0,
     this.searchHint = 'Filter apps...',
     this.onSearchChanged,
-    this.onNotificationsPressed,
+    this.onRefreshPressed,
+    this.isRefreshing = false,
   });
 
   final String title;
   final int selectedCount;
   final String searchHint;
   final ValueChanged<String>? onSearchChanged;
-  final VoidCallback? onNotificationsPressed;
+  final VoidCallback? onRefreshPressed;
+  final bool isRefreshing;
 
   @override
   Widget build(BuildContext context) {
@@ -29,20 +31,48 @@ class AppListHeader extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Text(title, style: AppTheme.titleLarge),
-          const SizedBox(width: 20),
-          AppPill(label: 'Selected: $selectedCount'),
+          Flexible(
+            child: Text(
+              title,
+              style: AppTheme.titleLarge,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          // Only meaningful once something is selected.
+          if (selectedCount > 0) ...[
+            const SizedBox(width: 16),
+            AppPill(label: 'Selected: $selectedCount'),
+          ],
           const Spacer(),
-          AppSearchField(
-            hintText: searchHint,
-            width: 280,
-            onChanged: onSearchChanged,
+          Flexible(
+            child: AppSearchField(
+              hintText: searchHint,
+              width: 280,
+              onChanged: onSearchChanged,
+            ),
           ),
           const SizedBox(width: 12),
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined, color: AppTheme.textSecondary),
-            onPressed: onNotificationsPressed,
-          ),
+          if (isRefreshing)
+            const SizedBox(
+              width: 40,
+              height: 40,
+              child: Center(
+                child: SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppTheme.accentBlue,
+                  ),
+                ),
+              ),
+            )
+          else
+            IconButton(
+              icon: const Icon(Icons.refresh, color: AppTheme.textSecondary),
+              tooltip: 'Rescan applications',
+              onPressed: onRefreshPressed,
+            ),
           const SizedBox(width: 8),
           const AppAvatar(),
         ],

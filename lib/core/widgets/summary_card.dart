@@ -9,6 +9,7 @@ class SummaryCard extends StatelessWidget {
     required this.value,
     required this.icon,
     required this.accentColor,
+    this.onTap,
   });
 
   final String label;
@@ -16,25 +17,48 @@ class SummaryCard extends StatelessWidget {
   final IconData icon;
   final Color accentColor;
 
+  /// When set, the card becomes a button (e.g. Reclaimable opens the cleanup).
+  final VoidCallback? onTap;
+
   @override
   Widget build(BuildContext context) {
+    final content = Padding(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: accentColor, size: 28),
+              const Spacer(),
+              if (onTap != null)
+                const Icon(Icons.chevron_right, color: AppTheme.textMuted, size: 18),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(value, style: AppTheme.summaryValue(accentColor)),
+          const SizedBox(height: 4),
+          Text(label, style: AppTheme.bodySecondary),
+        ],
+      ),
+    );
+
     return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: AppTheme.surfaceCard,
+      child: Material(
+        color: AppTheme.surfaceCard,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          onTap: onTap,
           borderRadius: BorderRadius.circular(12),
-          border: const Border.fromBorderSide(BorderSide(color: AppTheme.borderSubtle)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, color: accentColor, size: 28),
-            const SizedBox(height: 12),
-            Text(value, style: AppTheme.summaryValue(accentColor)),
-            const SizedBox(height: 4),
-            Text(label, style: AppTheme.bodySecondary),
-          ],
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: const Border.fromBorderSide(
+                BorderSide(color: AppTheme.borderSubtle),
+              ),
+            ),
+            child: content,
+          ),
         ),
       ),
     );

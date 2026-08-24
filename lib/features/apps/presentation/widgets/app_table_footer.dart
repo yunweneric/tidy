@@ -25,27 +25,30 @@ class AppTableFooter extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       child: Row(
         children: [
-          Text.rich(
-            TextSpan(
-              text: 'Displaying ',
-              style: AppTheme.bodySecondary,
-              children: [
-                TextSpan(
-                  text: '$itemCount',
-                  style: AppTheme.bodySecondary.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.textPrimary,
+          Flexible(
+            child: Text.rich(
+              overflow: TextOverflow.ellipsis,
+              TextSpan(
+                text: 'Displaying ',
+                style: AppTheme.bodySecondary,
+                children: [
+                  TextSpan(
+                    text: '$itemCount',
+                    style: AppTheme.bodySecondary.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.textPrimary,
+                    ),
                   ),
-                ),
-                const TextSpan(text: ' applications  Total size on disk: '),
-                TextSpan(
-                  text: totalSize,
-                  style: AppTheme.bodySecondary.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.textPrimary,
+                  const TextSpan(text: ' applications  Total size on disk: '),
+                  TextSpan(
+                    text: totalSize,
+                    style: AppTheme.bodySecondary.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.textPrimary,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           const Spacer(),
