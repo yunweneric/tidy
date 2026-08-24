@@ -89,48 +89,57 @@ class _ShellScaffoldState extends State<ShellScaffold>
     return MultiBlocProvider(
       providers: [
         BlocProvider(
-          create: (_) => AppsBloc(locator<AppManagerService>())..add(LoadApps()),
+          create:
+              (_) => AppsBloc(locator<AppManagerService>())..add(LoadApps()),
         ),
         // Hoisted above the branches so the sidebar can show the reclaimable
         // figure without running a second scan of its own.
         BlocProvider(
-          create: (_) => ScanBloc(
-            locator<CleanupScanModule>(),
-            hasFullDiskAccess: _fullDiskAccess.granted ?? true,
-          ),
+          create:
+              (_) => ScanBloc(
+                locator<CleanupScanModule>(),
+                hasFullDiskAccess: _fullDiskAccess.granted ?? true,
+              ),
         ),
       ],
       child: Scaffold(
+        // The flat canvas is only a fallback; AmbientBackground paints the
+        // real backdrop over it.
         backgroundColor: context.colors.canvas,
         body: AnimatedBuilder(
           animation: _fullDiskAccess,
           builder: (context, _) {
             return BlocBuilder<ScanBloc, ScanState>(
               builder: (context, cleanupState) {
-                return Row(
-                  children: [
-                    NavSidebar(
-                      current: current,
-                      onSelect: _select,
-                      disk: _disk,
-                      badges: _badges(cleanupState),
-                      reclaimableBytes: cleanupState.totalBytes,
-                      fullDiskAccessGranted: _fullDiskAccess.granted,
-                      onGrantAccess: _fullDiskAccess.openSettings,
-                      onReclaim: () => _select(AppDestination.cleanup),
-                    ),
-                    Expanded(
-                      // Branches stay mounted when you navigate away, so a page
-                      // that polls has no other way to know it is off screen.
-                      child: ActiveDestination(
-                        destination: current,
-                        child: FadeThrough(
-                          trigger: widget.navigationShell.currentIndex,
-                          child: widget.navigationShell,
+                return AmbientBackground(
+                  // Each module owns a colour of light, so switching branches
+                  // changes the window's hue as well as its content.
+                  tint: context.colors.moduleTint(current.tone),
+                  child: Row(
+                    children: [
+                      NavSidebar(
+                        current: current,
+                        onSelect: _select,
+                        disk: _disk,
+                        badges: _badges(cleanupState),
+                        reclaimableBytes: cleanupState.totalBytes,
+                        fullDiskAccessGranted: _fullDiskAccess.granted,
+                        onGrantAccess: _fullDiskAccess.openSettings,
+                        onReclaim: () => _select(AppDestination.cleanup),
+                      ),
+                      Expanded(
+                        // Branches stay mounted when you navigate away, so a page
+                        // that polls has no other way to know it is off screen.
+                        child: ActiveDestination(
+                          destination: current,
+                          child: FadeThrough(
+                            trigger: widget.navigationShell.currentIndex,
+                            child: widget.navigationShell,
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 );
               },
             );

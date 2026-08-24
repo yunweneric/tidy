@@ -24,7 +24,9 @@ Future<void> setUpLocator({required bool includeUi}) async {
   if (locator.isRegistered<AppManagerService>()) return;
 
   // ─── Platform ────────────────────────────────────────────────────────────
-  locator.registerLazySingleton<FullDiskAccessService>(FullDiskAccessService.new);
+  locator.registerLazySingleton<FullDiskAccessService>(
+    FullDiskAccessService.new,
+  );
 
   // ─── Data ────────────────────────────────────────────────────────────────
   locator.registerLazySingleton<ScanCache>(ScanCache.new);
@@ -62,7 +64,9 @@ Future<void> setUpLocator({required bool includeUi}) async {
   // rebuilding that every time the user switches tabs is visible.
   locator.registerLazySingleton<LaunchItemsService>(LaunchItemsService.new);
   locator.registerLazySingleton<MaintenanceService>(MaintenanceService.new);
-  locator.registerLazySingleton<ProcessMonitorService>(ProcessMonitorService.new);
+  locator.registerLazySingleton<ProcessMonitorService>(
+    ProcessMonitorService.new,
+  );
 
   // The popover has no settings UI and no theme switcher, so it skips the
   // file read entirely.

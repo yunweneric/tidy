@@ -10,6 +10,7 @@ import 'package:mac_uninstaller/core/scanning/presentation/result_tree_view.dart
 import 'package:mac_uninstaller/core/scanning/presentation/scan_hero.dart';
 import 'package:mac_uninstaller/core/utils/byte_format.dart';
 import 'package:mac_uninstaller/core/widgets/empty_state.dart';
+import 'package:mac_uninstaller/core/widgets/gradient_button.dart';
 import 'package:mac_uninstaller/core/widgets/module_scaffold.dart';
 import 'package:mac_uninstaller/core/widgets/permission_banner.dart';
 
@@ -80,19 +81,16 @@ class ScanView extends StatelessWidget {
   /// Both banners can matter at once — a partial scan that is also only
   /// covering half the modules — so they stack rather than compete.
   Widget? _banner(BuildContext context, ScanState state) {
-    final permission = state.permissionLimited && onGrantAccess != null
-        ? PermissionBanner(onOpenSettings: onGrantAccess!)
-        : null;
+    final permission =
+        state.permissionLimited && onGrantAccess != null
+            ? PermissionBanner(onOpenSettings: onGrantAccess!)
+            : null;
 
     if (permission == null) return banner;
     if (banner == null) return permission;
 
     return Column(
-      children: [
-        permission,
-        const SizedBox(height: AppSpacing.md),
-        banner!,
-      ],
+      children: [permission, const SizedBox(height: AppSpacing.md), banner!],
     );
   }
 
@@ -110,16 +108,18 @@ class ScanView extends StatelessWidget {
       case ScanPhase.scanning:
         return ScanHero(
           headline: 'Looking through your Mac…',
-          message: state.totalBytes > 0
-              ? 'Found so far — keep going, this gets more accurate as it runs.'
-              : 'This takes a moment the first time.',
+          message:
+              state.totalBytes > 0
+                  ? 'Found so far — keep going, this gets more accurate as it runs.'
+                  : 'This takes a moment the first time.',
           bytes: state.totalBytes > 0 ? state.totalBytes : null,
           icon: bloc.module.icon,
           fraction: state.fraction,
           scanning: true,
-          statusLine: state.currentPath == null
-              ? null
-              : shortenPath(state.currentPath!),
+          statusLine:
+              state.currentPath == null
+                  ? null
+                  : shortenPath(state.currentPath!),
           actionLabel: 'Stop',
           onAction: () => bloc.add(const CancelScan()),
         );
@@ -128,7 +128,8 @@ class ScanView extends StatelessWidget {
         return ScanHero.allClear(
           context,
           headline: 'Nothing to clean up',
-          message: 'No reclaimable ${title.toLowerCase()} found. '
+          message:
+              'No reclaimable ${title.toLowerCase()} found. '
               'That is a good sign, not a failed scan.',
           onRescan: () => bloc.add(const StartScan()),
         );
@@ -148,7 +149,8 @@ class ScanView extends StatelessWidget {
       case ScanPhase.cleaning:
         return ScanHero(
           headline: 'Removing…',
-          message: 'Moving ${state.selectedCount} item'
+          message:
+              'Moving ${state.selectedCount} item'
               '${state.selectedCount == 1 ? '' : 's'} to the Trash.',
           icon: bloc.module.icon,
           scanning: true,
@@ -183,20 +185,23 @@ class _Results extends StatelessWidget {
       children: [
         Expanded(
           child: SingleChildScrollView(
-            child: focused == null
-                ? ResultTiles(
-                    roots: state.roots,
-                    selection: state.selection,
-                    onReview: (node) => bloc.add(FocusCategory(node.id)),
-                    onToggle: (node, select) =>
-                        bloc.add(ToggleNode(node, select: select)),
-                  )
-                : ResultTreeView(
-                    node: focused,
-                    selection: state.selection,
-                    onToggle: (node, select) =>
-                        bloc.add(ToggleNode(node, select: select)),
-                  ),
+            child:
+                focused == null
+                    ? ResultTiles(
+                      roots: state.roots,
+                      selection: state.selection,
+                      onReview: (node) => bloc.add(FocusCategory(node.id)),
+                      onToggle:
+                          (node, select) =>
+                              bloc.add(ToggleNode(node, select: select)),
+                    )
+                    : ResultTreeView(
+                      node: focused,
+                      selection: state.selection,
+                      onToggle:
+                          (node, select) =>
+                              bloc.add(ToggleNode(node, select: select)),
+                    ),
           ),
         ),
         const SizedBox(height: AppSpacing.lg),
@@ -222,7 +227,11 @@ class _CleanBar extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: colors.surface,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: colors.surfaceGradient,
+        ),
         borderRadius: AppRadii.lgAll,
         border: Border.all(color: colors.border),
       ),
@@ -239,7 +248,7 @@ class _CleanBar extends StatelessWidget {
               nothingPicked
                   ? 'Nothing selected'
                   : '${state.selectedCount} item'
-                        '${state.selectedCount == 1 ? '' : 's'} selected',
+                      '${state.selectedCount == 1 ? '' : 's'} selected',
               style: context.text.bodyM,
             ),
           ),
@@ -250,11 +259,10 @@ class _CleanBar extends StatelessWidget {
             ),
           ),
           const SizedBox(width: AppSpacing.lg),
-          ElevatedButton(
-            onPressed: nothingPicked
-                ? null
-                : () => bloc.add(const CleanSelected()),
-            child: const Text('Move to Trash'),
+          GradientButton(
+            label: 'Move to Trash',
+            onPressed:
+                nothingPicked ? null : () => bloc.add(const CleanSelected()),
           ),
         ],
       ),

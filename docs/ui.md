@@ -71,14 +71,38 @@ Named by role, never by hue — `colors.risky`, not `colors.red`. A token whose
 name describes its appearance stops being reusable the moment the palette moves.
 
 ### Surfaces
+
+Every in-window surface is **translucent**. The backdrop is one continuous
+thing that runs under the sidebar, the cards and the tables alike, and it is
+what makes the window read as a single surface instead of a set of panels
+pasted onto a picture. Exactly one token is solid, and it is for the things
+that float *over* the window.
+
 | Token | Use |
 |---|---|
-| `canvas` | The window background behind everything |
-| `sidebar` | The left rail |
-| `surface` | Default card / tile / table background |
+| `canvas` | Flat fallback behind everything. Only where a gradient cannot go |
+| `canvasGradient` | The backdrop wash, painted by `AmbientBackground` |
+| `sidebar` / `sidebarGradient` | The left rail's veil — sheer, so the backdrop carries through |
+| `surface` | Default card / tile / table background. **Sheer** |
+| `surfaceGradient` | The card sheen. What `TidyCard` and the table frames fill with |
+| `surfaceOpaque` | The one solid surface: dialogs, popup menus, tooltips, snackbars, the menu-bar popover |
 | `surfaceRaised` | Sits on top of `surface` — inputs, nested rows, segmented track |
 | `surfaceHover` | Hover and pressed wash |
 | `overlay` | Scrim behind dialogs |
+
+If a surface hides what is behind it, it needs `surfaceOpaque` — a sheer dialog
+sitting on a table of file paths is unreadable. Everything else stays sheer.
+
+### Ambient light
+| Token | Use |
+|---|---|
+| `glowPrimary` | The violet pool in the top-left of the window |
+| `glowSecondary` | The teal counterweight, bottom-right |
+| `pattern` | Ink for the backdrop's ring outlines and dot grid |
+
+All three carry their own alpha and are composited over `canvasGradient`. None
+of them is ever a fill. They are near-invisible on purpose: if a pattern is
+legible enough to count, it is too strong.
 
 ### Lines
 | Token | Use |
@@ -97,9 +121,51 @@ name describes its appearance stops being reusable the moment the palette moves.
 |---|---|
 | `accent` | The single signature colour |
 | `accentMuted` | Low-opacity wash — selected nav item, icon tile |
-| `accentGradient` | `List<Color>`. The scan ring and the onboarding panel **only** |
+| `accentGradient` | `List<Color>`. Brand mark, scan ring, and every primary CTA |
 
-Gradients everywhere is what makes an app look cheap. Two places use it.
+The rule is not "no gradients" — it is that a gradient means one of two things
+and nothing else:
+
+- **Backdrop.** `canvasGradient` plus the glows and shapes, behind everything.
+- **Press this / watch this.** `accentGradient`, on the brand mark, the scan
+  ring and `GradientButton`.
+
+Card fills use `surfaceGradient`, which is two neighbouring tints of the same
+colour — a surface catching light, not a decoration. `TidyCard(tint:)` washes a
+tile in a semantic colour when **the colour is the information** (amber for
+apps gone unopened, green for a clean result). Never on a row in a list: a
+table where every row is tinted is a table with no signal left.
+
+One `GradientButton` per screen. A page where everything glows has told the
+user nothing about what to press.
+
+### Module tones
+
+Each of the six modules owns a colour of light, so the window tells you where
+you are before you have read the page title:
+
+| Module | Tone |
+|---|---|
+| Smart Care | brand violet |
+| Cleanup | blue |
+| Protection | pink |
+| Performance | amber |
+| Applications | cyan-blue |
+| My Clutter | teal |
+| Space Lens | deep violet |
+
+`AppDestination.tone` names the tone; `colors.moduleTint(tone)` resolves it.
+`AmbientBackground` swaps it in for `glowPrimary` and washes a few percent into
+the canvas, cross-fading over `motion.slow` when you change module.
+
+Supporting views (All Tools, Activity, Assistant, Settings) keep the brand
+tone. A hue per module means something while there are six of them; it stops
+meaning anything at eleven.
+
+**The tone is light, not paint.** It never restyles the content — buttons stay
+brand-accented, status colours stay `safe`/`review`/`risky`, and a tinted card
+still uses its own semantic colour. Anything else and "amber" stops reading as
+"you are in Performance" and starts reading as "something needs attention".
 
 ### Status
 | Token | Meaning |
@@ -235,11 +301,16 @@ Reach for these before building anything.
 | `PaginationBar` | Windowed pagination (1 … 7 8 9 … 19) |
 | `PermissionBanner` | Full Disk Access prompt, full or compact |
 | `FadeThrough` | Fades content back in when a trigger changes |
+| `AmbientBackground` | The window backdrop — wash, glows, shapes, dot grid. Wraps the whole window |
+| `GradientButton` | The primary call to action, wearing `accentGradient` |
 
 ### Cards
-Flat fill, 1px border, no Material elevation. Shadows read as heavy next to
-macOS's own chrome, and a consistent border is what keeps a dense screen
-legible. `elevation: 0` everywhere.
+Sheer two-stop fill (`surfaceGradient`), 1px border, no Material elevation.
+Shadows read as heavy next to macOS's own chrome, and a consistent border is
+what keeps a dense screen legible. `elevation: 0` everywhere.
+
+The one shadow in the app is the accent glow under a hovered `GradientButton`,
+which stands in for the elevation nothing else uses.
 
 ### Tables
 Header and rows share **one** geometry spec — see `AppTableLayout` in
@@ -294,4 +365,6 @@ take one, so a card can glow in its own semantic colour without a new token.
 - [ ] No `TextStyle(fontSize: …)` inline — use the scale
 - [ ] Animation controllers honour `context.motion.reduced`
 - [ ] Viewed in **both** light and dark
+- [ ] Anything that floats over the window uses `surfaceOpaque`, not `surface`
+- [ ] At most one `GradientButton` on the screen
 - [ ] Nothing breaks at the 1100×720 minimum window size

@@ -36,6 +36,14 @@ class AppSpacing {
   /// 64 — the vertical space around a scan hero.
   static const double huge = 64;
 
+  /// 28 — the strip the traffic lights sit in.
+  ///
+  /// The window uses a full-size content view so the backdrop runs to the very
+  /// top of the frame, which means the top of every page is underneath the
+  /// close/minimise/zoom buttons. Anything anchored to the top of the window
+  /// clears this first.
+  static const double titleBar = 28;
+
   // ─── Common composites ───────────────────────────────────────────────────
   /// Page content gutter.
   static const EdgeInsets page = EdgeInsets.symmetric(horizontal: xxl);

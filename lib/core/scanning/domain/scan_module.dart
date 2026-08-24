@@ -7,27 +7,72 @@ import 'package:mac_uninstaller/core/scanning/domain/scan_node.dart';
 /// composite and the All Tools catalog can all be driven from the same list.
 enum ModuleId {
   smartCare('Smart Care', 'Every check that is built, in one pass.'),
-  unusedApps('Unused Apps', 'Apps you have not opened in months, and their leftovers.'),
-  systemJunk('System Junk', 'Caches, logs and temporary files macOS rebuilds on demand.'),
-  developerJunk('Developer Junk', 'Build artefacts and package caches from your dev tools.'),
-  trashBins('Trash Bins', 'Every trash on every volume, not just the Finder one.'),
-  mailAttachments('Mail Attachments', 'Locally cached attachments. Your messages stay put.'),
-  browserData('Browser Data', 'Browser caches. Never your cookies, logins or history.'),
-  timeMachine('Time Machine Snapshots', 'Local snapshots — the "purgeable" space macOS reports.'),
-  photoJunk('Photo Caches', 'Thumbnail and preview caches outside your photo library.'),
-  uninstaller('Uninstaller', 'Remove an app and everything it left around the system.'),
+  unusedApps(
+    'Unused Apps',
+    'Apps you have not opened in months, and their leftovers.',
+  ),
+  systemJunk(
+    'System Junk',
+    'Caches, logs and temporary files macOS rebuilds on demand.',
+  ),
+  developerJunk(
+    'Developer Junk',
+    'Build artefacts and package caches from your dev tools.',
+  ),
+  trashBins(
+    'Trash Bins',
+    'Every trash on every volume, not just the Finder one.',
+  ),
+  mailAttachments(
+    'Mail Attachments',
+    'Locally cached attachments. Your messages stay put.',
+  ),
+  browserData(
+    'Browser Data',
+    'Browser caches. Never your cookies, logins or history.',
+  ),
+  timeMachine(
+    'Time Machine Snapshots',
+    'Local snapshots — the "purgeable" space macOS reports.',
+  ),
+  photoJunk(
+    'Photo Caches',
+    'Thumbnail and preview caches outside your photo library.',
+  ),
+  uninstaller(
+    'Uninstaller',
+    'Remove an app and everything it left around the system.',
+  ),
   appLeftovers('App Leftovers', 'Files from apps that are already gone.'),
   appUpdater('App Updater', 'Apps with a newer version available.'),
-  largeAndOld('Large & Old Files', 'Big files you have not opened in a long time.'),
+  largeAndOld(
+    'Large & Old Files',
+    'Big files you have not opened in a long time.',
+  ),
   duplicates('Duplicates', 'Byte-identical copies of the same file.'),
-  similarImages('Similar Images', 'Near-duplicate shots — bursts, edits, re-saves.'),
-  downloadsClutter('Downloads', 'Installers and one-time files still sitting in Downloads.'),
+  similarImages(
+    'Similar Images',
+    'Near-duplicate shots — bursts, edits, re-saves.',
+  ),
+  downloadsClutter(
+    'Downloads',
+    'Installers and one-time files still sitting in Downloads.',
+  ),
   spaceLens('Space Lens', 'A map of what is actually using your disk.'),
   loginItems('Login Items', 'What launches when you log in.'),
-  backgroundItems('Background Items', 'Agents and daemons running in the background.'),
+  backgroundItems(
+    'Background Items',
+    'Agents and daemons running in the background.',
+  ),
   maintenance('Maintenance', 'Routine macOS upkeep tasks.'),
-  heavyConsumers('Heavy Consumers', 'Apps using the most CPU and memory right now.'),
-  suspiciousItems('Suspicious Items', 'Known adware and unusual launch agents.'),
+  heavyConsumers(
+    'Heavy Consumers',
+    'Apps using the most CPU and memory right now.',
+  ),
+  suspiciousItems(
+    'Suspicious Items',
+    'Known adware and unusual launch agents.',
+  ),
   privacyItems('Privacy', 'Browsing traces, recent items and saved networks.');
 
   const ModuleId(this.label, this.description);
@@ -76,8 +121,15 @@ class ScanProgress {
     this.skippedForPermission = false,
   });
 
-  const ScanProgress.done(List<ScanNode> roots, {bool skippedForPermission = false})
-    : this(roots: roots, fraction: 1, done: true, skippedForPermission: skippedForPermission);
+  const ScanProgress.done(
+    List<ScanNode> roots, {
+    bool skippedForPermission = false,
+  }) : this(
+         roots: roots,
+         fraction: 1,
+         done: true,
+         skippedForPermission: skippedForPermission,
+       );
 
   /// Top-level categories found so far. These become the result tiles.
   final List<ScanNode> roots;
@@ -94,7 +146,8 @@ class ScanProgress {
   /// The UI must say so rather than reporting a confident zero.
   final bool skippedForPermission;
 
-  int get totalBytes => roots.fold<int>(0, (sum, node) => sum + node.totalBytes);
+  int get totalBytes =>
+      roots.fold<int>(0, (sum, node) => sum + node.totalBytes);
 
   int get reclaimableBytes =>
       roots.fold<int>(0, (sum, node) => sum + node.reclaimableBytes);

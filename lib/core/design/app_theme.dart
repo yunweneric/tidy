@@ -37,7 +37,7 @@ class TidyTheme {
         onSecondary: c.textOnAccent,
         error: c.risky,
         onError: c.textOnAccent,
-        surface: c.surface,
+        surface: c.surfaceOpaque,
         onSurface: c.textPrimary,
         surfaceContainerHighest: c.surfaceRaised,
         outline: c.border,
@@ -48,13 +48,15 @@ class TidyTheme {
       iconTheme: IconThemeData(color: c.textSecondary, size: 18),
       dividerTheme: DividerThemeData(color: c.border, thickness: 1, space: 1),
       cardTheme: CardThemeData(
-        color: c.surface,
+        color: c.surfaceOpaque,
         elevation: 0,
         margin: EdgeInsets.zero,
         shape: const RoundedRectangleBorder(borderRadius: AppRadii.lgAll),
       ),
       dialogTheme: DialogThemeData(
-        backgroundColor: c.surface,
+        // Floats over the window, so it is the one solid surface — a sheer
+        // dialog sitting on a table of file paths is unreadable.
+        backgroundColor: c.surfaceOpaque,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         shape: const RoundedRectangleBorder(borderRadius: AppRadii.xlAll),
@@ -119,7 +121,8 @@ class TidyTheme {
       ),
       checkboxTheme: CheckboxThemeData(
         fillColor: WidgetStateProperty.resolveWith(
-          (s) => s.contains(WidgetState.selected) ? c.accent : Colors.transparent,
+          (s) =>
+              s.contains(WidgetState.selected) ? c.accent : Colors.transparent,
         ),
         checkColor: WidgetStatePropertyAll(c.textOnAccent),
         side: BorderSide(color: c.borderStrong, width: 1.5),
@@ -131,12 +134,16 @@ class TidyTheme {
           // Material defaults a selected segment to colorScheme.secondary,
           // which is our "safe" green — a theme picker is not a status.
           backgroundColor: WidgetStateProperty.resolveWith(
-            (s) => s.contains(WidgetState.selected) ? c.accent : Colors.transparent,
+            (s) =>
+                s.contains(WidgetState.selected)
+                    ? c.accent
+                    : Colors.transparent,
           ),
           foregroundColor: WidgetStateProperty.resolveWith(
-            (s) => s.contains(WidgetState.selected)
-                ? c.textOnAccent
-                : c.textSecondary,
+            (s) =>
+                s.contains(WidgetState.selected)
+                    ? c.textOnAccent
+                    : c.textSecondary,
           ),
           side: WidgetStatePropertyAll(BorderSide(color: c.border)),
           textStyle: WidgetStatePropertyAll(type.label),
@@ -164,7 +171,7 @@ class TidyTheme {
       ),
       tooltipTheme: TooltipThemeData(
         decoration: BoxDecoration(
-          color: c.surfaceRaised,
+          color: c.surfaceOpaque,
           borderRadius: AppRadii.smAll,
           border: Border.all(color: c.border),
         ),
@@ -172,7 +179,7 @@ class TidyTheme {
         waitDuration: const Duration(milliseconds: 400),
       ),
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: c.surfaceRaised,
+        backgroundColor: c.surfaceOpaque,
         contentTextStyle: type.bodyL.copyWith(color: c.textPrimary),
         actionTextColor: c.accent,
         behavior: SnackBarBehavior.floating,
@@ -180,7 +187,7 @@ class TidyTheme {
         shape: const RoundedRectangleBorder(borderRadius: AppRadii.mdAll),
       ),
       popupMenuTheme: PopupMenuThemeData(
-        color: c.surfaceRaised,
+        color: c.surfaceOpaque,
         surfaceTintColor: Colors.transparent,
         elevation: 8,
         shape: RoundedRectangleBorder(

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mac_uninstaller/core/design/design.dart';
+import 'package:mac_uninstaller/core/widgets/ambient_background.dart';
+import 'package:mac_uninstaller/core/widgets/gradient_button.dart';
 
 /// The shared two-pane frame: brand panel on the left, step content on the right.
 ///
@@ -39,65 +41,68 @@ class OnboardingFrame extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: colors.canvas,
-      body: Row(
-        children: [
-          const _BrandPanel(),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.huge,
-                vertical: AppSpacing.xxxl,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _Dots(index: stepIndex, count: stepCount),
-                  const SizedBox(height: AppSpacing.xxl),
-                  Text(title, style: context.text.displayL),
-                  if (subtitle != null) ...[
-                    const SizedBox(height: AppSpacing.sm),
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 520),
-                      child: Text(subtitle!, style: context.text.bodyL.copyWith(
-                        color: colors.textSecondary,
-                      )),
-                    ),
-                  ],
-                  const SizedBox(height: AppSpacing.xxl),
-                  Expanded(
-                    child: Center(
-                      child: SingleChildScrollView(child: child),
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.xl),
-                  Row(
-                    children: [
-                      if (onBack != null)
-                        TextButton(onPressed: onBack, child: const Text('Back')),
-                      const Spacer(),
-                      if (secondaryLabel != null)
-                        TextButton(
-                          onPressed: onSecondary,
-                          child: Text(secondaryLabel!),
-                        ),
-                      const SizedBox(width: AppSpacing.sm),
-                      ElevatedButton(
-                        onPressed: onPrimary,
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.xxl,
-                            vertical: AppSpacing.lg,
+      // Turned up: onboarding is mostly backdrop, so the glows have room here
+      // that a table-heavy module page does not give them.
+      body: AmbientBackground(
+        intensity: 1.25,
+        child: Row(
+          children: [
+            const _BrandPanel(),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.huge,
+                  vertical: AppSpacing.xxxl,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _Dots(index: stepIndex, count: stepCount),
+                    const SizedBox(height: AppSpacing.xxl),
+                    Text(title, style: context.text.displayL),
+                    if (subtitle != null) ...[
+                      const SizedBox(height: AppSpacing.sm),
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 520),
+                        child: Text(
+                          subtitle!,
+                          style: context.text.bodyL.copyWith(
+                            color: colors.textSecondary,
                           ),
                         ),
-                        child: Text(primaryLabel),
                       ),
                     ],
-                  ),
-                ],
+                    const SizedBox(height: AppSpacing.xxl),
+                    Expanded(
+                      child: Center(child: SingleChildScrollView(child: child)),
+                    ),
+                    const SizedBox(height: AppSpacing.xl),
+                    Row(
+                      children: [
+                        if (onBack != null)
+                          TextButton(
+                            onPressed: onBack,
+                            child: const Text('Back'),
+                          ),
+                        const Spacer(),
+                        if (secondaryLabel != null)
+                          TextButton(
+                            onPressed: onSecondary,
+                            child: Text(secondaryLabel!),
+                          ),
+                        const SizedBox(width: AppSpacing.sm),
+                        GradientButton(
+                          label: primaryLabel,
+                          onPressed: onPrimary,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -133,7 +138,11 @@ class _BrandPanel extends StatelessWidget {
                     color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: AppRadii.mdAll,
                   ),
-                  child: const Icon(AppIcons.brand, size: 19, color: Colors.white),
+                  child: const Icon(
+                    AppIcons.brand,
+                    size: 19,
+                    color: Colors.white,
+                  ),
                 ),
                 const SizedBox(width: AppSpacing.md),
                 Text(
@@ -148,7 +157,10 @@ class _BrandPanel extends StatelessWidget {
             const Spacer(),
             Text(
               Brand.tagline,
-              style: context.text.titleL.copyWith(color: Colors.white, height: 1.3),
+              style: context.text.titleL.copyWith(
+                color: Colors.white,
+                height: 1.3,
+              ),
             ),
             const SizedBox(height: AppSpacing.md),
             Text(

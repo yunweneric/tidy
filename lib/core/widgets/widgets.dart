@@ -2,11 +2,13 @@
 library;
 
 // Token-driven primitives — the ones new code should reach for.
+export 'ambient_background.dart';
 export 'animated_bytes.dart';
 export 'bundle_icon.dart';
 export 'empty_state.dart';
 export 'fade_through.dart';
 export 'gauge_ring.dart';
+export 'gradient_button.dart';
 export 'module_scaffold.dart';
 export 'permission_banner.dart';
 export 'size_bar.dart';

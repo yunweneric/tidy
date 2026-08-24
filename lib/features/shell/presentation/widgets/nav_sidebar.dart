@@ -44,7 +44,11 @@ class NavSidebar extends StatelessWidget {
     return Container(
       width: width,
       decoration: BoxDecoration(
-        color: colors.sidebar,
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: colors.sidebarGradient,
+        ),
         border: Border(right: BorderSide(color: colors.border)),
       ),
       child: Column(
@@ -127,7 +131,7 @@ class _BrandBlock extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.xl,
-        AppSpacing.xxl,
+        AppSpacing.titleBar + AppSpacing.xl,
         AppSpacing.xl,
         AppSpacing.xxl,
       ),
@@ -137,8 +141,19 @@ class _BrandBlock extends StatelessWidget {
             width: 30,
             height: 30,
             decoration: BoxDecoration(
-              gradient: LinearGradient(colors: colors.accentGradient),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: colors.accentGradient,
+              ),
               borderRadius: AppRadii.mdAll,
+              boxShadow: [
+                BoxShadow(
+                  color: colors.accentGradient.last.withValues(alpha: 0.30),
+                  blurRadius: 14,
+                  offset: const Offset(0, 3),
+                ),
+              ],
             ),
             child: Icon(Brand.mark, size: 17, color: colors.textOnAccent),
           ),
@@ -150,7 +165,9 @@ class _BrandBlock extends StatelessWidget {
               children: [
                 Text(
                   Brand.name,
-                  style: context.text.titleM.copyWith(fontWeight: FontWeight.w700),
+                  style: context.text.titleM.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 Text(Brand.subtitle, style: context.text.caption),
               ],

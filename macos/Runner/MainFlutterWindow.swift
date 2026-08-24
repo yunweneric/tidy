@@ -19,6 +19,16 @@ class MainFlutterWindow: NSWindow {
     self.setFrame(windowFrame, display: true)
     self.center()
 
+    // Let the Flutter view run the full height of the frame, so the app's own
+    // backdrop — gradient, glows and all — reaches the top edge instead of
+    // stopping under a system-drawn title bar in the wrong colour. The traffic
+    // lights float on top of it; AppSpacing.titleBar is the room reserved for
+    // them on the Dart side.
+    self.styleMask.insert(.fullSizeContentView)
+    self.titlebarAppearsTransparent = true
+    self.titleVisibility = .hidden
+    self.isMovableByWindowBackground = true
+
     // The app keeps running in the menu bar after the window is closed, so the
     // window must survive being closed and be reopenable.
     self.isReleasedWhenClosed = false

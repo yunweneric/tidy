@@ -62,7 +62,9 @@ GoRouter buildRouter({required AppSettings settings}) {
                 ShellScaffold(navigationShell: navigationShell),
         // Declared in enum order so `AppDestination.branchIndex` is the branch
         // index. `_branch` asserts that rather than trusting it.
-        branches: [for (final destination in AppDestination.values) _branch(destination)],
+        branches: [
+          for (final destination in AppDestination.values) _branch(destination),
+        ],
       ),
     ],
   );
@@ -118,11 +120,16 @@ Widget _pageFor(AppDestination destination) => switch (destination) {
   ),
   AppDestination.allTools => const ComingSoonPage(
     destination: AppDestination.allTools,
-    planned: ['Every scanner listed on its own, for when the modules get in the way'],
+    planned: [
+      'Every scanner listed on its own, for when the modules get in the way',
+    ],
   ),
   AppDestination.activity => const ComingSoonPage(
     destination: AppDestination.activity,
-    planned: ['A record of what was removed, and when', 'What is worth looking at next'],
+    planned: [
+      'A record of what was removed, and when',
+      'What is worth looking at next',
+    ],
   ),
   AppDestination.assistant => const ComingSoonPage(
     destination: AppDestination.assistant,

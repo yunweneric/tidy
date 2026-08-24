@@ -75,9 +75,10 @@ class _SegmentState extends State<_Segment> {
   Widget build(BuildContext context) {
     final colors = context.colors;
 
-    final foreground = widget.active
-        ? colors.textPrimary
-        : (_hovered ? colors.textPrimary : colors.textSecondary);
+    final foreground =
+        widget.active
+            ? colors.textPrimary
+            : (_hovered ? colors.textPrimary : colors.textSecondary);
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,
@@ -93,9 +94,10 @@ class _SegmentState extends State<_Segment> {
             vertical: AppSpacing.sm,
           ),
           decoration: BoxDecoration(
-            color: widget.active
-                ? colors.surface
-                : (_hovered ? colors.surfaceHover : Colors.transparent),
+            color:
+                widget.active
+                    ? colors.surface
+                    : (_hovered ? colors.surfaceHover : Colors.transparent),
             borderRadius: AppRadii.smAll,
             border: Border.all(
               color: widget.active ? colors.border : Colors.transparent,

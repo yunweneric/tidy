@@ -35,7 +35,11 @@ class ResultTreeView extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: colors.surface,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: colors.surfaceGradient,
+        ),
         borderRadius: AppRadii.lgAll,
         border: Border.all(color: colors.border),
       ),
@@ -105,9 +109,10 @@ class _TreeRowState extends State<_TreeRow> {
         widget.parentBytes == 0 ? 0.0 : node.totalBytes / widget.parentBytes;
 
     final blocked = node.isLeaf && !node.isRemovable;
-    final visibleChildren = _showAllChildren
-        ? node.children
-        : node.children.take(_initialChildLimit).toList();
+    final visibleChildren =
+        _showAllChildren
+            ? node.children
+            : node.children.take(_initialChildLimit).toList();
     final hiddenCount = node.children.length - visibleChildren.length;
 
     return Column(
@@ -117,7 +122,10 @@ class _TreeRowState extends State<_TreeRow> {
           onEnter: (_) => setState(() => _hovered = true),
           onExit: (_) => setState(() => _hovered = false),
           child: GestureDetector(
-            onTap: node.isLeaf ? null : () => setState(() => _expanded = !_expanded),
+            onTap:
+                node.isLeaf
+                    ? null
+                    : () => setState(() => _expanded = !_expanded),
             child: Container(
               color: _hovered ? colors.surfaceHover : Colors.transparent,
               padding: EdgeInsets.only(
@@ -130,24 +138,24 @@ class _TreeRowState extends State<_TreeRow> {
                 children: [
                   SizedBox(
                     width: 20,
-                    child: node.isLeaf
-                        ? null
-                        : Icon(
-                            _expanded
-                                ? AppIcons.expand
-                                : AppIcons.collapse,
-                            size: 18,
-                            color: colors.textMuted,
-                          ),
+                    child:
+                        node.isLeaf
+                            ? null
+                            : Icon(
+                              _expanded ? AppIcons.expand : AppIcons.collapse,
+                              size: 18,
+                              color: colors.textMuted,
+                            ),
                   ),
                   SizedBox(
                     width: 30,
                     child: Checkbox(
                       value: blocked ? false : state,
                       tristate: !node.isLeaf,
-                      onChanged: blocked
-                          ? null
-                          : (_) => widget.onToggle(node, state != true),
+                      onChanged:
+                          blocked
+                              ? null
+                              : (_) => widget.onToggle(node, state != true),
                     ),
                   ),
                   Expanded(child: _title(context, node, blocked)),
@@ -170,16 +178,22 @@ class _TreeRowState extends State<_TreeRow> {
                   ),
                   SizedBox(
                     width: 32,
-                    child: _hovered && node.paths.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(AppIcons.revealInFinder, size: 15),
-                            color: colors.textMuted,
-                            tooltip: 'Reveal in Finder',
-                            visualDensity: VisualDensity.compact,
-                            onPressed: () =>
-                                SystemBridge.revealInFinder(node.paths.first),
-                          )
-                        : null,
+                    child:
+                        _hovered && node.paths.isNotEmpty
+                            ? IconButton(
+                              icon: const Icon(
+                                AppIcons.revealInFinder,
+                                size: 15,
+                              ),
+                              color: colors.textMuted,
+                              tooltip: 'Reveal in Finder',
+                              visualDensity: VisualDensity.compact,
+                              onPressed:
+                                  () => SystemBridge.revealInFinder(
+                                    node.paths.first,
+                                  ),
+                            )
+                            : null,
                   ),
                 ],
               ),

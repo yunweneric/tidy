@@ -83,5 +83,6 @@ class AppIcons {
   static const IconData motion = HugeIcons.strokeRoundedLoading03;
 
   /// Fallback for an app whose icon has not streamed in yet.
-  static const IconData appPlaceholder = HugeIcons.strokeRoundedDashboardSquare01;
+  static const IconData appPlaceholder =
+      HugeIcons.strokeRoundedDashboardSquare01;
 }

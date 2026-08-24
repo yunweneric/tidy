@@ -87,7 +87,7 @@ class _Header extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.xxl,
-        AppSpacing.xxl,
+        AppSpacing.titleBar + AppSpacing.xl,
         AppSpacing.xxl,
         AppSpacing.xl,
       ),

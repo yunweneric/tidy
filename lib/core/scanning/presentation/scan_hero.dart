@@ -3,6 +3,7 @@ import 'package:mac_uninstaller/core/design/design.dart';
 import 'package:mac_uninstaller/core/utils/byte_format.dart';
 import 'package:mac_uninstaller/core/widgets/animated_bytes.dart';
 import 'package:mac_uninstaller/core/widgets/gauge_ring.dart';
+import 'package:mac_uninstaller/core/widgets/gradient_button.dart';
 
 /// The centrepiece of every module: ring, running total, one clear action.
 ///
@@ -57,21 +58,45 @@ class ScanHero extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const SizedBox(height: AppSpacing.xxl),
-            GaugeRing(
-              progress: scanning ? fraction : (bytes == null ? 1 : null),
-              size: 210,
-              child: Center(
-                child: bytes != null
-                    ? AnimatedBytes(
-                        bytes: bytes!,
-                        valueStyle: context.text.displayL,
-                      )
-                    : Icon(
-                        icon ?? Brand.mark,
-                        size: 44,
-                        color: colors.accent,
+            // The ring sits in its own pool of light. Without it the gauge
+            // floats on the canvas as a thin outline, which reads as a loading
+            // spinner rather than as the centrepiece of the screen.
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                IgnorePointer(
+                  child: Container(
+                    width: 300,
+                    height: 300,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(
+                        colors: [
+                          colors.accent.withValues(alpha: 0.18),
+                          colors.accent.withValues(alpha: 0),
+                        ],
                       ),
-              ),
+                    ),
+                  ),
+                ),
+                GaugeRing(
+                  progress: scanning ? fraction : (bytes == null ? 1 : null),
+                  size: 210,
+                  child: Center(
+                    child:
+                        bytes != null
+                            ? AnimatedBytes(
+                              bytes: bytes!,
+                              valueStyle: context.text.displayL,
+                            )
+                            : Icon(
+                              icon ?? Brand.mark,
+                              size: 44,
+                              color: colors.accent,
+                            ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: AppSpacing.xxl),
             Text(
@@ -88,15 +113,10 @@ class ScanHero extends StatelessWidget {
               ),
             ],
             const SizedBox(height: AppSpacing.xl),
-            ElevatedButton(
+            GradientButton(
+              label: actionLabel,
               onPressed: onAction,
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.xxl + AppSpacing.sm,
-                  vertical: AppSpacing.lg,
-                ),
-              ),
-              child: Text(actionLabel),
+              size: GradientButtonSize.large,
             ),
             if (secondaryAction != null) ...[
               const SizedBox(height: AppSpacing.sm),
@@ -105,16 +125,17 @@ class ScanHero extends StatelessWidget {
             const SizedBox(height: AppSpacing.lg),
             SizedBox(
               height: 18,
-              child: statusLine == null
-                  ? null
-                  : Text(
-                      statusLine!,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                      textDirection: TextDirection.rtl,
-                      style: context.text.mono,
-                    ),
+              child:
+                  statusLine == null
+                      ? null
+                      : Text(
+                        statusLine!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        textDirection: TextDirection.rtl,
+                        style: context.text.mono,
+                      ),
             ),
             const SizedBox(height: AppSpacing.xxl),
           ],

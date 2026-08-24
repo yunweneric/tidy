@@ -35,13 +35,30 @@ class _SidebarNavItemState extends State<SidebarNavItem> {
   Widget build(BuildContext context) {
     final colors = context.colors;
 
-    final foreground = widget.active
-        ? colors.accent
-        : (_hovered ? colors.textPrimary : colors.textSecondary);
+    final foreground =
+        widget.active
+            ? colors.accent
+            : (_hovered ? colors.textPrimary : colors.textSecondary);
 
-    final background = widget.active
-        ? colors.accentMuted
-        : (_hovered ? colors.surfaceHover : Colors.transparent);
+    // The active row fades its wash out to the right rather than filling the
+    // pill evenly: the eye lands on the glyph and label, which is where the
+    // information is, instead of on a solid block of accent.
+    final background =
+        widget.active
+            ? null
+            : (_hovered ? colors.surfaceHover : Colors.transparent);
+
+    final backgroundGradient =
+        widget.active
+            ? LinearGradient(
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+              colors: [
+                colors.accentMuted,
+                colors.accentMuted.withValues(alpha: 0),
+              ],
+            )
+            : null;
 
     return Padding(
       padding: const EdgeInsets.symmetric(
@@ -63,6 +80,7 @@ class _SidebarNavItemState extends State<SidebarNavItem> {
             ),
             decoration: BoxDecoration(
               color: background,
+              gradient: backgroundGradient,
               borderRadius: AppRadii.mdAll,
             ),
             child: Row(
@@ -75,7 +93,8 @@ class _SidebarNavItemState extends State<SidebarNavItem> {
                     overflow: TextOverflow.ellipsis,
                     style: context.text.label.copyWith(
                       color: foreground,
-                      fontWeight: widget.active ? FontWeight.w600 : FontWeight.w500,
+                      fontWeight:
+                          widget.active ? FontWeight.w600 : FontWeight.w500,
                     ),
                   ),
                 ),

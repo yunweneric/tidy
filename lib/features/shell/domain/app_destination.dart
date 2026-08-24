@@ -1,4 +1,5 @@
 import 'package:mac_uninstaller/core/design/app_icons.dart';
+import 'package:mac_uninstaller/core/design/tokens/app_color_tokens.dart';
 import 'package:flutter/material.dart';
 
 /// Where a sidebar entry sits.
@@ -25,6 +26,7 @@ enum AppDestination {
     icon: AppIcons.smartCare,
     group: NavGroup.primary,
     blurb: 'One pass over everything, then a single review.',
+    tone: ModuleTone.brand,
   ),
   cleanup(
     path: '/cleanup',
@@ -32,6 +34,7 @@ enum AppDestination {
     icon: AppIcons.cleanup,
     group: NavGroup.primary,
     blurb: 'Reclaim space from caches, logs and build artefacts.',
+    tone: ModuleTone.cleanup,
   ),
   protection(
     path: '/protection',
@@ -39,6 +42,7 @@ enum AppDestination {
     icon: AppIcons.protection,
     group: NavGroup.primary,
     blurb: 'Check for known adware and unusual background items.',
+    tone: ModuleTone.protection,
   ),
   performance(
     path: '/performance',
@@ -46,6 +50,7 @@ enum AppDestination {
     icon: AppIcons.performance,
     group: NavGroup.primary,
     blurb: 'Tune startup items and run macOS upkeep.',
+    tone: ModuleTone.performance,
   ),
   applications(
     path: '/applications',
@@ -53,6 +58,7 @@ enum AppDestination {
     icon: AppIcons.applications,
     group: NavGroup.primary,
     blurb: 'Uninstall apps completely, and clean up after old ones.',
+    tone: ModuleTone.applications,
   ),
   clutter(
     path: '/clutter',
@@ -60,6 +66,7 @@ enum AppDestination {
     icon: AppIcons.clutter,
     group: NavGroup.primary,
     blurb: 'Find duplicates, near-identical photos and forgotten files.',
+    tone: ModuleTone.clutter,
   ),
   spaceLens(
     path: '/space-lens',
@@ -67,6 +74,7 @@ enum AppDestination {
     icon: AppIcons.spaceLens,
     group: NavGroup.secondary,
     blurb: 'See what is actually filling your disk.',
+    tone: ModuleTone.spaceLens,
   ),
   allTools(
     path: '/all-tools',
@@ -103,6 +111,7 @@ enum AppDestination {
     required this.icon,
     required this.group,
     required this.blurb,
+    this.tone = ModuleTone.brand,
   });
 
   /// The route this destination lives at. Each one is a branch of the shell
@@ -116,6 +125,12 @@ enum AppDestination {
   /// The one-line subtitle shown under the page title. Non-technical on
   /// purpose — the modules are for people who do not know what a plist is.
   final String blurb;
+
+  /// The colour of light this destination gives the window. Defaults to the
+  /// brand violet, which is what the supporting views (All Tools, Activity,
+  /// Settings) keep — a hue per module means something only while there are
+  /// six of them, not eleven.
+  final ModuleTone tone;
 
   static List<AppDestination> of(NavGroup group) =>
       values.where((d) => d.group == group).toList();

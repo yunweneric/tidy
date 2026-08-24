@@ -12,7 +12,8 @@ import 'package:mac_uninstaller/features/apps/utils/size_utils.dart';
 
 const int _pageSize = 10;
 const int _largeAppThresholdBytes = 1024 * 1024 * 1024; // 1 GB
-const int _unusedThresholdDays = 180; // Six months, matching "unused" elsewhere.
+const int _unusedThresholdDays =
+    180; // Six months, matching "unused" elsewhere.
 
 /// The Applications module: uninstall apps and everything they left behind.
 ///
@@ -67,8 +68,9 @@ class _ApplicationsPageState extends State<ApplicationsPage>
             previous is AppsLoaded ? previous.lastOutcome : null;
         return !identical(previousOutcome, current.lastOutcome);
       },
-      listener: (context, state) =>
-          _showOutcome(context, (state as AppsLoaded).lastOutcome!),
+      listener:
+          (context, state) =>
+              _showOutcome(context, (state as AppsLoaded).lastOutcome!),
       child: BlocBuilder<AppsBloc, AppsState>(
         builder: (context, state) {
           final loaded = state is AppsLoaded ? state : null;
@@ -82,10 +84,11 @@ class _ApplicationsPageState extends State<ApplicationsPage>
               AppSearchField(
                 width: 260,
                 hintText: 'Filter by name or bundle id…',
-                onChanged: (query) => setState(() {
-                  _searchQuery = query.trim().toLowerCase();
-                  _currentPage = 1;
-                }),
+                onChanged:
+                    (query) => setState(() {
+                      _searchQuery = query.trim().toLowerCase();
+                      _currentPage = 1;
+                    }),
               ),
               _RefreshButton(
                 busy: loaded?.isRefreshing ?? state is AppsLoading,
@@ -137,9 +140,10 @@ class _ApplicationsPageState extends State<ApplicationsPage>
             value: '${unused.length}',
             icon: AppIcons.activity,
             color: unused.isEmpty ? colors.safe : colors.review,
-            onTap: unused.isEmpty
-                ? null
-                : () => _changeFilter(app_widgets.AppFilter.unused),
+            onTap:
+                unused.isEmpty
+                    ? null
+                    : () => _changeFilter(app_widgets.AppFilter.unused),
           ),
         ),
       ],
@@ -164,7 +168,11 @@ class _ApplicationsPageState extends State<ApplicationsPage>
         Container(
           clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
-            color: colors.surface,
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: colors.surfaceGradient,
+            ),
             borderRadius: AppRadii.lgAll,
             border: Border.all(color: colors.border),
           ),
@@ -226,7 +234,8 @@ class _ApplicationsPageState extends State<ApplicationsPage>
     final page = _currentPage.clamp(1, totalPages);
     final start = (page - 1) * _pageSize;
     final end = (start + _pageSize).clamp(0, filtered.length);
-    final pageApps = filtered.isEmpty ? <MacApp>[] : filtered.sublist(start, end);
+    final pageApps =
+        filtered.isEmpty ? <MacApp>[] : filtered.sublist(start, end);
 
     final selectable = pageApps.where((app) => !app.isSystem).toList();
     final selectedOnPage =
@@ -245,8 +254,14 @@ class _ApplicationsPageState extends State<ApplicationsPage>
               sort: _sortIndicatorFor(app_widgets.AppSort.name),
               onTap: () => _applySort(app_widgets.AppSort.name),
             ),
-            const TableColumn('DEVELOPER', flex: app_widgets.AppTableLayout.developerFlex),
-            const TableColumn('VERSION', width: app_widgets.AppTableLayout.version),
+            const TableColumn(
+              'DEVELOPER',
+              flex: app_widgets.AppTableLayout.developerFlex,
+            ),
+            const TableColumn(
+              'VERSION',
+              width: app_widgets.AppTableLayout.version,
+            ),
             TableColumn(
               'LAST OPENED',
               flex: app_widgets.AppTableLayout.lastOpenedFlex,
@@ -262,9 +277,10 @@ class _ApplicationsPageState extends State<ApplicationsPage>
             ),
           ],
           showSelectAll: true,
-          selectAllValue: selectedOnPage == 0
-              ? false
-              : (selectedOnPage == selectable.length ? true : null),
+          selectAllValue:
+              selectedOnPage == 0
+                  ? false
+                  : (selectedOnPage == selectable.length ? true : null),
           onSelectAll: (_) => _toggleSelectAll(selectable),
         ),
         if (pageApps.isEmpty)
@@ -272,12 +288,14 @@ class _ApplicationsPageState extends State<ApplicationsPage>
             height: 240,
             child: EmptyState(
               icon: AppIcons.nothingFound,
-              title: _searchQuery.isEmpty
-                  ? 'Nothing matches this filter'
-                  : 'Nothing matches “$_searchQuery”',
-              message: _searchQuery.isEmpty
-                  ? 'Try a different filter.'
-                  : 'Check the spelling, or search by bundle id instead.',
+              title:
+                  _searchQuery.isEmpty
+                      ? 'Nothing matches this filter'
+                      : 'Nothing matches “$_searchQuery”',
+              message:
+                  _searchQuery.isEmpty
+                      ? 'Try a different filter.'
+                      : 'Check the spelling, or search by bundle id instead.',
             ),
           )
         else
@@ -286,13 +304,14 @@ class _ApplicationsPageState extends State<ApplicationsPage>
               app: pageApps[i],
               isLast: i == pageApps.length - 1,
               selected: _selectedPaths.contains(pageApps[i].path),
-              onSelectionChanged: (selected) => setState(() {
-                if (selected) {
-                  _selectedPaths.add(pageApps[i].path);
-                } else {
-                  _selectedPaths.remove(pageApps[i].path);
-                }
-              }),
+              onSelectionChanged:
+                  (selected) => setState(() {
+                    if (selected) {
+                      _selectedPaths.add(pageApps[i].path);
+                    } else {
+                      _selectedPaths.remove(pageApps[i].path);
+                    }
+                  }),
               onUninstall: () => _confirmUninstall(context, [pageApps[i]]),
             ),
         app_widgets.AppTableFooter(
@@ -315,19 +334,21 @@ class _ApplicationsPageState extends State<ApplicationsPage>
       case app_widgets.AppFilter.all:
         break;
       case app_widgets.AppFilter.large:
-        apps = apps.where((a) => a.sizeBytes >= _largeAppThresholdBytes).toList();
+        apps =
+            apps.where((a) => a.sizeBytes >= _largeAppThresholdBytes).toList();
       case app_widgets.AppFilter.unused:
         apps = apps.where((a) => !a.isSystem && _isUnused(a)).toList();
     }
 
     if (_searchQuery.isNotEmpty) {
-      apps = apps
-          .where(
-            (a) =>
-                a.name.toLowerCase().contains(_searchQuery) ||
-                a.bundleId.toLowerCase().contains(_searchQuery),
-          )
-          .toList();
+      apps =
+          apps
+              .where(
+                (a) =>
+                    a.name.toLowerCase().contains(_searchQuery) ||
+                    a.bundleId.toLowerCase().contains(_searchQuery),
+              )
+              .toList();
     }
 
     final sorted = List<MacApp>.from(apps);
@@ -335,7 +356,9 @@ class _ApplicationsPageState extends State<ApplicationsPage>
       case app_widgets.AppSort.size:
         sorted.sort((a, b) => b.sizeBytes.compareTo(a.sizeBytes));
       case app_widgets.AppSort.name:
-        sorted.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+        sorted.sort(
+          (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+        );
       case app_widgets.AppSort.lastUsed:
         // Most recently used first; never-used apps sink to the bottom.
         sorted.sort((a, b) {
@@ -381,7 +404,8 @@ class _ApplicationsPageState extends State<ApplicationsPage>
 
   void _toggleSelectAll(List<MacApp> selectable) {
     setState(() {
-      final allSelected = selectable.isNotEmpty &&
+      final allSelected =
+          selectable.isNotEmpty &&
           selectable.every((app) => _selectedPaths.contains(app.path));
       for (final app in selectable) {
         if (allSelected) {
@@ -395,7 +419,10 @@ class _ApplicationsPageState extends State<ApplicationsPage>
 
   // ------------------------------------------------------------------- actions
 
-  Future<void> _confirmUninstall(BuildContext context, List<MacApp> apps) async {
+  Future<void> _confirmUninstall(
+    BuildContext context,
+    List<MacApp> apps,
+  ) async {
     final bloc = context.read<AppsBloc>();
     final plan = await app_widgets.UninstallConfirmDialog.show(context, apps);
     if (plan == null || !mounted) return;
@@ -413,9 +440,10 @@ class _ApplicationsPageState extends State<ApplicationsPage>
 
   void _uninstallSelected(BuildContext context, AppsState state) {
     if (state is! AppsLoaded) return;
-    final selected = state.apps
-        .where((app) => _selectedPaths.contains(app.path) && !app.isSystem)
-        .toList();
+    final selected =
+        state.apps
+            .where((app) => _selectedPaths.contains(app.path) && !app.isSystem)
+            .toList();
     if (selected.isEmpty) return;
     _confirmUninstall(context, selected);
   }
@@ -428,28 +456,31 @@ class _ApplicationsPageState extends State<ApplicationsPage>
     // the Trash is emptied, and claiming otherwise is a lie the disk will
     // contradict a moment later.
     final destination = outcome.movedToTrash ? 'moved to Trash' : 'deleted';
-    final message = outcome.hasFailures
-        ? '${formatBytes(outcome.freedBytes)} $destination · '
-              '${outcome.failures.length} item(s) stayed put'
-        : '${formatBytes(outcome.freedBytes)} $destination';
+    final message =
+        outcome.hasFailures
+            ? '${formatBytes(outcome.freedBytes)} $destination · '
+                '${outcome.failures.length} item(s) stayed put'
+            : '${formatBytes(outcome.freedBytes)} $destination';
 
     messenger.hideCurrentSnackBar();
     messenger.showSnackBar(
       SnackBar(
-        backgroundColor: outcome.hasFailures ? colors.review : colors.surfaceRaised,
+        backgroundColor:
+            outcome.hasFailures ? colors.review : colors.surfaceRaised,
         content: Text(
           message,
           style: context.text.bodyL.copyWith(
             color: outcome.hasFailures ? colors.canvas : colors.textPrimary,
           ),
         ),
-        action: outcome.hasFailures
-            ? SnackBarAction(
-                label: 'Details',
-                textColor: colors.canvas,
-                onPressed: () => _showFailureDetails(context, outcome),
-              )
-            : null,
+        action:
+            outcome.hasFailures
+                ? SnackBarAction(
+                  label: 'Details',
+                  textColor: colors.canvas,
+                  onPressed: () => _showFailureDetails(context, outcome),
+                )
+                : null,
       ),
     );
   }
@@ -457,45 +488,48 @@ class _ApplicationsPageState extends State<ApplicationsPage>
   void _showFailureDetails(BuildContext context, RemovalOutcome outcome) {
     showDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('${outcome.failures.length} item(s) stayed put'),
-        content: SizedBox(
-          width: 520,
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'These usually need administrator rights or Full Disk Access.',
-                  style: ctx.text.bodyM,
-                ),
-                const SizedBox(height: AppSpacing.md),
-                for (final failure in outcome.failures)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(failure.path, style: ctx.text.mono),
-                        Text(
-                          failure.error,
-                          style: ctx.text.caption.copyWith(color: ctx.colors.review),
-                        ),
-                      ],
+      builder:
+          (ctx) => AlertDialog(
+            title: Text('${outcome.failures.length} item(s) stayed put'),
+            content: SizedBox(
+              width: 520,
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'These usually need administrator rights or Full Disk Access.',
+                      style: ctx.text.bodyM,
                     ),
-                  ),
-              ],
+                    const SizedBox(height: AppSpacing.md),
+                    for (final failure in outcome.failures)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(failure.path, style: ctx.text.mono),
+                            Text(
+                              failure.error,
+                              style: ctx.text.caption.copyWith(
+                                color: ctx.colors.review,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
             ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('Close'),
+              ),
+            ],
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -521,13 +555,18 @@ class _Stat extends StatelessWidget {
   Widget build(BuildContext context) {
     return TidyCard(
       onTap: onTap,
+      // The colour is the information here — amber for apps gone unopened,
+      // green for a clean result — so the whole tile carries it, not just the
+      // glyph. Rows in the table below stay untinted for exactly that reason.
+      tint: color,
+      accent: color,
       padding: const EdgeInsets.all(AppSpacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon, size: 20, color: color),
+              _IconTile(icon: icon, color: color),
               const Spacer(),
               if (onTap != null)
                 Icon(
@@ -547,6 +586,34 @@ class _Stat extends StatelessWidget {
   }
 }
 
+/// The glyph on a summary tile, on its own gradient chip.
+class _IconTile extends StatelessWidget {
+  const _IconTile({required this.icon, required this.color});
+
+  final IconData icon;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 34,
+      height: 34,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            color.withValues(alpha: 0.28),
+            color.withValues(alpha: 0.08),
+          ],
+        ),
+        borderRadius: AppRadii.mdAll,
+      ),
+      child: Icon(icon, size: 18, color: color),
+    );
+  }
+}
+
 class _RefreshButton extends StatelessWidget {
   const _RefreshButton({required this.busy, required this.onPressed});
 
@@ -558,13 +625,14 @@ class _RefreshButton extends StatelessWidget {
     return IconButton(
       onPressed: busy ? null : onPressed,
       tooltip: 'Rescan applications',
-      icon: busy
-          ? const SizedBox(
-              width: 16,
-              height: 16,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-          : const Icon(AppIcons.refresh, size: 18),
+      icon:
+          busy
+              ? const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+              : const Icon(AppIcons.refresh, size: 18),
     );
   }
 }

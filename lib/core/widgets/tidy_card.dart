@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:mac_uninstaller/core/design/design.dart';
 
-/// The standard surface: flat fill, 1px border, generous radius.
+/// The standard surface: a barely-there vertical sheen, 1px border, generous
+/// radius.
 ///
 /// Everything in the app that looks like a card is this widget. No Material
 /// elevation anywhere — shadows read as heavy next to macOS's own chrome, and
-/// a consistent border is what makes a dense screen legible.
+/// a consistent border is what makes a dense screen legible. The fill is a
+/// two-stop gradient rather than a flat colour so a card catches the window's
+/// light the way the chrome around it does; the two stops are close enough
+/// together that the card still reads as one surface.
 class TidyCard extends StatefulWidget {
   const TidyCard({
     super.key,
@@ -14,6 +18,7 @@ class TidyCard extends StatefulWidget {
     this.onTap,
     this.selected = false,
     this.accent,
+    this.tint,
     this.borderRadius = AppRadii.lgAll,
   });
 
@@ -27,6 +32,14 @@ class TidyCard extends StatefulWidget {
   /// Overrides the accent used when [selected] or hovered — lets a status card
   /// glow in its own semantic colour.
   final Color? accent;
+
+  /// Washes the card's fill in a semantic colour without claiming it is
+  /// selected. For summary tiles, where the colour *is* the information —
+  /// amber for "not opened in six months", green for "nothing to do".
+  ///
+  /// Never for a row in a list: a table where every card is tinted is a table
+  /// with no signal left.
+  final Color? tint;
 
   final BorderRadius borderRadius;
 
@@ -42,14 +55,27 @@ class _TidyCardState extends State<TidyCard> {
     final colors = context.colors;
     final accent = widget.accent ?? colors.accent;
     final interactive = widget.onTap != null;
+    final active = _hovered && interactive;
 
-    final borderColor = widget.selected
-        ? accent
-        : (_hovered && interactive ? colors.borderStrong : colors.border);
+    final borderColor =
+        widget.selected
+            ? accent
+            : widget.tint != null
+            ? Color.alphaBlend(
+              widget.tint!.withValues(alpha: active ? 0.42 : 0.26),
+              colors.border,
+            )
+            : (active ? colors.borderStrong : colors.border);
 
-    final fill = widget.selected
-        ? Color.alphaBlend(accent.withValues(alpha: 0.07), colors.surface)
-        : (_hovered && interactive ? colors.surfaceHover : colors.surface);
+    final fill = switch ((widget.selected, widget.tint)) {
+      (true, _) => colors.tintedSurface(accent, strength: 1.4),
+      (false, final Color tint) => colors.tintedSurface(
+        tint,
+        strength: active ? 1.35 : 1,
+      ),
+      _ =>
+        active ? [colors.surfaceHover, colors.surface] : colors.surfaceGradient,
+    };
 
     return MouseRegion(
       cursor: interactive ? SystemMouseCursors.click : MouseCursor.defer,
@@ -62,7 +88,11 @@ class _TidyCardState extends State<TidyCard> {
           curve: context.motion.standard,
           padding: widget.padding,
           decoration: BoxDecoration(
-            color: fill,
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: fill,
+            ),
             borderRadius: widget.borderRadius,
             border: Border.all(
               color: borderColor,
