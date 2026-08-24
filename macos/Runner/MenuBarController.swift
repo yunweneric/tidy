@@ -114,8 +114,10 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     Self.claim(statusItem, as: "TidyVitals")
     guard let button = statusItem.button else { return }
 
+    // Sized and centred by `menuBarGlyph`, which also marks it a template so
+    // AppKit recolours it for a light or dark menu bar.
     button.image = Self.statusImage()
-    button.image?.isTemplate = true // Adapts to light/dark menu bars.
+    button.imagePosition = .imageOnly
     button.toolTip = "Tidy"
     button.target = self
     button.action = #selector(statusItemClicked(_:))
@@ -132,22 +134,85 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
   /// invisible status button is worse than a generic one.
   private static func statusImage() -> NSImage? {
     if let mark = NSImage(named: "MenuBarIcon") {
-      mark.size = NSSize(width: 18, height: 18)
-      return mark
+      return menuBarGlyph(mark)
     }
 
-    let candidates = [
-      "internaldrive.badge.xmark",
-      "externaldrive.badge.minus",
-      "trash.circle",
-      "trash",
-    ]
-    for name in candidates {
-      if let image = NSImage(systemSymbolName: name, accessibilityDescription: "Tidy") {
-        return image
-      }
+    return symbolGlyph(
+      [
+        "internaldrive.badge.xmark",
+        "externaldrive.badge.minus",
+        "trash.circle",
+        "trash",
+      ],
+      describedAs: "Tidy"
+    ) ?? NSImage(named: NSImage.trashEmptyName).map(menuBarGlyph)
+  }
+
+  // MARK: - Glyphs
+
+  /// The box every menu bar glyph is drawn into, and the box its content is
+  /// fitted inside it.
+  ///
+  /// 18pt canvas in a 22pt menu bar leaves the 2pt of breathing room macOS
+  /// gives its own items; 16pt of content inside it is the size an SF Symbol
+  /// lands at when AppKit sizes one off the system font, so a custom asset
+  /// dropped in beside one does not read as the odd one out.
+  private static let glyphCanvas = NSSize(width: 18, height: 18)
+  private static let glyphContent = NSSize(width: 16, height: 16)
+
+  /// Redraws a glyph centred inside `glyphCanvas`, scaled to fit
+  /// `glyphContent`.
+  ///
+  /// A status button places its image using the image's own size and alignment
+  /// rect, so glyphs from different sources line up only by luck: the app mark
+  /// is a square 22pt asset, an SF Symbol is whatever its design and the system
+  /// font make it — typically taller than it is wide, and carrying an alignment
+  /// rect inset for its optical baseline. Left alone the two sit at different
+  /// scales *and* on different lines.
+  ///
+  /// Normalising is what makes them match. Every glyph ends up with the same
+  /// bounds and no alignment inset, so "scaled the same" and "centred the same"
+  /// both fall out of AppKit's own centring rather than being chased per icon.
+  private static func menuBarGlyph(_ source: NSImage) -> NSImage {
+    let size = source.size
+    guard size.width > 0, size.height > 0 else { return source }
+
+    let scale = min(glyphContent.width / size.width, glyphContent.height / size.height)
+    let drawn = NSSize(width: size.width * scale, height: size.height * scale)
+
+    let glyph = NSImage(size: glyphCanvas, flipped: false) { rect in
+      source.draw(
+        in: NSRect(
+          x: rect.midX - drawn.width / 2,
+          y: rect.midY - drawn.height / 2,
+          width: drawn.width,
+          height: drawn.height
+        ),
+        from: .zero,
+        operation: .sourceOver,
+        fraction: 1
+      )
+      return true
     }
-    return NSImage(named: NSImage.trashEmptyName)
+    glyph.isTemplate = true // Adapts to light/dark menu bars.
+    return glyph
+  }
+
+  /// The first SF Symbol in `names` that this macOS version has, normalised.
+  ///
+  /// The ladder exists because symbol availability varies by OS version, and an
+  /// invisible status button is worse than a generic one. The point size only
+  /// sets how crisply the symbol rasterises — `menuBarGlyph` decides the final
+  /// size — but asking for one keeps it from being derived from the control
+  /// font, which differs between the symbols and the asset.
+  private static func symbolGlyph(_ names: [String], describedAs description: String) -> NSImage? {
+    let configuration = NSImage.SymbolConfiguration(pointSize: 16, weight: .regular)
+    for name in names {
+      guard let image = NSImage(systemSymbolName: name, accessibilityDescription: description)
+      else { continue }
+      return menuBarGlyph(image.withSymbolConfiguration(configuration) ?? image)
+    }
+    return nil
   }
 
   private func configureClipboardItem() {
@@ -155,7 +220,7 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     guard let button = clipboardItem.button else { return }
 
     button.image = Self.clipboardImage()
-    button.image?.isTemplate = true
+    button.imagePosition = .imageOnly
     button.toolTip = "Clipboard history"
     button.target = self
     button.action = #selector(clipboardItemClicked(_:))
@@ -165,18 +230,15 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
   /// Same fallback ladder as the vitals icon, for the same reason: SF Symbol
   /// availability varies by macOS version.
   private static func clipboardImage() -> NSImage? {
-    let candidates = [
-      "list.clipboard",
-      "doc.on.clipboard",
-      "doc.on.doc",
-      "paperclip",
-    ]
-    for name in candidates {
-      if let image = NSImage(systemSymbolName: name, accessibilityDescription: "Clipboard") {
-        return image
-      }
-    }
-    return NSImage(named: NSImage.multipleDocumentsName)
+    symbolGlyph(
+      [
+        "list.clipboard",
+        "doc.on.clipboard",
+        "doc.on.doc",
+        "paperclip",
+      ],
+      describedAs: "Clipboard"
+    ) ?? NSImage(named: NSImage.multipleDocumentsName).map(menuBarGlyph)
   }
 
   // MARK: - Network readout
