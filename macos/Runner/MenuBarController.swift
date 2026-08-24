@@ -67,6 +67,24 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
   /// Whichever width the panel currently on screen asked for.
   private var currentWidth: CGFloat = 460
 
+  /// The section on screen, so a height reported from Dart is filed against
+  /// whichever panel actually measured it.
+  private var currentSection = MenuBarController.dashboardSection
+
+  /// What each section measured the last time it was open.
+  ///
+  /// The panel reports its own height, which it can only do once Dart has laid
+  /// the section out — a frame or two after the popover is already on screen.
+  /// Without somewhere to remember it, every visit to a section ends with the
+  /// panel visibly growing or shrinking under a reader who has already started
+  /// reading. Remembering costs one number per section and makes the second
+  /// visit onwards arrive at the right size.
+  private var panelHeights: [String: CGFloat] = [:]
+
+  /// The section the vitals icon means. It is the one that arrives as `nil`,
+  /// having no section to ask for, so it needs a name to be filed under.
+  private static let dashboardSection = "dashboard"
+
   private lazy var preview = ClipPreviewPanel()
 
   override init() {
@@ -705,11 +723,26 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
       popover.performClose(nil)
       return
     }
-    if popover.isShown {
-      // close(), not performClose(): the animated close is still running when
-      // the next show starts, and the popover comes back up empty.
-      popover.close()
+    guard popover.isShown else {
+      showPopover(section: section, from: button)
+      return
     }
+
+    // Moving between two of our own icons, which is the one case where the
+    // panel is not appearing or disappearing — it is relocating.
+    //
+    // The animation is what stopped it reading that way. A show fades and
+    // scales the panel up from nothing, so following a close with one turned
+    // every move into "out, then in", with a beat of empty menu bar between
+    // them. Off for the move, those two beats become one. It goes back on
+    // straight afterwards: for an actual opening, from nothing, at the icon
+    // that was just clicked, the fade is the right macOS behaviour and its
+    // absence is what would look wrong.
+    popover.animates = false
+    defer { popover.animates = true }
+    // close(), not performClose(): the animated close is still running when
+    // the next show starts, and the popover comes back up empty.
+    popover.close()
     showPopover(section: section, from: button)
   }
 
@@ -733,7 +766,14 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     if popover.isShown,
        popover.contentViewController?.view.window?.isVisible == true {
       // Already open on this icon: no need to re-present it, but the caller
-      // still wants the panel pointed at their section.
+      // still wants the panel pointed at their section — and a different
+      // section is a different size. Guarded, because an unchanged size is
+      // still a resize as far as the Flutter view is concerned, and it blocks
+      // for a frame to answer one.
+      currentSection = section ?? Self.dashboardSection
+      currentWidth = width(for: section)
+      let size = NSSize(width: currentWidth, height: height(for: section))
+      if size != popover.contentSize { popover.contentSize = size }
       channel?.invokeMethod("popoverDidOpen", arguments: arguments(for: section))
       return
     }
@@ -747,18 +787,21 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     if !mainWindowIsOnAnotherSpace {
       NSApp.activate(ignoringOtherApps: true)
     }
-    currentWidth = switch section {
-    case "clipboard": clipboardPanelWidth
-    case "network": networkPanelWidth
-    default: panelWidth
-    }
+    currentSection = section ?? Self.dashboardSection
+    currentWidth = width(for: section)
     popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
     anchor = button
-    // Width is applied *after* showing, not before. A hidden Flutter view
+    // Size is applied *after* showing, not before. A hidden Flutter view
     // produces no frames, so a resize asked for while the popover is off
     // screen waits for a frame that cannot arrive and times out a second
     // later. On screen the same call is answered immediately.
-    popover.contentSize = NSSize(width: currentWidth, height: popover.contentSize.height)
+    //
+    // Both dimensions in one assignment, and the height taken from what this
+    // section measured last time rather than from whatever the previous
+    // section happened to leave behind — otherwise a panel that is already up
+    // and readable resizes a beat later, which is the part that reads as a
+    // glitch rather than as a transition.
+    popover.contentSize = NSSize(width: currentWidth, height: height(for: section))
     letPanelFollowTheMenuBar()
     publishAppearance()
     channel?.invokeMethod("popoverDidOpen", arguments: arguments(for: section))
@@ -799,6 +842,21 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
       return
     }
     preview.show(entry: entry, beside: window, rowTop: rowTop)
+  }
+
+  private func width(for section: String?) -> CGFloat {
+    switch section {
+    case "clipboard": clipboardPanelWidth
+    case "network": networkPanelWidth
+    default: panelWidth
+    }
+  }
+
+  /// What this section measured last time, or whatever is on screen now the
+  /// first time it is opened — there is nothing better to guess with, and one
+  /// settle on first visit is the cost of not storing a made-up number.
+  private func height(for section: String?) -> CGFloat {
+    panelHeights[section ?? Self.dashboardSection] ?? popover.contentSize.height
   }
 
   private func arguments(for section: String?) -> [String: Any]? {
@@ -857,6 +915,7 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
 
   private func setPopoverHeight(_ height: CGFloat) {
     let clamped = min(max(height, minPanelHeight), maxPanelHeight)
+    panelHeights[currentSection] = clamped
     guard abs(popover.contentSize.height - clamped) > 1 else { return }
     popover.contentSize = NSSize(width: currentWidth, height: clamped)
   }
