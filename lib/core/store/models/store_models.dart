@@ -226,11 +226,7 @@ class MetricBucket extends Equatable {
     required this.count,
   });
 
-  const MetricBucket.missing(this.at)
-    : sum = 0,
-      min = 0,
-      max = 0,
-      count = 0;
+  const MetricBucket.missing(this.at) : sum = 0, min = 0, max = 0, count = 0;
 
   final DateTime at;
   final double sum;

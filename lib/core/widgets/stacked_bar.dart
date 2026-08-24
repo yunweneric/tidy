@@ -96,7 +96,8 @@ class _StackedBarPainter extends CustomPainter {
     var x = 0.0;
     for (final slice in slices) {
       if (slice.bytes <= 0) continue;
-      final width = (slice.bytes / whole).clamp(0.0, 1.0) * size.width * progress;
+      final width =
+          (slice.bytes / whole).clamp(0.0, 1.0) * size.width * progress;
       // A slice too thin to see is still a slice that exists; a hairline says
       // so, where rounding it to nothing would silently drop it.
       final drawn = width < 1 ? 1.0 : width;

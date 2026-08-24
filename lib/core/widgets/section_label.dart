@@ -11,8 +11,7 @@ class SectionLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: padding ??
-          const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+      padding: padding ?? const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
       child: Text(label, style: context.text.overline),
     );
   }

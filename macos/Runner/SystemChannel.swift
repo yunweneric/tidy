@@ -58,6 +58,8 @@ enum SystemChannel {
     case "canReadPaths":
       let paths = (call.arguments as? [String: Any])?["paths"] as? [String] ?? []
       result(Dictionary(uniqueKeysWithValues: paths.map { ($0, FullDiskAccess.canRead($0)) }))
+    case "appVersion":
+      result(Updater.currentBundle())
     case "loginItemStatus":
       result(loginItemStatus())
     case "setLoginItem":

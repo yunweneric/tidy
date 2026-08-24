@@ -25,7 +25,8 @@ class AnimatedBytes extends StatelessWidget {
   Widget build(BuildContext context) {
     final motion = context.motion;
     final value = valueStyle ?? context.text.displayXl;
-    final unit = unitStyle ??
+    final unit =
+        unitStyle ??
         context.text.titleM.copyWith(color: context.colors.textSecondary);
 
     return TweenAnimationBuilder<double>(

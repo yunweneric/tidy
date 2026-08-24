@@ -243,7 +243,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
       onBack: () => setState(() => _step--),
       child: AnimatedBuilder(
         animation: widget.fullDiskAccess,
-        builder: (context, _) => _PermissionCard(service: widget.fullDiskAccess),
+        builder:
+            (context, _) => _PermissionCard(service: widget.fullDiskAccess),
       ),
     );
   }
@@ -370,8 +371,8 @@ class _PermissionCard extends StatelessWidget {
                       granted == true
                           ? 'You are all set. Scans can see your whole disk.'
                           : 'Unlocks Mail and Messages attachments, other apps’ '
-                                'containers, iOS backups and Safari data — a '
-                                'large share of what is worth reclaiming.',
+                              'containers, iOS backups and Safari data — a '
+                              'large share of what is worth reclaiming.',
                       style: context.text.bodyM,
                     ),
                     if (granted != true) ...[
@@ -384,7 +385,8 @@ class _PermissionCard extends StatelessWidget {
                           ),
                           const SizedBox(width: AppSpacing.sm),
                           TextButton(
-                            onPressed: service.isChecking ? null : service.refresh,
+                            onPressed:
+                                service.isChecking ? null : service.refresh,
                             child: const Text('Re-check'),
                           ),
                         ],

@@ -50,14 +50,20 @@ class NetworkUsageChart extends StatelessWidget {
             const SizedBox(height: AppSpacing.sm),
             Row(
               children: [
-                Text(_axisLabel(slots.firstOrNull), style: context.text.overline),
+                Text(
+                  _axisLabel(slots.firstOrNull),
+                  style: context.text.overline,
+                ),
                 const Spacer(),
                 Text(
                   formatBytes(series.totalBytes),
                   style: context.text.caption,
                 ),
                 const Spacer(),
-                Text(_axisLabel(slots.lastOrNull), style: context.text.overline),
+                Text(
+                  _axisLabel(slots.lastOrNull),
+                  style: context.text.overline,
+                ),
               ],
             ),
           ],
@@ -111,12 +117,10 @@ class NetworkUsageChart extends StatelessWidget {
     if (slot == null) return '';
     final at = slot.at;
     return switch (series.granularity) {
-      NetworkGranularity.minute ||
-      NetworkGranularity.hour =>
+      NetworkGranularity.minute || NetworkGranularity.hour =>
         '${at.hour.toString().padLeft(2, '0')}:${at.minute.toString().padLeft(2, '0')}',
       NetworkGranularity.day ||
-      NetworkGranularity.week =>
-        '${at.day} ${_months[at.month - 1]}',
+      NetworkGranularity.week => '${at.day} ${_months[at.month - 1]}',
       NetworkGranularity.month => '${_months[at.month - 1]} ${at.year}',
     };
   }
@@ -201,7 +205,8 @@ class _BarsPainter extends CustomPainter {
       if (total <= 0) continue;
 
       final height = (total / peak).clamp(0.0, 1.0) * size.height;
-      final downHeight = height * (bucket.downBytes / bucket.totalBytes.clamp(1, 1 << 62));
+      final downHeight =
+          height * (bucket.downBytes / bucket.totalBytes.clamp(1, 1 << 62));
       final upHeight = height - downHeight;
 
       // Upload stacked on top of download, so the taller half is the one

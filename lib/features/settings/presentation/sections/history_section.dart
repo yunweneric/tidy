@@ -70,12 +70,13 @@ class _HistorySectionState extends State<HistorySection> {
           children: [
             SettingsLabel(
               title: 'Removal records',
-              detail: _store.isOpen
-                  ? '${_stats.removedItemCount} files across '
-                      '${_stats.operationCount} clean-ups, and '
-                      '${_stats.scanCount} scans.'
-                  : 'The history store could not be opened, so nothing is '
-                      'being recorded. The rest of ${Brand.name} works as usual.',
+              detail:
+                  _store.isOpen
+                      ? '${_stats.removedItemCount} files across '
+                          '${_stats.operationCount} clean-ups, and '
+                          '${_stats.scanCount} scans.'
+                      : 'The history store could not be opened, so nothing is '
+                          'being recorded. The rest of ${Brand.name} works as usual.',
             ),
             SettingsLabel(
               title: 'Measurements',

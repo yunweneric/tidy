@@ -66,7 +66,11 @@ class _OperationRow extends StatelessWidget {
             borderRadius: AppRadii.smAll,
           ),
           alignment: Alignment.center,
-          child: Icon(_glyph(operation.kind), size: 15, color: colors.textMuted),
+          child: Icon(
+            _glyph(operation.kind),
+            size: 15,
+            color: colors.textMuted,
+          ),
         ),
         const SizedBox(width: AppSpacing.md),
         Expanded(
@@ -95,10 +99,7 @@ class _OperationRow extends StatelessWidget {
         Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            Text(
-              formatBytes(operation.bytesTotal),
-              style: context.text.titleS,
-            ),
+            Text(formatBytes(operation.bytesTotal), style: context.text.titleS),
             const SizedBox(height: AppSpacing.xxs),
             // Never just "freed". Something moved to the Trash is still on the
             // disk until the Trash is emptied, and the row has to say which of
@@ -169,9 +170,10 @@ class CompositionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.colors;
     final tone = color ?? colors.accent;
-    final peak = rows.isEmpty
-        ? 0
-        : rows.map((r) => r.bytes).reduce((a, b) => a > b ? a : b);
+    final peak =
+        rows.isEmpty
+            ? 0
+            : rows.map((r) => r.bytes).reduce((a, b) => a > b ? a : b);
 
     return TidyCard(
       child: Column(

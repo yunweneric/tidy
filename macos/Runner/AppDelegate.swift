@@ -30,6 +30,11 @@ class AppDelegate: FlutterAppDelegate {
       NetworkMonitor.shared.start()
 
       HotKey.shared.register { controller.showPopover(section: "clipboard") }
+
+      // An update that was prepared but never installed, or one whose relaunch
+      // helper was killed before it finished tidying up, leaves a staging
+      // folder beside the app. This app in particular should not leave litter.
+      DispatchQueue.global(qos: .utility).async { Updater.sweepLeftovers() }
     }
   }
 
@@ -38,7 +43,13 @@ class AppDelegate: FlutterAppDelegate {
   override func applicationWillTerminate(_ notification: Notification) {
     HotKey.shared.unregister()
     ClipboardMonitor.shared.stop()
-    ClipboardStore.shared.clearOnQuitIfAsked()
+    // Not on the way into an update. "Clear on quit" is a promise about the
+    // user quitting, and an update relaunch is not a quit they made — wiping
+    // their history behind an update they asked for would be the setting
+    // betraying them rather than serving them.
+    if !Updater.isRelaunchingForUpdate {
+      ClipboardStore.shared.clearOnQuitIfAsked()
+    }
     // The history is written on a debounce too, so quitting between ticks would
     // otherwise lose up to a minute of it.
     NetworkMonitor.shared.stop()

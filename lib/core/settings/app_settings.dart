@@ -44,6 +44,13 @@ class AppSettings extends ChangeNotifier {
   static const String _networkStyleKey = 'networkMenuBarStyle';
   static const String _networkBitsKey = 'networkUseBits';
 
+  // Updates. Dart-only, unlike the clipboard and network keys above: no Swift
+  // file reads these, because nothing about updating has to be decided before
+  // a Flutter engine exists.
+  static const String _updateChecksKey = 'updateChecksEnabled';
+  static const String _updateLastCheckKey = 'lastUpdateCheckAt';
+  static const String _updateSkippedKey = 'skippedUpdateVersion';
+
   /// Bumping this shows onboarding again — for when a release adds a
   /// permission or a capability the existing copy does not cover.
   ///
@@ -266,6 +273,54 @@ class AppSettings extends ChangeNotifier {
 
   set networkUnits(NetworkUnits value) {
     _values[_networkBitsKey] = value.isBits;
+    _persist();
+  }
+
+  // ─── Updates ───────────────────────────────────────────────────────────
+
+  /// Whether Tidy asks GitHub about new versions on its own.
+  ///
+  /// On by default, which is the one place this app opts a user into network
+  /// traffic. The justification is that it is the same traffic they would
+  /// generate by visiting the releases page, it carries nothing about them,
+  /// and an uninstaller that silently rots is worse for them than a request
+  /// they can turn off in one switch. Settings → Updates says exactly this.
+  bool get updateChecksEnabled => _values[_updateChecksKey] as bool? ?? true;
+
+  set updateChecksEnabled(bool value) {
+    _values[_updateChecksKey] = value;
+    _persist();
+  }
+
+  /// When the last completed check finished, so a launch-time check does not
+  /// fire again on every window open.
+  DateTime? get lastUpdateCheckAt {
+    final raw = _values[_updateLastCheckKey] as int?;
+    return raw == null ? null : DateTime.fromMillisecondsSinceEpoch(raw);
+  }
+
+  set lastUpdateCheckAt(DateTime? value) {
+    if (value == null) {
+      _values.remove(_updateLastCheckKey);
+    } else {
+      _values[_updateLastCheckKey] = value.millisecondsSinceEpoch;
+    }
+    _persist();
+  }
+
+  /// A release tag the user has said they do not want.
+  ///
+  /// Stored as the tag exactly as GitHub published it, so the comparison is an
+  /// equality on the same string rather than a second version parse that could
+  /// disagree with the first. Skipping one version does not stop the next.
+  String? get skippedUpdateVersion => _values[_updateSkippedKey] as String?;
+
+  set skippedUpdateVersion(String? value) {
+    if (value == null) {
+      _values.remove(_updateSkippedKey);
+    } else {
+      _values[_updateSkippedKey] = value;
+    }
     _persist();
   }
 

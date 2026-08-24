@@ -124,11 +124,19 @@ class ClipboardEntry extends Equatable {
     final parts = <String>[
       if (sourceAppName != null) sourceAppName!,
       if (copyCount > 1) 'copied $copyCount times',
-      if (kind == ClipboardKind.files && paths.length > 1) '${paths.length} items',
+      if (kind == ClipboardKind.files && paths.length > 1)
+        '${paths.length} items',
     ];
     return parts.join(' · ');
   }
 
   @override
-  List<Object?> get props => [id, pinned, sensitive, copyCount, lastCopiedAt, hasBlob];
+  List<Object?> get props => [
+    id,
+    pinned,
+    sensitive,
+    copyCount,
+    lastCopiedAt,
+    hasBlob,
+  ];
 }

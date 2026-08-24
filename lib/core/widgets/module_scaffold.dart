@@ -38,7 +38,8 @@ class ModuleScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final padding = contentPadding ??
+    final padding =
+        contentPadding ??
         const EdgeInsets.fromLTRB(
           AppSpacing.xxl,
           0,
@@ -46,10 +47,7 @@ class ModuleScaffold extends StatelessWidget {
           AppSpacing.xxl,
         );
 
-    final content = Padding(
-      padding: padding,
-      child: child,
-    );
+    final content = Padding(padding: padding, child: child);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -66,9 +64,7 @@ class ModuleScaffold extends StatelessWidget {
             child: banner,
           ),
         Expanded(
-          child: scrollable
-              ? SingleChildScrollView(child: content)
-              : content,
+          child: scrollable ? SingleChildScrollView(child: content) : content,
         ),
       ],
     );

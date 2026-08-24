@@ -13,11 +13,12 @@ class ClipboardBloc extends Bloc<ClipboardEvent, ClipboardState> {
   ClipboardBloc(this._service) : super(const ClipboardState()) {
     on<LoadClipboard>(_onLoad);
     on<ClipboardChanged>(_onChanged);
-    on<SearchClipboard>((event, emit) => emit(state.copyWith(query: event.query)));
+    on<SearchClipboard>(
+      (event, emit) => emit(state.copyWith(query: event.query)),
+    );
     on<FilterClipboard>(
-      (event, emit) => emit(
-        state.copyWith(kind: event.kind, clearKind: event.kind == null),
-      ),
+      (event, emit) =>
+          emit(state.copyWith(kind: event.kind, clearKind: event.kind == null)),
     );
     on<CopyEntry>(_onCopy);
     on<TogglePinEntry>(_onTogglePin);
@@ -46,8 +47,13 @@ class ClipboardBloc extends Bloc<ClipboardEvent, ClipboardState> {
     return super.close();
   }
 
-  Future<void> _onLoad(LoadClipboard event, Emitter<ClipboardState> emit) async {
-    emit(state.copyWith(status: ClipboardHistoryStatus.loading, clearError: true));
+  Future<void> _onLoad(
+    LoadClipboard event,
+    Emitter<ClipboardState> emit,
+  ) async {
+    emit(
+      state.copyWith(status: ClipboardHistoryStatus.loading, clearError: true),
+    );
 
     _subscription ??= _service.onChanged.listen((_) {
       if (!isClosed) add(const ClipboardChanged());
@@ -71,9 +77,10 @@ class ClipboardBloc extends Bloc<ClipboardEvent, ClipboardState> {
           entries: entries,
           // A row that has gone takes its reveal with it, so an id reused by a
           // later identical copy does not arrive already unblurred.
-          revealed: state.revealed
-              .where((id) => entries.any((entry) => entry.id == id))
-              .toSet(),
+          revealed:
+              state.revealed
+                  .where((id) => entries.any((entry) => entry.id == id))
+                  .toSet(),
         ),
       );
     } catch (e) {
@@ -95,12 +102,13 @@ class ClipboardBloc extends Bloc<ClipboardEvent, ClipboardState> {
 
     emit(
       state.copyWith(
-        notice: outcome.ok
-            ? const ClipboardNotice('Copied to the clipboard.')
-            : ClipboardNotice(
-                outcome.message ?? 'Could not copy that.',
-                tone: FeedbackTone.warning,
-              ),
+        notice:
+            outcome.ok
+                ? const ClipboardNotice('Copied to the clipboard.')
+                : ClipboardNotice(
+                  outcome.message ?? 'Could not copy that.',
+                  tone: FeedbackTone.warning,
+                ),
       ),
     );
   }

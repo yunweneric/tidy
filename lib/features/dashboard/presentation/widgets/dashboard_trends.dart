@@ -50,10 +50,7 @@ class DashboardTrends extends StatelessWidget {
             _FreeSpaceChart(state: state),
           ],
           const SizedBox(height: AppSpacing.md),
-          Text(
-            _recordingNote(state),
-            style: context.text.caption,
-          ),
+          Text(_recordingNote(state), style: context.text.caption),
           if (state.reclaimTotals.trashedBytes > 0) ...[
             const SizedBox(height: AppSpacing.xs),
             Text(
@@ -138,7 +135,8 @@ class _ReclaimChart extends StatelessWidget {
         _AxisLabels(
           first: state.reclaimBuckets.firstOrNull?.at,
           last: state.reclaimBuckets.lastOrNull?.at,
-          middle: '${totals.itemCount} items in '
+          middle:
+              '${totals.itemCount} items in '
               '${totals.operationCount} clean-ups',
         ),
       ],
@@ -191,9 +189,10 @@ class _FreeSpaceChart extends StatelessWidget {
         _AxisLabels(
           first: buckets.firstOrNull?.at,
           last: buckets.lastOrNull?.at,
-          middle: recorded.isEmpty
-              ? ''
-              : 'Now ${formatBytes(recorded.last.average.round())}',
+          middle:
+              recorded.isEmpty
+                  ? ''
+                  : 'Now ${formatBytes(recorded.last.average.round())}',
         ),
       ],
     );
@@ -213,11 +212,7 @@ class _NoHistoryYet extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl),
       child: Column(
         children: [
-          Icon(
-            AppIcons.analytics,
-            size: 30,
-            color: context.colors.textMuted,
-          ),
+          Icon(AppIcons.analytics, size: 30, color: context.colors.textMuted),
           const SizedBox(height: AppSpacing.md),
           Text('Nothing to plot yet', style: context.text.titleM),
           const SizedBox(height: AppSpacing.xs),

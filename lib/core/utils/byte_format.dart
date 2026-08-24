@@ -19,7 +19,10 @@ String formatBytes(int bytes) {
   final formatted = formatBytes(bytes);
   final gap = formatted.lastIndexOf(' ');
   if (gap < 0) return (value: formatted, unit: '');
-  return (value: formatted.substring(0, gap), unit: formatted.substring(gap + 1));
+  return (
+    value: formatted.substring(0, gap),
+    unit: formatted.substring(gap + 1),
+  );
 }
 
 /// `~/Library/Caches` rather than `/Users/you/Library/Caches`.

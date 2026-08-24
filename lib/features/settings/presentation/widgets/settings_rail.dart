@@ -65,9 +65,10 @@ class _RailItemState extends State<_RailItem> {
 
     // Same neutral treatment as the app rail: the selected row is a lighter
     // patch of the page's own colour, never an accent wash.
-    final background = widget.active
-        ? colors.surfaceHover
-        : (_hovered ? colors.surface : Colors.transparent);
+    final background =
+        widget.active
+            ? colors.surfaceHover
+            : (_hovered ? colors.surface : Colors.transparent);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.xxs),

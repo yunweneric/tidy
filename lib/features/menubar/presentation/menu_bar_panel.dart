@@ -571,11 +571,7 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
     final units = _traffic.units;
 
     return [
-      MenuBarNetworkNow(
-        sample: _traffic,
-        ticks: _trafficTicks,
-        units: units,
-      ),
+      MenuBarNetworkNow(sample: _traffic, ticks: _trafficTicks, units: units),
       const SizedBox(height: AppSpacing.sm),
       const Divider(height: 1),
       const MenuBarSection(title: 'Recorded'),
@@ -704,7 +700,8 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
           action: MenuBarButton(
             label: 'Open',
             onPressed:
-                () => _bridge.openMainWindow(route: AppDestination.network.path),
+                () =>
+                    _bridge.openMainWindow(route: AppDestination.network.path),
           ),
         ),
         Padding(
@@ -732,11 +729,7 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
                 style: context.text.label,
               ),
               const SizedBox(width: AppSpacing.lg),
-              Icon(
-                AppIcons.upstream,
-                size: 13,
-                color: context.colors.upstream,
-              ),
+              Icon(AppIcons.upstream, size: 13, color: context.colors.upstream),
               const SizedBox(width: AppSpacing.xs),
               Text(
                 _traffic.isKnown
@@ -807,14 +800,11 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
         children: [
           Icon(Brand.mark, size: 15, color: context.colors.accent),
           const SizedBox(width: AppSpacing.sm),
-          Text(
-            switch (_mode) {
-              MenuBarMode.clipboard => 'Clipboard',
-              MenuBarMode.network => 'Network',
-              MenuBarMode.dashboard => Brand.name,
-            },
-            style: context.text.titleS,
-          ),
+          Text(switch (_mode) {
+            MenuBarMode.clipboard => 'Clipboard',
+            MenuBarMode.network => 'Network',
+            MenuBarMode.dashboard => Brand.name,
+          }, style: context.text.titleS),
           const SizedBox(width: AppSpacing.sm),
           // The dot is a verdict about the machine, and the clipboard panel
           // makes no claim about the machine.
@@ -831,8 +821,7 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
             ),
           MenuBarIconButton(
             icon: AppIcons.refresh,
-            tooltip:
-                _mode == MenuBarMode.dashboard ? 'Rescan' : 'Reload',
+            tooltip: _mode == MenuBarMode.dashboard ? 'Rescan' : 'Reload',
             onPressed:
                 _busy
                     ? null

@@ -27,8 +27,10 @@ class ClipboardPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) =>
-          ClipboardBloc(locator<ClipboardService>())..add(const LoadClipboard()),
+      create:
+          (_) =>
+              ClipboardBloc(locator<ClipboardService>())
+                ..add(const LoadClipboard()),
       child: const _ClipboardView(),
     );
   }
@@ -56,8 +58,9 @@ class _ClipboardViewState extends State<_ClipboardView> {
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<ClipboardBloc, ClipboardState>(
-      listenWhen: (previous, current) =>
-          current.notice != null && previous.notice != current.notice,
+      listenWhen:
+          (previous, current) =>
+              current.notice != null && previous.notice != current.notice,
       listener: (context, state) {
         final notice = state.notice!;
         context.showToast(message: notice.message, tone: notice.tone);
@@ -70,28 +73,31 @@ class _ClipboardViewState extends State<_ClipboardView> {
           title: AppDestination.clipboard.label,
           subtitle: AppDestination.clipboard.blurb,
           scrollable: false,
-          actions: recording && !state.isEmpty
-              ? [
-                  AppSearchField(
-                    width: 260,
-                    hintText: 'Search what you have copied…',
-                    controller: _search,
-                    onChanged: (value) =>
-                        context.read<ClipboardBloc>().add(SearchClipboard(value)),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: () => _confirmClear(context, state),
-                    icon: const Icon(AppIcons.delete, size: 16),
-                    label: const Text('Clear History'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: context.colors.risky,
-                      side: BorderSide(
-                        color: context.colors.risky.withValues(alpha: 0.45),
+          actions:
+              recording && !state.isEmpty
+                  ? [
+                    AppSearchField(
+                      width: 260,
+                      hintText: 'Search what you have copied…',
+                      controller: _search,
+                      onChanged:
+                          (value) => context.read<ClipboardBloc>().add(
+                            SearchClipboard(value),
+                          ),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: () => _confirmClear(context, state),
+                      icon: const Icon(AppIcons.delete, size: 16),
+                      label: const Text('Clear History'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: context.colors.risky,
+                        side: BorderSide(
+                          color: context.colors.risky.withValues(alpha: 0.45),
+                        ),
                       ),
                     ),
-                  ),
-                ]
-              : const [],
+                  ]
+                  : const [],
           child: _body(context, state, recording: recording),
         );
       },
@@ -112,8 +118,8 @@ class _ClipboardViewState extends State<_ClipboardView> {
         title: 'That did not work',
         message: state.error,
         action: ElevatedButton(
-          onPressed: () =>
-              context.read<ClipboardBloc>().add(const LoadClipboard()),
+          onPressed:
+              () => context.read<ClipboardBloc>().add(const LoadClipboard()),
           child: const Text('Try again'),
         ),
       );
@@ -148,8 +154,9 @@ class _ClipboardViewState extends State<_ClipboardView> {
         const SizedBox(height: AppSpacing.lg),
         ClipboardFilterBar(
           state: state,
-          onChanged: (kind) =>
-              context.read<ClipboardBloc>().add(FilterClipboard(kind)),
+          onChanged:
+              (kind) =>
+                  context.read<ClipboardBloc>().add(FilterClipboard(kind)),
         ),
         const SizedBox(height: AppSpacing.md),
         Expanded(child: _table(context, state)),
@@ -221,24 +228,25 @@ class _ClipboardViewState extends State<_ClipboardView> {
             ],
           ),
           Expanded(
-            child: lines.isEmpty
-                ? _nothingMatches(context, state)
-                // Built lazily: a week of ordinary use is several hundred rows.
-                : ListView.builder(
-                    itemCount: lines.length,
-                    itemBuilder: (context, index) {
-                      final line = lines[index];
-                      if (line is String) {
-                        return _Heading(label: line);
-                      }
-                      return _row(
-                        context,
-                        line as ClipboardEntry,
-                        state,
-                        isLast: index == lines.length - 1,
-                      );
-                    },
-                  ),
+            child:
+                lines.isEmpty
+                    ? _nothingMatches(context, state)
+                    // Built lazily: a week of ordinary use is several hundred rows.
+                    : ListView.builder(
+                      itemCount: lines.length,
+                      itemBuilder: (context, index) {
+                        final line = lines[index];
+                        if (line is String) {
+                          return _Heading(label: line);
+                        }
+                        return _row(
+                          context,
+                          line as ClipboardEntry,
+                          state,
+                          isLast: index == lines.length - 1,
+                        );
+                      },
+                    ),
           ),
         ],
       ),
@@ -263,15 +271,18 @@ class _ClipboardViewState extends State<_ClipboardView> {
       onCopy: () => bloc.add(CopyEntry(entry)),
       onTogglePin: () => bloc.add(TogglePinEntry(entry)),
       onDelete: () => bloc.add(DeleteEntries([entry.id])),
-      onReveal: () => entry.sensitive && !state.isRevealed(entry)
-          ? bloc.add(RevealSensitiveEntry(entry.id))
-          : bloc.add(RevealEntrySource(entry)),
-      onOpen: () => ClipboardPreviewDialog.show(
-        context,
-        entry: entry,
-        service: _service,
-        onCopy: () => bloc.add(CopyEntry(entry)),
-      ),
+      onReveal:
+          () =>
+              entry.sensitive && !state.isRevealed(entry)
+                  ? bloc.add(RevealSensitiveEntry(entry.id))
+                  : bloc.add(RevealEntrySource(entry)),
+      onOpen:
+          () => ClipboardPreviewDialog.show(
+            context,
+            entry: entry,
+            service: _service,
+            onCopy: () => bloc.add(CopyEntry(entry)),
+          ),
     );
   }
 
@@ -279,13 +290,15 @@ class _ClipboardViewState extends State<_ClipboardView> {
     final query = state.query.trim();
     return EmptyState(
       icon: AppIcons.nothingFound,
-      title: query.isEmpty
-          ? 'Nothing of that kind yet'
-          : 'Nothing matches “$query”',
-      message: query.isEmpty
-          ? 'There is plenty in the history — try the other tabs.'
-          : 'Search looks at the preview and the app it came from. Hidden '
-              'items match on their app only, never their contents.',
+      title:
+          query.isEmpty
+              ? 'Nothing of that kind yet'
+              : 'Nothing matches “$query”',
+      message:
+          query.isEmpty
+              ? 'There is plenty in the history — try the other tabs.'
+              : 'Search looks at the preview and the app it came from. Hidden '
+                  'items match on their app only, never their contents.',
     );
   }
 
@@ -339,12 +352,13 @@ class _ClipboardViewState extends State<_ClipboardView> {
     final confirmed = await TidyAlert.confirm(
       context,
       title: 'Clear the clipboard history?',
-      message: pinned == 0
-          ? 'This removes all $total item${total == 1 ? '' : 's'}, and the '
-              'images and files stored with them. It cannot be undone.'
-          : 'This removes $losing item${losing == 1 ? '' : 's'}. Your $pinned '
-              'pinned item${pinned == 1 ? '' : 's'} will be kept. It cannot be '
-              'undone.',
+      message:
+          pinned == 0
+              ? 'This removes all $total item${total == 1 ? '' : 's'}, and the '
+                  'images and files stored with them. It cannot be undone.'
+              : 'This removes $losing item${losing == 1 ? '' : 's'}. Your $pinned '
+                  'pinned item${pinned == 1 ? '' : 's'} will be kept. It cannot be '
+                  'undone.',
       confirmLabel: 'Clear History',
       tone: FeedbackTone.danger,
       icon: AppIcons.delete,

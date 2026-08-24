@@ -146,9 +146,8 @@ class _BucketBarsPainter extends CustomPainter {
       if (total <= 0) continue;
 
       final height = (total / peak).clamp(0.0, 1.0) * size.height;
-      final primaryHeight = bucket.total == 0
-          ? 0.0
-          : height * (bucket.primary / bucket.total);
+      final primaryHeight =
+          bucket.total == 0 ? 0.0 : height * (bucket.primary / bucket.total);
       final secondaryHeight = height - primaryHeight;
 
       canvas.drawRRect(
@@ -160,7 +159,12 @@ class _BucketBarsPainter extends CustomPainter {
         Paint()..color = secondaryColor,
       );
       canvas.drawRect(
-        Rect.fromLTWH(left, size.height - primaryHeight, barWidth, primaryHeight),
+        Rect.fromLTWH(
+          left,
+          size.height - primaryHeight,
+          barWidth,
+          primaryHeight,
+        ),
         Paint()..color = primaryColor,
       );
     }
@@ -291,8 +295,7 @@ class _BucketLinePainter extends CustomPainter {
       final end = index - 1;
       if (end <= start) continue;
 
-      final line = Path()
-        ..moveTo(start * step, yFor(buckets[start].primary));
+      final line = Path()..moveTo(start * step, yFor(buckets[start].primary));
       for (var i = start + 1; i <= end; i++) {
         final x = i * step;
         final target = yFor(buckets[i].primary);
@@ -301,10 +304,11 @@ class _BucketLinePainter extends CustomPainter {
         line.lineTo(x, size.height - (size.height - target) * progress);
       }
 
-      final area = Path.from(line)
-        ..lineTo(end * step, size.height)
-        ..lineTo(start * step, size.height)
-        ..close();
+      final area =
+          Path.from(line)
+            ..lineTo(end * step, size.height)
+            ..lineTo(start * step, size.height)
+            ..close();
 
       canvas.drawPath(
         area,

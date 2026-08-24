@@ -34,9 +34,10 @@ class ClipboardQuickSettings extends StatelessWidget {
     // reachable through the UI, but a hand-edited settings file can hold
     // anything, and a strip reading "keeping the last 137" over a highlighted
     // 200 tells the user nothing they can act on.
-    final limit = clipboardHistorySizes.contains(settings.clipboardMaxItems)
-        ? settings.clipboardMaxItems
-        : clipboardHistorySizes[1];
+    final limit =
+        clipboardHistorySizes.contains(settings.clipboardMaxItems)
+            ? settings.clipboardMaxItems
+            : clipboardHistorySizes[1];
 
     return TidyCard(
       padding: const EdgeInsets.symmetric(
@@ -59,15 +60,13 @@ class ClipboardQuickSettings extends StatelessWidget {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  if (pinnedCount > 0)
-                    TextSpan(text: ', $pinnedCount pinned'),
+                  if (pinnedCount > 0) TextSpan(text: ', $pinnedCount pinned'),
+                  TextSpan(text: ' · keeping the last $limit'),
                   TextSpan(
-                    text: ' · keeping the last $limit',
-                  ),
-                  TextSpan(
-                    text: retention == ClipboardRetention.never
-                        ? ' · kept until you clear it'
-                        : ' · clearing after ${retention.label.toLowerCase()}',
+                    text:
+                        retention == ClipboardRetention.never
+                            ? ' · kept until you clear it'
+                            : ' · clearing after ${retention.label.toLowerCase()}',
                   ),
                 ],
               ),

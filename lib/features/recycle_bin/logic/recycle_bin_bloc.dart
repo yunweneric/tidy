@@ -210,10 +210,7 @@ class RecycleBinBloc extends Bloc<RecycleBinEvent, RecycleBinState> {
     unawaited(_sampler?.sampleDiskNow() ?? Future<void>.value());
   }
 
-  RecycleBinNotice _restoreNotice(
-    int restored,
-    List<RestoreFailure> failures,
-  ) {
+  RecycleBinNotice _restoreNotice(int restored, List<RestoreFailure> failures) {
     if (failures.isEmpty) {
       return RecycleBinNotice(
         title: restored == 1 ? '1 item restored' : '$restored items restored',
@@ -225,7 +222,10 @@ class RecycleBinBloc extends Bloc<RecycleBinEvent, RecycleBinState> {
     }
 
     return RecycleBinNotice(
-      title: restored == 0 ? 'Nothing was restored' : '$restored of ${restored + failures.length} restored',
+      title:
+          restored == 0
+              ? 'Nothing was restored'
+              : '$restored of ${restored + failures.length} restored',
       message:
           'macOS refused the rest. They are still in the Trash, exactly where '
           'they were.',

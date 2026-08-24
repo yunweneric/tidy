@@ -90,7 +90,9 @@ class NetworkBloc extends Bloc<NetworkEvent, NetworkState> {
       return;
     }
 
-    _samples = _service.onSample.listen((sample) => add(NetworkSampled(sample)));
+    _samples = _service.onSample.listen(
+      (sample) => add(NetworkSampled(sample)),
+    );
     emit(state.copyWith(live: true));
 
     // Opening the tap answers with the reading that was already there, ring and

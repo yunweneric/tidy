@@ -27,26 +27,31 @@ enum NetworkUnits {
 /// Three significant digits rather than a fixed decimal count so the field stays
 /// the same width whether the number is 4.47 or 447 — which is what stops the
 /// menu bar item shuffling its neighbours every second.
-String formatRate(double bytesPerSecond, {NetworkUnits units = NetworkUnits.bytes}) {
+String formatRate(
+  double bytesPerSecond, {
+  NetworkUnits units = NetworkUnits.bytes,
+}) {
   if (units.isBits) {
     // Decimal, not binary. A megabit has always been a million bits, and
     // rendering 1024-based "Mbps" would disagree with every speed test.
-    return _format(bytesPerSecond * 8, base: 1000, units: const [
-      'bps',
-      'Kbps',
-      'Mbps',
-      'Gbps',
-    ]);
+    return _format(
+      bytesPerSecond * 8,
+      base: 1000,
+      units: const ['bps', 'Kbps', 'Mbps', 'Gbps'],
+    );
   }
-  return _format(bytesPerSecond, base: 1024, units: const [
-    'B/s',
-    'KB/s',
-    'MB/s',
-    'GB/s',
-  ]);
+  return _format(
+    bytesPerSecond,
+    base: 1024,
+    units: const ['B/s', 'KB/s', 'MB/s', 'GB/s'],
+  );
 }
 
-String _format(double value, {required double base, required List<String> units}) {
+String _format(
+  double value, {
+  required double base,
+  required List<String> units,
+}) {
   var amount = value < 0 ? 0.0 : value;
   var index = 0;
   while (amount >= base && index < units.length - 1) {

@@ -15,10 +15,7 @@ import 'package:tidy/features/performance/data/models/launch_item.dart';
 /// A broken item is the one case with no real warning to give, so it does not
 /// get one — an alert that cries wolf on the safe case is ignored on the
 /// dangerous one.
-Future<bool> showRemoveLaunchItemDialog(
-  BuildContext context,
-  LaunchItem item,
-) {
+Future<bool> showRemoveLaunchItemDialog(BuildContext context, LaunchItem item) {
   final broken = item.health == LaunchItemHealth.broken;
 
   return TidyAlert.confirm(

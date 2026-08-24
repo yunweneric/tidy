@@ -13,11 +13,7 @@ import 'package:tidy/core/vitals/system_vitals.dart';
 /// A record rather than `LaunchItem`: dragging that model into `core/` to read
 /// three numbers would be moving a feature's furniture to borrow a cup of sugar.
 class LaunchItemFacts {
-  const LaunchItemFacts({
-    this.total = 0,
-    this.enabled = 0,
-    this.broken = 0,
-  });
+  const LaunchItemFacts({this.total = 0, this.enabled = 0, this.broken = 0});
 
   static const LaunchItemFacts empty = LaunchItemFacts();
 

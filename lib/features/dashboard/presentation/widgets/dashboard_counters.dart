@@ -26,10 +26,11 @@ class DashboardCounters extends StatelessWidget {
       StatTile(
         label: 'Applications',
         value: state.apps.isKnown ? '${state.apps.count}' : '—',
-        detail: state.apps.isKnown
-            ? '${formatBytes(state.apps.totalBytes)} · '
-                '${state.apps.unusedCount} unused for 6 months'
-            : 'Open Applications to take stock',
+        detail:
+            state.apps.isKnown
+                ? '${formatBytes(state.apps.totalBytes)} · '
+                    '${state.apps.unusedCount} unused for 6 months'
+                : 'Open Applications to take stock',
         icon: AppIcons.applications,
         color: colors.info,
         onTap: () => onOpen(AppDestination.applications),
@@ -39,10 +40,14 @@ class DashboardCounters extends StatelessWidget {
         // Null is "no scan has run", and it says so. A confident `0 B` from a
         // scan that never happened is the same lie as a virus checker
         // reporting no threats without looking.
-        value: state.junkBytes == null ? 'Not scanned' : formatBytes(state.junkBytes!),
-        detail: state.junkBytes == null
-            ? 'Run a scan to find out'
-            : 'Caches, logs and saved app state',
+        value:
+            state.junkBytes == null
+                ? 'Not scanned'
+                : formatBytes(state.junkBytes!),
+        detail:
+            state.junkBytes == null
+                ? 'Run a scan to find out'
+                : 'Caches, logs and saved app state',
         icon: AppIcons.cleanup,
         color: colors.safe,
         onTap: () => onOpen(AppDestination.cleanup),
@@ -50,10 +55,11 @@ class DashboardCounters extends StatelessWidget {
       StatTile(
         label: 'In the Trash',
         value: state.trash == null ? '—' : formatBytes(state.trash!.totalBytes),
-        detail: state.trash == null
-            ? 'Could not read the Trash'
-            : '${state.trash!.items.length} items · '
-                '${state.staleTrashCount} older than a month',
+        detail:
+            state.trash == null
+                ? 'Could not read the Trash'
+                : '${state.trash!.items.length} items · '
+                    '${state.staleTrashCount} older than a month',
         icon: AppIcons.recycleBin,
         color: colors.review,
         onTap: () => onOpen(AppDestination.recycleBin),
@@ -61,36 +67,41 @@ class DashboardCounters extends StatelessWidget {
       StatTile(
         label: 'Clipboard',
         value: state.clips == null ? '—' : '${state.clips!.length}',
-        detail: state.clips == null
-            ? 'History is off, or unreadable'
-            : '${formatBytes(state.clipboardBytes)} held · '
-                '${state.pinnedClips} pinned',
+        detail:
+            state.clips == null
+                ? 'History is off, or unreadable'
+                : '${formatBytes(state.clipboardBytes)} held · '
+                    '${state.pinnedClips} pinned',
         icon: AppIcons.clipboard,
         color: colors.accent,
         onTap: () => onOpen(AppDestination.clipboard),
       ),
       StatTile(
         label: 'Network today',
-        value: state.networkHeadline == null
-            ? '—'
-            : formatBytes(state.networkHeadline!.todayBytes),
-        detail: state.networkHeadline == null
-            ? 'Nothing recorded yet'
-            : '${formatBytes(state.networkHeadline!.todayDownBytes)} down · '
-                '${formatBytes(state.networkHeadline!.todayUpBytes)} up',
+        value:
+            state.networkHeadline == null
+                ? '—'
+                : formatBytes(state.networkHeadline!.todayBytes),
+        detail:
+            state.networkHeadline == null
+                ? 'Nothing recorded yet'
+                : '${formatBytes(state.networkHeadline!.todayDownBytes)} down · '
+                    '${formatBytes(state.networkHeadline!.todayUpBytes)} up',
         icon: AppIcons.network,
         color: colors.downstream,
         onTap: () => onOpen(AppDestination.network),
       ),
       StatTile(
         label: 'Startup items',
-        value: state.launchStatus == SectionStatus.ready
-            ? '${state.launchItems.total}'
-            : '—',
-        detail: state.launchStatus == SectionStatus.ready
-            ? '${state.launchItems.enabled} enabled · '
-                '${state.launchItems.broken} broken'
-            : 'Reading launch agents…',
+        value:
+            state.launchStatus == SectionStatus.ready
+                ? '${state.launchItems.total}'
+                : '—',
+        detail:
+            state.launchStatus == SectionStatus.ready
+                ? '${state.launchItems.enabled} enabled · '
+                    '${state.launchItems.broken} broken'
+                : 'Reading launch agents…',
         icon: AppIcons.performance,
         color: state.launchItems.broken > 0 ? colors.review : colors.safe,
         onTap: () => onOpen(AppDestination.performance),

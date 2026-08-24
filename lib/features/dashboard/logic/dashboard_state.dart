@@ -149,8 +149,7 @@ class DashboardState extends Equatable {
       reclaimBuckets.any((b) => !b.isEmpty) ||
       diskFreeBuckets.any((b) => b.recorded);
 
-  int get pinnedClips =>
-      clips?.where((clip) => clip.pinned).length ?? 0;
+  int get pinnedClips => clips?.where((clip) => clip.pinned).length ?? 0;
 
   int get clipboardBytes =>
       clips?.fold<int>(0, (sum, clip) => sum + clip.byteCount) ?? 0;

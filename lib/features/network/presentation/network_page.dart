@@ -47,7 +47,8 @@ class _NetworkView extends StatefulWidget {
   State<_NetworkView> createState() => _NetworkViewState();
 }
 
-class _NetworkViewState extends State<_NetworkView> with WidgetsBindingObserver {
+class _NetworkViewState extends State<_NetworkView>
+    with WidgetsBindingObserver {
   /// Whether the window itself is in the foreground. A live chart nobody can
   /// see is a wake-up a second for nothing — the history keeps recording
   /// natively either way, so closing the tap costs no data.
@@ -93,7 +94,8 @@ class _NetworkViewState extends State<_NetworkView> with WidgetsBindingObserver 
   @override
   Widget build(BuildContext context) {
     _syncLive(
-      _appResumed && ActiveDestination.isVisible(context, AppDestination.network),
+      _appResumed &&
+          ActiveDestination.isVisible(context, AppDestination.network),
     );
 
     final units = locator<AppSettings>().networkUnits;
@@ -145,9 +147,9 @@ class _NetworkViewState extends State<_NetworkView> with WidgetsBindingObserver 
         NetworkStatTiles(
           state: state,
           units: units,
-          onRange: (range) => context.read<NetworkBloc>().add(
-            NetworkRangeChanged(range),
-          ),
+          onRange:
+              (range) =>
+                  context.read<NetworkBloc>().add(NetworkRangeChanged(range)),
         ),
         const SizedBox(height: AppSpacing.xl),
         Expanded(child: _history(context, state)),
@@ -176,7 +178,10 @@ class _NetworkViewState extends State<_NetworkView> with WidgetsBindingObserver 
         builder: (context, constraints) {
           final chartHeight =
               constraints.hasBoundedHeight
-                  ? math.max(_minChartHeight, constraints.maxHeight * _chartShare)
+                  ? math.max(
+                    _minChartHeight,
+                    constraints.maxHeight * _chartShare,
+                  )
                   : _minChartHeight;
 
           return SingleChildScrollView(

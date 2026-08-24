@@ -90,6 +90,9 @@ class AppLog {
   /// Trash listing and "Put Back".
   static const AppLog recycleBin = AppLog('recycle');
 
+  /// The update check, download and the native installer.
+  static const AppLog updates = AppLog('updates');
+
   /// The menu-bar popover and its second engine.
   static const AppLog menuBar = AppLog('menubar');
 

@@ -28,9 +28,10 @@ class ActiveDestination extends InheritedWidget {
   /// Registers a dependency, so the caller rebuilds when the shell moves — an
   /// `findAncestorStateOfType` read of the navigation shell would not.
   static bool isVisible(BuildContext context, AppDestination destination) {
-    final active = context
-        .dependOnInheritedWidgetOfExactType<ActiveDestination>()
-        ?.destination;
+    final active =
+        context
+            .dependOnInheritedWidgetOfExactType<ActiveDestination>()
+            ?.destination;
     // Outside the shell (tests, the menu-bar engine) nothing is hidden.
     return active == null || active == destination;
   }

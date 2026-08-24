@@ -12,6 +12,7 @@ import 'package:tidy/features/performance/presentation/performance_page.dart';
 import 'package:tidy/features/clipboard/presentation/clipboard_page.dart';
 import 'package:tidy/features/network/presentation/network_page.dart';
 import 'package:tidy/features/recycle_bin/presentation/recycle_bin_page.dart';
+import 'package:tidy/features/settings/domain/settings_section.dart';
 import 'package:tidy/features/settings/presentation/settings_page.dart';
 import 'package:tidy/features/shell/domain/app_destination.dart';
 import 'package:tidy/features/shell/presentation/shell_scaffold.dart';
@@ -66,7 +67,9 @@ GoRouter buildRouter({required AppSettings settings}) {
                 ShellScaffold(navigationShell: navigationShell),
         // Declared in enum order so `AppDestination.branchIndex` is the branch
         // index. `_branch` asserts that rather than trusting it.
-        branches: [for (final destination in AppDestination.values) _branch(destination)],
+        branches: [
+          for (final destination in AppDestination.values) _branch(destination),
+        ],
       ),
     ],
   );
@@ -81,18 +84,29 @@ StatefulShellBranch _branch(AppDestination destination) {
             (context, state) => FadePage(
               key: state.pageKey,
               name: destination.name,
-              child: _pageFor(destination),
+              child: _pageFor(destination, state),
             ),
       ),
     ],
   );
 }
 
-Widget _pageFor(AppDestination destination) => switch (destination) {
+/// [state] is threaded through for the one destination that takes a parameter:
+/// Settings can be opened straight onto a section with `?section=updates`, so
+/// the "update available" toast can land the user where the button is instead
+/// of on the General tab.
+Widget _pageFor(
+  AppDestination destination,
+  GoRouterState state,
+) => switch (destination) {
   AppDestination.dashboard => const DashboardPage(),
   AppDestination.cleanup => const CleanupPage(),
   AppDestination.applications => const ApplicationsPage(),
-  AppDestination.settings => const SettingsPage(),
+  AppDestination.settings => SettingsPage(
+    initialSection: SettingsSection.fromName(
+      state.uri.queryParameters['section'],
+    ),
+  ),
   AppDestination.smartCare => const SmartCarePage(),
   AppDestination.protection => const ComingSoonPage(
     destination: AppDestination.protection,
@@ -126,11 +140,16 @@ Widget _pageFor(AppDestination destination) => switch (destination) {
   ),
   AppDestination.allTools => const ComingSoonPage(
     destination: AppDestination.allTools,
-    planned: ['Every scanner listed on its own, for when the modules get in the way'],
+    planned: [
+      'Every scanner listed on its own, for when the modules get in the way',
+    ],
   ),
   AppDestination.activity => const ComingSoonPage(
     destination: AppDestination.activity,
-    planned: ['A record of what was removed, and when', 'What is worth looking at next'],
+    planned: [
+      'A record of what was removed, and when',
+      'What is worth looking at next',
+    ],
   ),
   AppDestination.assistant => const ComingSoonPage(
     destination: AppDestination.assistant,

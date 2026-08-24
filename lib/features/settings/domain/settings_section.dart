@@ -43,6 +43,13 @@ enum SettingsSection {
     icon: AppIcons.locked,
     blurb: 'What macOS lets ${Brand.name} see, and how to widen it.',
   ),
+  updates(
+    label: 'Updates',
+    icon: AppIcons.refresh,
+    blurb:
+        'The version you are running, and whether ${Brand.name} looks for '
+        'newer ones.',
+  ),
   about(
     label: 'About',
     icon: AppIcons.info,
@@ -62,4 +69,15 @@ enum SettingsSection {
   final String blurb;
 
   static const SettingsSection initial = SettingsSection.general;
+
+  /// Resolves the `?section=` query parameter used to deep-link a tab.
+  /// Unknown or absent names fall back to [initial] rather than erroring — a
+  /// stale link should open Settings, not fail to open anything.
+  static SettingsSection fromName(String? name) {
+    if (name == null) return initial;
+    for (final section in SettingsSection.values) {
+      if (section.name == name) return section;
+    }
+    return initial;
+  }
 }

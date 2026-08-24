@@ -7,11 +7,7 @@ import 'package:tidy/features/dashboard/logic/dashboard_state.dart';
 
 /// The reading at the top of the page: one score, one sentence, one action.
 class HealthHero extends StatelessWidget {
-  const HealthHero({
-    super.key,
-    required this.state,
-    required this.onAction,
-  });
+  const HealthHero({super.key, required this.state, required this.onAction});
 
   final DashboardState state;
 
@@ -106,10 +102,7 @@ class _Gauge extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            known ? '${health.score}' : '—',
-            style: context.text.displayL,
-          ),
+          Text(known ? '${health.score}' : '—', style: context.text.displayL),
           Text('out of 100', style: context.text.caption),
         ],
       ),
@@ -141,10 +134,7 @@ class _Coverage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (!health.isKnown) {
-      return Text(
-        'Nothing has answered yet.',
-        style: context.text.caption,
-      );
+      return Text('Nothing has answered yet.', style: context.text.caption);
     }
 
     if (health.isComplete) {
@@ -175,12 +165,12 @@ class VitalsRow extends StatelessWidget {
     final disk = state.disk;
 
     final cpu = vitals?.cpuPercent;
-    final memory = vitals == null || vitals.memoryTotalBytes == 0
-        ? null
-        : vitals.memoryUsedFraction;
-    final diskFraction = disk == null || disk.totalBytes == 0
-        ? null
-        : disk.usedFraction;
+    final memory =
+        vitals == null || vitals.memoryTotalBytes == 0
+            ? null
+            : vitals.memoryUsedFraction;
+    final diskFraction =
+        disk == null || disk.totalBytes == 0 ? null : disk.usedFraction;
 
     return Row(
       children: [
@@ -199,10 +189,11 @@ class VitalsRow extends StatelessWidget {
             label: 'Memory',
             fraction: memory,
             value: memory == null ? '—' : '${(memory * 100).round()}%',
-            detail: vitals == null
-                ? null
-                : '${formatBytes(vitals.memoryUsedBytes)} of '
-                    '${formatBytes(vitals.memoryTotalBytes)}',
+            detail:
+                vitals == null
+                    ? null
+                    : '${formatBytes(vitals.memoryUsedBytes)} of '
+                        '${formatBytes(vitals.memoryTotalBytes)}',
             icon: AppIcons.storage,
           ),
         ),
@@ -211,9 +202,8 @@ class VitalsRow extends StatelessWidget {
           child: _Meter(
             label: 'Startup disk',
             fraction: diskFraction,
-            value: diskFraction == null
-                ? '—'
-                : '${(diskFraction * 100).round()}%',
+            value:
+                diskFraction == null ? '—' : '${(diskFraction * 100).round()}%',
             detail: disk == null ? null : '${formatBytes(disk.freeBytes)} free',
             icon: AppIcons.storage,
           ),
@@ -228,9 +218,10 @@ class VitalsRow extends StatelessWidget {
             value: vitals?.thermal.label ?? '—',
             detail: vitals == null ? null : 'Up ${vitals.uptimeLabel}',
             icon: AppIcons.activity,
-            tone: vitals == null
-                ? null
-                : (vitals.thermal.isNotable ? colors.review : colors.safe),
+            tone:
+                vitals == null
+                    ? null
+                    : (vitals.thermal.isNotable ? colors.review : colors.safe),
           ),
         ),
       ],
@@ -262,7 +253,8 @@ class _Meter extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.colors;
     final fraction = this.fraction;
-    final color = tone ??
+    final color =
+        tone ??
         switch (fraction) {
           null => colors.textMuted,
           >= 0.90 => colors.risky,

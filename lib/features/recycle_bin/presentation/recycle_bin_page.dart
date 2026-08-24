@@ -38,13 +38,11 @@ class RecycleBinPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create:
-          (_) =>
-              RecycleBinBloc(
-                    locator<RecycleBinService>(),
-                    store: locator<TidyStore>(),
-                    sampler: locator<MetricSampler>(),
-                  )
-                ..add(const LoadBin()),
+          (_) => RecycleBinBloc(
+            locator<RecycleBinService>(),
+            store: locator<TidyStore>(),
+            sampler: locator<MetricSampler>(),
+          )..add(const LoadBin()),
       child: const _RecycleBinView(),
     );
   }
@@ -81,7 +79,9 @@ class _RecycleBinViewState extends State<_RecycleBinView>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state != AppLifecycleState.resumed || !mounted) return;
-    if (!ActiveDestination.isVisible(context, AppDestination.recycleBin)) return;
+    if (!ActiveDestination.isVisible(context, AppDestination.recycleBin)) {
+      return;
+    }
     context.read<RecycleBinBloc>().add(const LoadBin(silent: true));
   }
 
@@ -157,8 +157,7 @@ class _RecycleBinViewState extends State<_RecycleBinView>
         title: 'That did not work',
         message: state.error,
         action: ElevatedButton(
-          onPressed:
-              () => context.read<RecycleBinBloc>().add(const LoadBin()),
+          onPressed: () => context.read<RecycleBinBloc>().add(const LoadBin()),
           child: const Text('Try again'),
         ),
       );
@@ -235,10 +234,14 @@ class _RecycleBinViewState extends State<_RecycleBinView>
       children: [
         if (state.hasMultipleLocations)
           SegmentedTabs(
-            labels: ['All', for (final location in state.locations) location.label],
+            labels: [
+              'All',
+              for (final location in state.locations) location.label,
+            ],
             counts: [
               state.countIn(null),
-              for (final location in state.locations) state.countIn(location.id),
+              for (final location in state.locations)
+                state.countIn(location.id),
             ],
             selectedIndex:
                 state.locationId == null
@@ -310,10 +313,7 @@ class _RecycleBinViewState extends State<_RecycleBinView>
                 sort: _sortFor(state, TrashSort.name),
                 onTap: () => bloc.add(const BinSortChanged(TrashSort.name)),
               ),
-              const TableColumn(
-                'CAME FROM',
-                flex: TrashTableLayout.originFlex,
-              ),
+              const TableColumn('CAME FROM', flex: TrashTableLayout.originFlex),
               TableColumn(
                 'DELETED',
                 width: TrashTableLayout.deleted,
@@ -360,7 +360,8 @@ class _RecycleBinViewState extends State<_RecycleBinView>
                           onSelectionChanged:
                               (_) => bloc.add(BinSelectionToggled(item.path)),
                           onRestore: () => bloc.add(RestoreItems([item])),
-                          onReveal: () => SystemBridge.revealInFinder(item.path),
+                          onReveal:
+                              () => SystemBridge.revealInFinder(item.path),
                           onDelete: () => _confirmDelete(context, [item]),
                         );
                       },
@@ -451,7 +452,8 @@ class _RecycleBinViewState extends State<_RecycleBinView>
   /// rest. A dialog listing four hundred paths is one nobody reads.
   List<AlertDetail> _preview(List<TrashItem> items) {
     const shown = 5;
-    final sorted = [...items]..sort((a, b) => b.sizeBytes.compareTo(a.sizeBytes));
+    final sorted = [...items]
+      ..sort((a, b) => b.sizeBytes.compareTo(a.sizeBytes));
 
     return [
       for (final item in sorted.take(shown))

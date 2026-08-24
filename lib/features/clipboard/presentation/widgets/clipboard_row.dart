@@ -96,9 +96,10 @@ class _ClipboardRowState extends State<ClipboardRow> {
           padding: ClipboardTableLayout.rowPadding,
           decoration: BoxDecoration(
             color: _hovered ? colors.surfaceHover : Colors.transparent,
-            border: widget.isLast
-                ? null
-                : Border(bottom: BorderSide(color: colors.border)),
+            border:
+                widget.isLast
+                    ? null
+                    : Border(bottom: BorderSide(color: colors.border)),
           ),
           child: Row(
             children: [
@@ -111,9 +112,10 @@ class _ClipboardRowState extends State<ClipboardRow> {
                 child: Text(
                   entry.sourceAppName ?? 'Unknown app',
                   style: context.text.bodyM.copyWith(
-                    color: entry.sourceAppName == null
-                        ? colors.textMuted
-                        : colors.textSecondary,
+                    color:
+                        entry.sourceAppName == null
+                            ? colors.textMuted
+                            : colors.textSecondary,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -124,9 +126,10 @@ class _ClipboardRowState extends State<ClipboardRow> {
                   entry.copyCount > 1 ? '×${entry.copyCount}' : '—',
                   textAlign: TextAlign.right,
                   style: context.text.bodyM.copyWith(
-                    color: entry.copyCount > 1
-                        ? colors.textPrimary
-                        : colors.textMuted,
+                    color:
+                        entry.copyCount > 1
+                            ? colors.textPrimary
+                            : colors.textMuted,
                     fontWeight:
                         entry.copyCount > 1 ? FontWeight.w600 : FontWeight.w400,
                   ),
@@ -137,7 +140,9 @@ class _ClipboardRowState extends State<ClipboardRow> {
                 child: Text(
                   relativeTime(entry.lastCopiedAt),
                   textAlign: TextAlign.right,
-                  style: context.text.bodyM.copyWith(color: colors.textSecondary),
+                  style: context.text.bodyM.copyWith(
+                    color: colors.textSecondary,
+                  ),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -383,7 +388,9 @@ String relativeTime(DateTime at) {
   if (elapsed.inDays == 1) return 'Yesterday';
   if (elapsed.inDays < 30) return '${elapsed.inDays} days ago';
   if (elapsed.inDays < 60) return 'Last month';
-  if (elapsed.inDays < 365) return '${(elapsed.inDays / 30).floor()} months ago';
+  if (elapsed.inDays < 365) {
+    return '${(elapsed.inDays / 30).floor()} months ago';
+  }
   return 'Over a year ago';
 }
 

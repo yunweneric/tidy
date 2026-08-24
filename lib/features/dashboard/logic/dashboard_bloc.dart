@@ -41,7 +41,9 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
     Emitter<DashboardState> emit,
   ) async {
     if (event.range == state.range) return;
-    emit(state.copyWith(range: event.range, historyStatus: SectionStatus.loading));
+    emit(
+      state.copyWith(range: event.range, historyStatus: SectionStatus.loading),
+    );
     await _readHistory(emit, event.range);
     await _readNetwork(emit, event.range);
   }
@@ -68,8 +70,7 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
       state.copyWith(
         vitals: vitals,
         processes: processes,
-        vitalsStatus:
-            vitals == null ? state.vitalsStatus : SectionStatus.ready,
+        vitalsStatus: vitals == null ? state.vitalsStatus : SectionStatus.ready,
       ),
     );
   }

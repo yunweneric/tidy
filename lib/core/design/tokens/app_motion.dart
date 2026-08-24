@@ -16,16 +16,20 @@ class AppMotion extends ThemeExtension<AppMotion> {
   Duration get instant => Duration.zero;
 
   /// Hover / press feedback.
-  Duration get fast => reduced ? Duration.zero : const Duration(milliseconds: 120);
+  Duration get fast =>
+      reduced ? Duration.zero : const Duration(milliseconds: 120);
 
   /// The default: expand, select, swap.
-  Duration get normal => reduced ? Duration.zero : const Duration(milliseconds: 180);
+  Duration get normal =>
+      reduced ? Duration.zero : const Duration(milliseconds: 180);
 
   /// Page and panel transitions.
-  Duration get slow => reduced ? Duration.zero : const Duration(milliseconds: 320);
+  Duration get slow =>
+      reduced ? Duration.zero : const Duration(milliseconds: 320);
 
   /// The scan ring sweep and the byte counter tween.
-  Duration get hero => reduced ? Duration.zero : const Duration(milliseconds: 900);
+  Duration get hero =>
+      reduced ? Duration.zero : const Duration(milliseconds: 900);
 
   /// One full rotation of the indeterminate scan ring.
   Duration get ringSpin => const Duration(milliseconds: 2400);

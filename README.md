@@ -104,16 +104,36 @@ are keyed to the bundle.
 ```bash
 ./scripts/build_dmg.sh          # release build, then package
 ./scripts/build_dmg.sh --open   # ... and reveal it in Finder
+./scripts/build_dmg.sh --help   # signing and notarization options
 ```
 
-Produces `dist/Tidy-<version>.dmg`. The app is ad-hoc signed
-(`codesign --sign -`), not Developer ID signed and not notarized, so macOS
-quarantines it after download. On the target Mac either right-click and choose
-**Open**, or:
+Produces `dist/Tidy-<version>.dmg`. How it is signed depends on what the
+machine has:
 
-```bash
-xattr -dr com.apple.quarantine /Applications/Tidy.app
-```
+- **A Developer ID Application certificate in the keychain** — the app and the
+  disk image are signed with it under the hardened runtime. Add `--notarize`
+  with `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD` and `APPLE_TEAM_ID` in the
+  environment and the script also submits both to Apple and staples the
+  tickets, which is what lets the DMG open with a plain double-click.
+- **Nothing** — the app is ad-hoc signed (`codesign --sign -`), so macOS
+  quarantines it after download. On the target Mac open **System Settings →
+  Privacy & Security** and choose **Open Anyway**, or:
+
+  ```bash
+  xattr -dr com.apple.quarantine /Applications/Tidy.app
+  ```
+
+## Releases
+
+`.github/workflows/ci.yml` runs the same script on a macOS runner:
+tag `v1.2.0`, push it, and CI builds, signs, notarizes and publishes
+`Tidy-1.2.0.dmg` to a GitHub Release. Pushes to `main` build the DMG as a
+downloadable artifact without publishing anything.
+
+Signing credentials come from repository secrets; without them the pipeline
+still succeeds and falls back to an ad-hoc build. See
+[.github/workflows/README.md](.github/workflows/README.md) for the secret list
+and how to obtain each one.
 
 ## Project structure
 
@@ -152,7 +172,7 @@ macos/Runner/
   MenuBarController.swift   NSStatusItem + NSPopover + second Flutter engine
   HotKey.swift              Carbon global shortcut
 scripts/
-  build_dmg.sh              Release build → ad-hoc sign → DMG
+  build_dmg.sh              Release build → sign → notarize → DMG
   add_swift_file.py         Register a Swift file with the Xcode target
 docs/
   feature.md                How to build a feature, and the safety rules

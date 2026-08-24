@@ -93,10 +93,13 @@ class ClipboardSection extends StatelessWidget {
               detail:
                   'Older items drop off as new ones arrive. Pinned items do '
                   'not count towards this and are never dropped.',
-              options: {for (final size in clipboardHistorySizes) size: '$size'},
-              value: clipboardHistorySizes.contains(settings.clipboardMaxItems)
-                  ? settings.clipboardMaxItems
-                  : clipboardHistorySizes[1],
+              options: {
+                for (final size in clipboardHistorySizes) size: '$size',
+              },
+              value:
+                  clipboardHistorySizes.contains(settings.clipboardMaxItems)
+                      ? settings.clipboardMaxItems
+                      : clipboardHistorySizes[1],
               enabled: on,
               onChanged: (value) => settings.clipboardMaxItems = value,
             ),

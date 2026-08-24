@@ -5,6 +5,7 @@ import 'package:tidy/core/platform/system_bridge.dart';
 import 'package:tidy/core/settings/app_settings.dart';
 import 'package:tidy/core/store/metric_sampler.dart';
 import 'package:tidy/core/store/tidy_store.dart';
+import 'package:tidy/core/updates/update_service.dart';
 import 'package:tidy/features/apps/data/services/apps_service.dart';
 import 'package:tidy/features/apps/data/services/junk_scanner.dart';
 import 'package:tidy/features/apps/data/services/leftover_scanner.dart';
@@ -115,6 +116,15 @@ Future<void> setUpLocator({required bool includeUi}) async {
     // loses its charts rather than its ability to run.
     await locator<TidyStore>().open();
 
+    // ─── Updates ───────────────────────────────────────────────────────────
+    // `includeUi` only, and for two reasons: it needs `AppSettings`, and the
+    // popover must never start an install. That panel closes on the first click
+    // outside it, and an update that quits the app from a window which has
+    // already vanished is not something to offer.
+    locator.registerLazySingleton<UpdateService>(
+      () => UpdateService(settings: settings),
+    );
+
     // One owner for the samplers. Both engines could run them and both would
     // write the same minute, so the popover — which has no `includeUi` — does
     // not get one.
@@ -208,6 +218,7 @@ Future<LaunchItemFacts> _launchItemFacts(LaunchItemsService service) async {
   return LaunchItemFacts(
     total: items.length,
     enabled: items.where((item) => item.enabled).length,
-    broken: items.where((item) => item.health == LaunchItemHealth.broken).length,
+    broken:
+        items.where((item) => item.health == LaunchItemHealth.broken).length,
   );
 }

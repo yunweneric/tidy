@@ -59,7 +59,10 @@ class CleanupScanModule implements ScanModule {
         currentPath: kind.label,
       );
 
-      final group = await _scanner.scanKind(kind, installedBundleIds: bundleIds);
+      final group = await _scanner.scanKind(
+        kind,
+        installedBundleIds: bundleIds,
+      );
       final node = _toNode(group);
       if (node != null) found.add(node);
     }
@@ -76,9 +79,10 @@ class CleanupScanModule implements ScanModule {
   /// application sweep; falls back to scanning when the cache is cold.
   Future<Set<String>> _installedBundleIds() async {
     final cached = await _cache.read();
-    final apps = cached != null && cached.apps.isNotEmpty
-        ? cached.apps
-        : await _apps.scanApps();
+    final apps =
+        cached != null && cached.apps.isNotEmpty
+            ? cached.apps
+            : await _apps.scanApps();
     return {
       for (final app in apps)
         if (app.bundleId.isNotEmpty) app.bundleId,
@@ -90,7 +94,9 @@ class CleanupScanModule implements ScanModule {
 
     final safety = switch (group.kind) {
       // Caches, logs and saved state are all regenerated on demand.
-      JunkKind.caches || JunkKind.logs || JunkKind.savedState => SafetyLevel.safe,
+      JunkKind.caches ||
+      JunkKind.logs ||
+      JunkKind.savedState => SafetyLevel.safe,
       // Orphans are an inference about apps that are already gone. Sometimes
       // that inference is wrong, so they are never pre-selected.
       JunkKind.orphaned => SafetyLevel.review,

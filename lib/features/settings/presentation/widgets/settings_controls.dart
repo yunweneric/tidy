@@ -69,16 +69,18 @@ class SettingsLabel extends StatelessWidget {
       children: [
         Text(
           title,
-          style: enabled
-              ? context.text.titleS
-              : context.text.titleS.copyWith(color: muted),
+          style:
+              enabled
+                  ? context.text.titleS
+                  : context.text.titleS.copyWith(color: muted),
         ),
         const SizedBox(height: AppSpacing.xxs),
         Text(
           detail,
-          style: enabled
-              ? context.text.bodyS
-              : context.text.bodyS.copyWith(color: muted),
+          style:
+              enabled
+                  ? context.text.bodyS
+                  : context.text.bodyS.copyWith(color: muted),
         ),
       ],
     );
@@ -105,11 +107,7 @@ class SettingsRow extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-          child: SettingsLabel(
-            title: title,
-            detail: detail,
-            enabled: enabled,
-          ),
+          child: SettingsLabel(title: title, detail: detail, enabled: enabled),
         ),
         const SizedBox(width: AppSpacing.lg),
         control,
@@ -225,12 +223,13 @@ class SettingsActionRow extends StatelessWidget {
       detail: detail,
       control: OutlinedButton(
         onPressed: onPressed,
-        style: destructive
-            ? OutlinedButton.styleFrom(
-                foregroundColor: risky,
-                side: BorderSide(color: risky.withValues(alpha: 0.45)),
-              )
-            : null,
+        style:
+            destructive
+                ? OutlinedButton.styleFrom(
+                  foregroundColor: risky,
+                  side: BorderSide(color: risky.withValues(alpha: 0.45)),
+                )
+                : null,
         child: Text(actionLabel),
       ),
     );

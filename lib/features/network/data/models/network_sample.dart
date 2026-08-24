@@ -18,7 +18,8 @@ class NetworkInterfaceRate extends Equatable {
       NetworkInterfaceRate(
         name: map['name'] as String? ?? '',
         displayName: map['displayName'] as String? ?? '',
-        downBytesPerSecond: (map['downBytesPerSecond'] as num?)?.toDouble() ?? 0,
+        downBytesPerSecond:
+            (map['downBytesPerSecond'] as num?)?.toDouble() ?? 0,
         upBytesPerSecond: (map['upBytesPerSecond'] as num?)?.toDouble() ?? 0,
         downBytes: map['downBytes'] as int? ?? 0,
         upBytes: map['upBytes'] as int? ?? 0,
@@ -82,7 +83,10 @@ class NetworkSample extends Equatable {
     interfaces:
         (map['interfaces'] as List?)
             ?.whereType<Map>()
-            .map((raw) => NetworkInterfaceRate.fromMap(raw.cast<String, dynamic>()))
+            .map(
+              (raw) =>
+                  NetworkInterfaceRate.fromMap(raw.cast<String, dynamic>()),
+            )
             .toList() ??
         const [],
     recent:

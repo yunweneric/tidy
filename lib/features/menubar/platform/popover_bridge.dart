@@ -123,11 +123,7 @@ class PopoverBridge {
     try {
       await _channel.invokeMethod<void>(method, arguments);
     } catch (e) {
-      AppLog.menuBar.failed(
-        'call the menu bar',
-        e,
-        fields: {'method': method},
-      );
+      AppLog.menuBar.failed('call the menu bar', e, fields: {'method': method});
     }
   }
 }

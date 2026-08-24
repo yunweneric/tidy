@@ -53,6 +53,8 @@ class MainFlutterWindow: NSWindow {
     // Reverse direction only, for "open Tidy at the clipboard" from the
     // popover. The popover's own engine has the other half of this channel.
     PopoverChannel.registerMainWindow(with: flutterViewController.engine.binaryMessenger)
+    // Main window only — see UpdateChannel for why the popover does not get it.
+    UpdateChannel.register(with: flutterViewController.engine.binaryMessenger)
 
     super.awakeFromNib()
   }

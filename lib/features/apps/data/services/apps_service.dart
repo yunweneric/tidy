@@ -124,11 +124,16 @@ class AppManagerService {
     if (paths.isEmpty) return RemovalResult.empty;
 
     Future<RemovalResult> removeBatch(List<String> batch) =>
-        toTrash ? SystemBridge.trashItems(batch) : SystemBridge.deleteItems(batch);
+        toTrash
+            ? SystemBridge.trashItems(batch)
+            : SystemBridge.deleteItems(batch);
 
     if (onProgress == null) return removeBatch(paths);
 
-    final batchSize = (paths.length / _removalBatches).ceil().clamp(1, paths.length);
+    final batchSize = (paths.length / _removalBatches).ceil().clamp(
+      1,
+      paths.length,
+    );
     final removed = <String>[];
     final failures = <RemovalFailure>[];
 

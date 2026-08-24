@@ -102,16 +102,14 @@ class NetworkSeries extends Equatable {
         (map['byInterface'] as Map?)?.cast<String, dynamic>() ?? const {};
 
     final totals =
-        split.entries
-            .map((entry) {
-              final values = (entry.value as List?)?.cast<int>() ?? const [0, 0];
-              return NetworkInterfaceTotal(
-                name: entry.key,
-                downBytes: values.isNotEmpty ? values[0] : 0,
-                upBytes: values.length > 1 ? values[1] : 0,
-              );
-            })
-            .toList()
+        split.entries.map((entry) {
+            final values = (entry.value as List?)?.cast<int>() ?? const [0, 0];
+            return NetworkInterfaceTotal(
+              name: entry.key,
+              downBytes: values.isNotEmpty ? values[0] : 0,
+              upBytes: values.length > 1 ? values[1] : 0,
+            );
+          }).toList()
           ..sort((a, b) => b.totalBytes.compareTo(a.totalBytes));
 
     return NetworkSeries(
@@ -158,8 +156,10 @@ class NetworkSeries extends Equatable {
 
   /// The tallest bar, for the axis. Never zero — a flat range still needs a
   /// scale to divide by.
-  int get peakBytes =>
-      buckets.fold<int>(1, (peak, bucket) => bucket.totalBytes > peak ? bucket.totalBytes : peak);
+  int get peakBytes => buckets.fold<int>(
+    1,
+    (peak, bucket) => bucket.totalBytes > peak ? bucket.totalBytes : peak,
+  );
 
   @override
   List<Object?> get props => [

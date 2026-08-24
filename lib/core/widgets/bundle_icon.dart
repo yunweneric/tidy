@@ -39,17 +39,18 @@ class BundleIcon extends StatelessWidget {
         borderRadius: AppRadii.smAll,
         color: colors.surfaceRaised,
       ),
-      child: bytes == null
-          ? placeholder
-          : ClipRRect(
-              borderRadius: AppRadii.smAll,
-              child: Image.memory(
-                bytes!,
-                fit: BoxFit.cover,
-                // A corrupt or half-written icon must not take the row with it.
-                errorBuilder: (_, _, _) => placeholder,
+      child:
+          bytes == null
+              ? placeholder
+              : ClipRRect(
+                borderRadius: AppRadii.smAll,
+                child: Image.memory(
+                  bytes!,
+                  fit: BoxFit.cover,
+                  // A corrupt or half-written icon must not take the row with it.
+                  errorBuilder: (_, _, _) => placeholder,
+                ),
               ),
-            ),
     );
   }
 }

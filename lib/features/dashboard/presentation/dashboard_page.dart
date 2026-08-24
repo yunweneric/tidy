@@ -31,8 +31,9 @@ class DashboardPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create:
-          (_) => DashboardBloc(locator<DashboardRepository>())
-            ..add(const LoadDashboard()),
+          (_) =>
+              DashboardBloc(locator<DashboardRepository>())
+                ..add(const LoadDashboard()),
       child: const _DashboardView(),
     );
   }
@@ -117,10 +118,7 @@ class _DashboardViewState extends State<_DashboardView> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              HealthHero(
-                state: state,
-                onAction: () => _act(context, state),
-              ),
+              HealthHero(state: state, onAction: () => _act(context, state)),
               const SizedBox(height: AppSpacing.lg),
               VitalsRow(state: state),
               const SizedBox(height: AppSpacing.xl),
@@ -147,12 +145,10 @@ class _DashboardViewState extends State<_DashboardView> {
   /// The hero's one action, resolved through the same insight the menu bar uses.
   void _act(BuildContext context, DashboardState state) {
     final action = state.insight?.action;
-    context.go(
-      switch (action) {
-        HealthInsightAction.cleanJunk => AppDestination.cleanup.path,
-        HealthInsightAction.openApp || null => AppDestination.smartCare.path,
-      },
-    );
+    context.go(switch (action) {
+      HealthInsightAction.cleanJunk => AppDestination.cleanup.path,
+      HealthInsightAction.openApp || null => AppDestination.smartCare.path,
+    });
   }
 
   /// The scan's total, but only once it means something.

@@ -40,7 +40,9 @@ class TrashOrigin {
     return TrashOrigin(
       trashedPath: trashed,
       originalPath: origin,
-      at: DateTime.fromMillisecondsSinceEpoch((raw['at'] as num?)?.toInt() ?? 0),
+      at: DateTime.fromMillisecondsSinceEpoch(
+        (raw['at'] as num?)?.toInt() ?? 0,
+      ),
     );
   }
 }
@@ -148,7 +150,8 @@ class TrashLedger {
       final file = _file;
       if (file == null) return;
 
-      final entries = _origins.values.toList()..sort((a, b) => b.at.compareTo(a.at));
+      final entries =
+          _origins.values.toList()..sort((a, b) => b.at.compareTo(a.at));
       final kept = entries.take(_maxEntries).toList();
       if (kept.length < entries.length) {
         _origins
@@ -179,7 +182,12 @@ class TrashLedger {
     if (home == null) return null;
 
     final dir = Directory(
-      p.join(home, 'Library', 'Application Support', Brand.supportDirectoryName),
+      p.join(
+        home,
+        'Library',
+        'Application Support',
+        Brand.supportDirectoryName,
+      ),
     );
     try {
       if (!dir.existsSync()) await dir.create(recursive: true);

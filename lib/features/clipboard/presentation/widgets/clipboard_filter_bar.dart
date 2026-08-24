@@ -33,8 +33,7 @@ class ClipboardFilterBar extends StatelessWidget {
           ],
           selectedIndex:
               state.kind == null ? 0 : kinds.indexOf(state.kind!) + 1,
-          onChanged: (index) =>
-              onChanged(index == 0 ? null : kinds[index - 1]),
+          onChanged: (index) => onChanged(index == 0 ? null : kinds[index - 1]),
         ),
         const Spacer(),
         Text(

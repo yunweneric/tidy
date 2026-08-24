@@ -154,11 +154,7 @@ class ScanCache {
     try {
       await file.writeAsBytes(bytes);
     } on FileSystemException catch (e) {
-      AppLog.apps.failed(
-        'cache an app icon',
-        e,
-        fields: {'app': app.name},
-      );
+      AppLog.apps.failed('cache an app icon', e, fields: {'app': app.name});
     }
   }
 }

@@ -63,14 +63,16 @@ class DataTableHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final resolved = columns ??
+    final resolved =
+        columns ??
         [
           for (var i = 0; i < columnLabels.length; i++)
             TableColumn(
               columnLabels[i],
-              flex: flexValues != null && i < flexValues!.length
-                  ? flexValues![i]
-                  : 1,
+              flex:
+                  flexValues != null && i < flexValues!.length
+                      ? flexValues![i]
+                      : 1,
             ),
         ];
 
@@ -95,15 +97,9 @@ class DataTableHeader extends StatelessWidget {
             ),
           for (final column in resolved)
             if (column.width != null)
-              SizedBox(
-                width: column.width,
-                child: _HeaderCell(column: column),
-              )
+              SizedBox(width: column.width, child: _HeaderCell(column: column))
             else
-              Expanded(
-                flex: column.flex,
-                child: _HeaderCell(column: column),
-              ),
+              Expanded(flex: column.flex, child: _HeaderCell(column: column)),
           if (trailingWidth > 0) SizedBox(width: trailingWidth),
         ],
       ),
@@ -122,9 +118,10 @@ class _HeaderCell extends StatelessWidget {
     final active = column.sort != SortDirection.none;
 
     final label = Row(
-      mainAxisAlignment: column.align == TextAlign.right
-          ? MainAxisAlignment.end
-          : MainAxisAlignment.start,
+      mainAxisAlignment:
+          column.align == TextAlign.right
+              ? MainAxisAlignment.end
+              : MainAxisAlignment.start,
       children: [
         Flexible(
           child: Text(

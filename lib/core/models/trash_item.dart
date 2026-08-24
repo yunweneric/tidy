@@ -118,14 +118,41 @@ class TrashItem extends Equatable {
     if (isDirectory && !isPackage) return TrashItemKind.folder;
 
     return switch (extension) {
-      'png' || 'jpg' || 'jpeg' || 'gif' || 'heic' || 'webp' || 'tiff' || 'svg' =>
-        TrashItemKind.image,
-      'mp4' || 'mov' || 'm4v' || 'avi' || 'mkv' || 'webm' => TrashItemKind.video,
-      'mp3' || 'm4a' || 'wav' || 'aiff' || 'flac' || 'aac' => TrashItemKind.audio,
-      'zip' || 'dmg' || 'gz' || 'tar' || 'rar' || '7z' || 'pkg' =>
-        TrashItemKind.archive,
-      'pdf' || 'doc' || 'docx' || 'txt' || 'md' || 'pages' || 'key' || 'numbers' =>
-        TrashItemKind.document,
+      'png' ||
+      'jpg' ||
+      'jpeg' ||
+      'gif' ||
+      'heic' ||
+      'webp' ||
+      'tiff' ||
+      'svg' => TrashItemKind.image,
+      'mp4' ||
+      'mov' ||
+      'm4v' ||
+      'avi' ||
+      'mkv' ||
+      'webm' => TrashItemKind.video,
+      'mp3' ||
+      'm4a' ||
+      'wav' ||
+      'aiff' ||
+      'flac' ||
+      'aac' => TrashItemKind.audio,
+      'zip' ||
+      'dmg' ||
+      'gz' ||
+      'tar' ||
+      'rar' ||
+      '7z' ||
+      'pkg' => TrashItemKind.archive,
+      'pdf' ||
+      'doc' ||
+      'docx' ||
+      'txt' ||
+      'md' ||
+      'pages' ||
+      'key' ||
+      'numbers' => TrashItemKind.document,
       _ => isDirectory ? TrashItemKind.folder : TrashItemKind.other,
     };
   }
@@ -143,8 +170,7 @@ class TrashSnapshot extends Equatable {
   final List<TrashLocation> locations;
   final List<TrashItem> items;
 
-  int get totalBytes =>
-      items.fold(0, (sum, item) => sum + item.sizeBytes);
+  int get totalBytes => items.fold(0, (sum, item) => sum + item.sizeBytes);
 
   @override
   List<Object?> get props => [locations, items];

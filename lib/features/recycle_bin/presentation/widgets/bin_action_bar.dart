@@ -58,7 +58,10 @@ class BinActionBar extends StatelessWidget {
           ],
           OutlinedButton.icon(
             onPressed: enabled ? onRestore : null,
-            icon: Icon(allKnown ? AppIcons.putBack : AppIcons.restore, size: 16),
+            icon: Icon(
+              allKnown ? AppIcons.putBack : AppIcons.restore,
+              size: 16,
+            ),
             label: Text(allKnown ? 'Put Back' : 'Restore…'),
           ),
           const SizedBox(width: AppSpacing.sm),

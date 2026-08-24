@@ -62,6 +62,39 @@ class RemovalResult {
   static const RemovalResult empty = RemovalResult(removed: [], failures: []);
 }
 
+/// Identity of the running `.app` bundle.
+class AppBundleInfo {
+  const AppBundleInfo({
+    required this.version,
+    required this.build,
+    required this.bundlePath,
+    required this.installWritable,
+  });
+
+  /// `CFBundleShortVersionString` — the number a user recognises.
+  final String version;
+
+  /// `CFBundleVersion`.
+  final String build;
+
+  final String bundlePath;
+
+  /// Whether the folder holding the bundle can be written to by this user.
+  ///
+  /// This is what decides whether the app can replace itself at all. An app in
+  /// `/Applications` on a Mac whose owner is an admin: yes. The same app on a
+  /// managed or standard account: no, and the update has to be installed by
+  /// hand from the disk image.
+  final bool installWritable;
+
+  static const AppBundleInfo unknown = AppBundleInfo(
+    version: '0.0.0',
+    build: '0',
+    bundlePath: '',
+    installWritable: false,
+  );
+}
+
 /// Thin wrapper over the native macOS helpers in `macos/Runner/SystemChannel.swift`.
 ///
 /// Removal goes through `FileManager` rather than `rm` so that "move to Trash"
@@ -93,7 +126,10 @@ class SystemBridge {
   static Future<RemovalResult> deleteItems(List<String> paths) =>
       _remove('deleteItems', paths);
 
-  static Future<RemovalResult> _remove(String method, List<String> paths) async {
+  static Future<RemovalResult> _remove(
+    String method,
+    List<String> paths,
+  ) async {
     if (paths.isEmpty) return RemovalResult.empty;
     try {
       final result = await _channel.invokeMapMethod<String, dynamic>(method, {
@@ -102,25 +138,26 @@ class SystemBridge {
       if (result == null) return RemovalResult.empty;
 
       final removed = (result['removed'] as List?)?.cast<String>() ?? const [];
-      final trashedTo =
-          ((result['trashed'] as Map?) ?? const {}).map(
-            (key, value) => MapEntry(key as String, value as String),
-          );
-      final failures = ((result['failures'] as List?) ?? const [])
-          .map(
-            (raw) => RemovalFailure(
-              path: (raw as Map)['path'] as String? ?? '',
-              error: raw['error'] as String? ?? 'Unknown error',
-            ),
-          )
-          .toList();
+      final trashedTo = ((result['trashed'] as Map?) ?? const {}).map(
+        (key, value) => MapEntry(key as String, value as String),
+      );
+      final failures =
+          ((result['failures'] as List?) ?? const [])
+              .map(
+                (raw) => RemovalFailure(
+                  path: (raw as Map)['path'] as String? ?? '',
+                  error: raw['error'] as String? ?? 'Unknown error',
+                ),
+              )
+              .toList();
       return RemovalResult(
         removed: removed,
         failures: failures,
         trashedTo: trashedTo,
       );
     } catch (e) {
-      final message = e is PlatformException ? (e.message ?? e.code) : e.toString();
+      final message =
+          e is PlatformException ? (e.message ?? e.code) : e.toString();
       // Error, not warning: nothing downstream recovers from this. Every path
       // in the request comes back as a failure and the user is told the clean
       // did not happen.
@@ -131,7 +168,8 @@ class SystemBridge {
       );
       return RemovalResult(
         removed: const [],
-        failures: paths.map((p) => RemovalFailure(path: p, error: message)).toList(),
+        failures:
+            paths.map((p) => RemovalFailure(path: p, error: message)).toList(),
       );
     }
   }
@@ -139,7 +177,9 @@ class SystemBridge {
   /// Capacity of the volume backing `/`.
   static Future<DiskUsage> diskUsage() async {
     try {
-      final result = await _channel.invokeMapMethod<String, dynamic>('diskUsage');
+      final result = await _channel.invokeMapMethod<String, dynamic>(
+        'diskUsage',
+      );
       if (result == null) return DiskUsage.empty;
       return DiskUsage(
         totalBytes: (result['total'] as num?)?.toInt() ?? 0,
@@ -157,9 +197,10 @@ class SystemBridge {
   static Future<Map<String, int>> sizeOfPaths(List<String> paths) async {
     if (paths.isEmpty) return const {};
     try {
-      final result = await _channel.invokeMapMethod<String, dynamic>('sizeOfPaths', {
-        'paths': paths,
-      });
+      final result = await _channel.invokeMapMethod<String, dynamic>(
+        'sizeOfPaths',
+        {'paths': paths},
+      );
       if (result == null) return const {};
       return result.map((path, size) => MapEntry(path, (size as num).toInt()));
     } catch (e) {
@@ -183,9 +224,10 @@ class SystemBridge {
           path: map['path'] as String? ?? '',
           sizeBytes: (map['size'] as num?)?.toInt() ?? 0,
           isDirectory: map['isDirectory'] as bool? ?? false,
-          modified: modified == 0
-              ? null
-              : DateTime.fromMillisecondsSinceEpoch(modified * 1000),
+          modified:
+              modified == 0
+                  ? null
+                  : DateTime.fromMillisecondsSinceEpoch(modified * 1000),
         );
       }).toList();
     } catch (e) {
@@ -205,14 +247,12 @@ class SystemBridge {
   }) async {
     if (paths.isEmpty) return const {};
     try {
-      final result = await _channel.invokeMapMethod<String, dynamic>('iconsForPaths', {
-        'paths': paths,
-        'size': size,
-      });
-      if (result == null) return const {};
-      return result.map(
-        (path, bytes) => MapEntry(path, bytes as Uint8List),
+      final result = await _channel.invokeMapMethod<String, dynamic>(
+        'iconsForPaths',
+        {'paths': paths, 'size': size},
       );
+      if (result == null) return const {};
+      return result.map((path, bytes) => MapEntry(path, bytes as Uint8List));
     } catch (e) {
       AppLog.platform.failed('read icons', e, fields: {'count': paths.length});
       return const {};
@@ -234,6 +274,30 @@ class SystemBridge {
       await _channel.invokeMethod<void>('openFullDiskAccessSettings');
     } catch (e) {
       AppLog.platform.failed('open the Full Disk Access settings', e);
+    }
+  }
+
+  /// Version, build and location of the running bundle.
+  ///
+  /// Read from `Bundle.main` on the native side rather than from a generated
+  /// Dart constant: the number that matters is the one in the `Info.plist` of
+  /// the bundle actually on disk, which is what the updater is about to
+  /// replace, and what macOS itself reports about the app.
+  static Future<AppBundleInfo> appVersion() async {
+    try {
+      final result = await _channel.invokeMapMethod<String, dynamic>(
+        'appVersion',
+      );
+      if (result == null) return AppBundleInfo.unknown;
+      return AppBundleInfo(
+        version: result['version'] as String? ?? '0.0.0',
+        build: result['build'] as String? ?? '0',
+        bundlePath: result['bundlePath'] as String? ?? '',
+        installWritable: result['installWritable'] as bool? ?? false,
+      );
+    } catch (e) {
+      AppLog.platform.failed('read the app version', e);
+      return AppBundleInfo.unknown;
     }
   }
 
@@ -281,7 +345,11 @@ class SystemBridge {
     try {
       await _channel.invokeMethod<void>('openSettingsPane', {'anchor': anchor});
     } catch (e) {
-      AppLog.platform.failed('open a Settings pane', e, fields: {'anchor': anchor});
+      AppLog.platform.failed(
+        'open a Settings pane',
+        e,
+        fields: {'anchor': anchor},
+      );
     }
   }
 
@@ -309,9 +377,10 @@ class SystemBridge {
   static Future<Map<String, bool>> canReadPaths(List<String> paths) async {
     if (paths.isEmpty) return const {};
     try {
-      final result = await _channel.invokeMapMethod<String, dynamic>('canReadPaths', {
-        'paths': paths,
-      });
+      final result = await _channel.invokeMapMethod<String, dynamic>(
+        'canReadPaths',
+        {'paths': paths},
+      );
       if (result == null) return const {};
       return result.map((path, readable) => MapEntry(path, readable as bool));
     } catch (e) {

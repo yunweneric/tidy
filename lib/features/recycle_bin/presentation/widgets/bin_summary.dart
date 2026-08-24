@@ -24,7 +24,10 @@ class BinSummary extends StatelessWidget {
       children: [
         Expanded(
           child: StatTile(
-            label: state.items.length == 1 ? 'Item in the bin' : 'Items in the bin',
+            label:
+                state.items.length == 1
+                    ? 'Item in the bin'
+                    : 'Items in the bin',
             value: '${state.items.length}',
             icon: AppIcons.recycleBin,
             color: colors.accent,

@@ -2,9 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:tidy/core/design/design.dart';
+import 'package:tidy/core/feedback/feedback.dart';
 import 'package:tidy/core/di/service_locator.dart';
 import 'package:tidy/core/store/metric_sampler.dart';
+import 'package:tidy/core/settings/app_settings.dart';
 import 'package:tidy/core/store/tidy_store.dart';
+import 'package:tidy/core/updates/logic/update_bloc.dart';
+import 'package:tidy/core/updates/update_service.dart';
 import 'package:tidy/core/platform/full_disk_access_service.dart';
 import 'package:tidy/core/platform/system_bridge.dart';
 import 'package:tidy/core/scanning/logic/scan_bloc.dart';
@@ -108,49 +112,85 @@ class _ShellScaffoldState extends State<ShellScaffold>
                 store: locator<TidyStore>(),
               ),
         ),
+        // Hoisted for the same reason from the other direction: the check runs
+        // at launch whether or not anyone opens Settings, and the toast below
+        // is the shell's, while the controls are the Settings page's.
+        BlocProvider(
+          create:
+              (_) => UpdateBloc(
+                locator<UpdateService>(),
+                settings: locator<AppSettings>(),
+              )..add(const CheckForUpdates()),
+        ),
       ],
-      child: Scaffold(
-        // The flat canvas is only a fallback; AmbientBackground paints the
-        // module's own colour over it.
-        backgroundColor: context.colors.canvas,
-        body: AnimatedBuilder(
-          animation: _fullDiskAccess,
-          builder: (context, _) {
-            return BlocBuilder<ScanBloc, ScanState>(
-              builder: (context, cleanupState) {
-                return AmbientBackground(
-                  // The module owns the window's colour, so switching branches
-                  // repaints the whole frame, sidebar included.
-                  tone: current.tone,
-                  child: Row(
-                    children: [
-                      NavSidebar(
-                        current: current,
-                        onSelect: _select,
-                        disk: _disk,
-                        badges: _badges(cleanupState),
-                        reclaimableBytes: cleanupState.totalBytes,
-                        fullDiskAccessGranted: _fullDiskAccess.granted,
-                        onGrantAccess: _fullDiskAccess.openSettings,
-                        onReclaim: () => _select(AppDestination.cleanup),
-                      ),
-                      Expanded(
-                        // Branches stay mounted when you navigate away, so a page
-                        // that polls has no other way to know it is off screen.
-                        child: ActiveDestination(
-                          destination: current,
-                          child: FadeThrough(
-                            trigger: widget.navigationShell.currentIndex,
-                            child: widget.navigationShell,
+      child: BlocListener<UpdateBloc, UpdateState>(
+        // Only the arrival of an update is announced, and only once — the
+        // download, the check and the install all have a visible home in
+        // Settings, and a toast for each step would narrate a process the user
+        // is already watching.
+        listenWhen:
+            (previous, current) =>
+                current.status == UpdateStatus.available &&
+                previous.status != UpdateStatus.available,
+        listener: (context, updateState) {
+          final release = updateState.release;
+          if (release == null) return;
+          context.toastInfo(
+            'Version ${release.version.display} is ready to download.',
+            title: '${Brand.name} update available',
+            duration: Duration.zero,
+            action: ToastAction(
+              label: 'View',
+              onPressed:
+                  () => context.go(
+                    '${AppDestination.settings.path}?section=updates',
+                  ),
+            ),
+          );
+        },
+        child: Scaffold(
+          // The flat canvas is only a fallback; AmbientBackground paints the
+          // module's own colour over it.
+          backgroundColor: context.colors.canvas,
+          body: AnimatedBuilder(
+            animation: _fullDiskAccess,
+            builder: (context, _) {
+              return BlocBuilder<ScanBloc, ScanState>(
+                builder: (context, cleanupState) {
+                  return AmbientBackground(
+                    // The module owns the window's colour, so switching branches
+                    // repaints the whole frame, sidebar included.
+                    tone: current.tone,
+                    child: Row(
+                      children: [
+                        NavSidebar(
+                          current: current,
+                          onSelect: _select,
+                          disk: _disk,
+                          badges: _badges(cleanupState),
+                          reclaimableBytes: cleanupState.totalBytes,
+                          fullDiskAccessGranted: _fullDiskAccess.granted,
+                          onGrantAccess: _fullDiskAccess.openSettings,
+                          onReclaim: () => _select(AppDestination.cleanup),
+                        ),
+                        Expanded(
+                          // Branches stay mounted when you navigate away, so a page
+                          // that polls has no other way to know it is off screen.
+                          child: ActiveDestination(
+                            destination: current,
+                            child: FadeThrough(
+                              trigger: widget.navigationShell.currentIndex,
+                              child: widget.navigationShell,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            );
-          },
+                      ],
+                    ),
+                  );
+                },
+              );
+            },
+          ),
         ),
       ),
     );

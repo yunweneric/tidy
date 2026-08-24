@@ -20,9 +20,8 @@ class ActionButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.colors;
     final style = ElevatedButton.styleFrom(
-      backgroundColor: variant == ActionButtonVariant.danger
-          ? colors.risky
-          : colors.accent,
+      backgroundColor:
+          variant == ActionButtonVariant.danger ? colors.risky : colors.accent,
       foregroundColor: colors.textOnAccent,
     );
 
@@ -34,7 +33,11 @@ class ActionButton extends StatelessWidget {
         style: style,
       );
     }
-    return ElevatedButton(onPressed: onPressed, style: style, child: Text(label));
+    return ElevatedButton(
+      onPressed: onPressed,
+      style: style,
+      child: Text(label),
+    );
   }
 }
 

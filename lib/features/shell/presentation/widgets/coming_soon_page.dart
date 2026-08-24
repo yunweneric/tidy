@@ -10,7 +10,11 @@ import 'package:tidy/features/shell/domain/app_destination.dart';
 /// button that finds nothing — is worse than an empty page: a cleaner that
 /// reports "0 threats found" from a scanner that does not exist is lying.
 class ComingSoonPage extends StatelessWidget {
-  const ComingSoonPage({super.key, required this.destination, this.planned = const []});
+  const ComingSoonPage({
+    super.key,
+    required this.destination,
+    this.planned = const [],
+  });
 
   final AppDestination destination;
 
@@ -57,7 +61,9 @@ class ComingSoonPage extends StatelessWidget {
                         const SizedBox(height: AppSpacing.lg),
                         for (final item in planned)
                           Padding(
-                            padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                            padding: const EdgeInsets.only(
+                              bottom: AppSpacing.sm,
+                            ),
                             child: Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [

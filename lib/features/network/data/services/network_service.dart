@@ -34,7 +34,10 @@ class NetworkService {
 
   Future<NetworkHeadline> headline() => NetworkBridge.headline();
 
-  Future<NetworkSeries> series(NetworkRange range, {bool refresh = false}) async {
+  Future<NetworkSeries> series(
+    NetworkRange range, {
+    bool refresh = false,
+  }) async {
     if (!refresh) {
       final cached = _cache[range];
       if (cached != null) return cached;

@@ -29,10 +29,7 @@ class RestoreFailure {
 class RestoreResult {
   const RestoreResult({required this.restored, required this.failures});
 
-  static const RestoreResult empty = RestoreResult(
-    restored: [],
-    failures: [],
-  );
+  static const RestoreResult empty = RestoreResult(restored: [], failures: []);
 
   final List<RestoredItem> restored;
   final List<RestoreFailure> failures;
@@ -57,7 +54,9 @@ class RecycleBinBridge {
   /// thousand items in it is one native walk, not two thousand round trips.
   static Future<Map<String, dynamic>> readBins() async {
     try {
-      final result = await _channel.invokeMapMethod<String, dynamic>('readBins');
+      final result = await _channel.invokeMapMethod<String, dynamic>(
+        'readBins',
+      );
       return result ?? const {};
     } catch (e) {
       AppLog.recycleBin.failed('read the trash folders', e);

@@ -13,6 +13,7 @@ import 'package:tidy/features/settings/presentation/sections/general_section.dar
 import 'package:tidy/features/settings/presentation/sections/history_section.dart';
 import 'package:tidy/features/settings/presentation/sections/network_section.dart';
 import 'package:tidy/features/settings/presentation/sections/permissions_section.dart';
+import 'package:tidy/features/settings/presentation/sections/updates_section.dart';
 import 'package:tidy/features/settings/presentation/widgets/settings_rail.dart';
 
 /// Settings, as two panes: the sections down the left, the chosen one's
@@ -23,14 +24,21 @@ import 'package:tidy/features/settings/presentation/widgets/settings_rail.dart';
 /// were reachable only by scrolling past a feature you might not use. The tabs
 /// are the same settings, addressed rather than scrolled.
 class SettingsPage extends StatefulWidget {
-  const SettingsPage({super.key});
+  const SettingsPage({
+    super.key,
+    this.initialSection = SettingsSection.initial,
+  });
+
+  /// Which tab to open on. Comes from `?section=` on the route, so a toast or a
+  /// menu item can point at one setting rather than at Settings in general.
+  final SettingsSection initialSection;
 
   @override
   State<SettingsPage> createState() => _SettingsPageState();
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  SettingsSection _section = SettingsSection.initial;
+  late SettingsSection _section = widget.initialSection;
 
   /// One controller for the detail pane, reset on every tab change: keeping a
   /// tall section's scroll offset while showing a short one leaves the new
@@ -97,6 +105,7 @@ class _SettingsPageState extends State<SettingsPage> {
     SettingsSection.permissions => PermissionsSection(
       service: locator<FullDiskAccessService>(),
     ),
+    SettingsSection.updates => UpdatesSection(settings: settings),
     SettingsSection.about => const AboutSection(),
   };
 }

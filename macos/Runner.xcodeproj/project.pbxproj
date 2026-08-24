@@ -27,6 +27,8 @@
 		331C80D8294CF71000263BE5 /* RunnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 331C80D7294CF71000263BE5 /* RunnerTests.swift */; };
 		335BBD1B22A9A15E00E9071D /* GeneratedPluginRegistrant.swift in Sources */ = {isa = PBXBuildFile; fileRef = 335BBD1A22A9A15E00E9071D /* GeneratedPluginRegistrant.swift */; };
 		33CC10F12044A3C60003C045 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC10F02044A3C60003C045 /* AppDelegate.swift */; };
+		D9258076458BE66ECFF7AA80 /* UpdateChannel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A582E94BA157B8C02B040738 /* UpdateChannel.swift */; };
+		524DB24E27DC6B3420860B25 /* Updater.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D0B7E9AD30C5CB38F5F6A4F /* Updater.swift */; };
 		33CC10F32044A3C60003C045 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 33CC10F22044A3C60003C045 /* Assets.xcassets */; };
 		33CC10F62044A3C60003C045 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 33CC10F42044A3C60003C045 /* MainMenu.xib */; };
 		33CC11132044BFA00003C045 /* MainFlutterWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC11122044BFA00003C045 /* MainFlutterWindow.swift */; };
@@ -90,6 +92,8 @@
 		335BBD1A22A9A15E00E9071D /* GeneratedPluginRegistrant.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GeneratedPluginRegistrant.swift; sourceTree = "<group>"; };
 		33CC10ED2044A3C60003C045 /* Tidy.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Tidy.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		33CC10F02044A3C60003C045 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		A582E94BA157B8C02B040738 /* UpdateChannel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateChannel.swift; sourceTree = "<group>"; };
+		9D0B7E9AD30C5CB38F5F6A4F /* Updater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Updater.swift; sourceTree = "<group>"; };
 		33CC10F22044A3C60003C045 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = Runner/Assets.xcassets; sourceTree = "<group>"; };
 		33CC10F52044A3C60003C045 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
 		33CC10F72044A3C60003C045 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = Info.plist; path = Runner/Info.plist; sourceTree = "<group>"; };
@@ -229,6 +233,8 @@
 			isa = PBXGroup;
 			children = (
 				33CC10F02044A3C60003C045 /* AppDelegate.swift */,
+				A582E94BA157B8C02B040738 /* UpdateChannel.swift */,
+				9D0B7E9AD30C5CB38F5F6A4F /* Updater.swift */,
 				11EB623CC080D0A266B7331A /* DirectorySizer.swift */,
 				064C93F567966D12E475C156 /* FullDiskAccess.swift */,
 				33CC11122044BFA00003C045 /* MainFlutterWindow.swift */,
@@ -498,6 +504,8 @@
 				A1B2C3D007AA000000000004 /* NetworkStore.swift in Sources */,
 				A1B2C3D007AA000000000006 /* NetworkChannel.swift in Sources */,
 				33CC10F12044A3C60003C045 /* AppDelegate.swift in Sources */,
+				D9258076458BE66ECFF7AA80 /* UpdateChannel.swift in Sources */,
+				524DB24E27DC6B3420860B25 /* Updater.swift in Sources */,
 				08639DC4C75ABD10EB121DD3 /* DirectorySizer.swift in Sources */,
 				0925734A75E40C9513D3AE40 /* FullDiskAccess.swift in Sources */,
 				335BBD1B22A9A15E00E9071D /* GeneratedPluginRegistrant.swift in Sources */,

@@ -32,12 +32,17 @@ class StorageBreakdown extends StatelessWidget {
     final measured = apps + junk + trash;
     final other = (disk.usedBytes - measured).clamp(0, disk.usedBytes);
 
-    final slices = [
-      BarSlice(label: 'Applications', bytes: apps, color: colors.info),
-      BarSlice(label: 'Junk', bytes: junk, color: colors.safe),
-      BarSlice(label: 'Trash', bytes: trash, color: colors.review),
-      BarSlice(label: 'Everything else', bytes: other, color: colors.textMuted),
-    ].where((slice) => slice.bytes > 0).toList();
+    final slices =
+        [
+          BarSlice(label: 'Applications', bytes: apps, color: colors.info),
+          BarSlice(label: 'Junk', bytes: junk, color: colors.safe),
+          BarSlice(label: 'Trash', bytes: trash, color: colors.review),
+          BarSlice(
+            label: 'Everything else',
+            bytes: other,
+            color: colors.textMuted,
+          ),
+        ].where((slice) => slice.bytes > 0).toList();
 
     return TidyCard(
       child: Column(
@@ -96,9 +101,10 @@ class StorageBreakdown extends StatelessWidget {
                 child: _AppRow(
                   name: app.name,
                   bytes: app.bytes,
-                  fraction: state.apps.largest.first.bytes == 0
-                      ? 0
-                      : app.bytes / state.apps.largest.first.bytes,
+                  fraction:
+                      state.apps.largest.first.bytes == 0
+                          ? 0
+                          : app.bytes / state.apps.largest.first.bytes,
                 ),
               ),
           ],
@@ -127,14 +133,19 @@ class _LegendDot extends StatelessWidget {
         Container(
           width: 8,
           height: 8,
-          decoration: BoxDecoration(color: color, borderRadius: AppRadii.pillAll),
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: AppRadii.pillAll,
+          ),
         ),
         const SizedBox(width: AppSpacing.xs),
         Text(label, style: context.text.caption),
         const SizedBox(width: AppSpacing.xs),
         Text(
           value,
-          style: context.text.caption.copyWith(color: context.colors.textPrimary),
+          style: context.text.caption.copyWith(
+            color: context.colors.textPrimary,
+          ),
         ),
       ],
     );

@@ -94,7 +94,10 @@ class TidyStore {
       _nextScanId = _nextKey(boxes.scans);
 
       if (created) {
-        _putMeta('started_at', DateTime.now().millisecondsSinceEpoch.toString());
+        _putMeta(
+          'started_at',
+          DateTime.now().millisecondsSinceEpoch.toString(),
+        );
       }
       _recordingSince = _readRecordingSince();
 
@@ -269,10 +272,7 @@ class TidyStore {
       }
 
       if (updates.isEmpty) return;
-      _flushLater(
-        boxes.removedItems.putAll(updates),
-        'mark items as restored',
-      );
+      _flushLater(boxes.removedItems.putAll(updates), 'mark items as restored');
     } catch (e) {
       AppLog.store.failed('mark items as restored', e);
     }
@@ -292,13 +292,14 @@ class TidyStore {
       final key = _metricKey(series.name, Granularity.minute, bucket);
       final existing = boxes.metrics.get(key);
 
-      final row = existing == null
-          ? _metricRow(series.name, Granularity.minute, bucket, value)
-          : (_mutable(existing)
-              ..['sum_value'] = _double(existing, 'sum_value') + value
-              ..['min_value'] = min(_double(existing, 'min_value'), value)
-              ..['max_value'] = max(_double(existing, 'max_value'), value)
-              ..['count'] = _int(existing, 'count') + 1);
+      final row =
+          existing == null
+              ? _metricRow(series.name, Granularity.minute, bucket, value)
+              : (_mutable(existing)
+                ..['sum_value'] = _double(existing, 'sum_value') + value
+                ..['min_value'] = min(_double(existing, 'min_value'), value)
+                ..['max_value'] = max(_double(existing, 'max_value'), value)
+                ..['count'] = _int(existing, 'count') + 1);
 
       _flushLater(
         boxes.metrics.put(key, row),
@@ -426,9 +427,10 @@ class TidyStore {
 
       // Seeded from whatever is already in the target bucket, so a roll-up that
       // runs twice across a boundary adds to the hour instead of replacing it.
-      final target = merged[key] ??= _mutable(
-        boxes.metrics.get(key) ?? _emptyMetricRow(series, to, bucket),
-      );
+      final target =
+          merged[key] ??= _mutable(
+            boxes.metrics.get(key) ?? _emptyMetricRow(series, to, bucket),
+          );
 
       target['sum_value'] =
           (target['sum_value']! as double) + _double(row, 'sum_value');
@@ -505,12 +507,12 @@ class TidyStore {
           row == null
               ? MetricBucket.missing(cursor)
               : MetricBucket(
-                  at: cursor,
-                  sum: _double(row, 'sum_value'),
-                  min: _double(row, 'min_value'),
-                  max: _double(row, 'max_value'),
-                  count: _int(row, 'count'),
-                ),
+                at: cursor,
+                sum: _double(row, 'sum_value'),
+                min: _double(row, 'min_value'),
+                max: _double(row, 'max_value'),
+                count: _int(row, 'count'),
+              ),
         );
         cursor = _advance(cursor, granularity);
       }
@@ -548,7 +550,10 @@ class TidyStore {
         if (at < startMs || at > endMs) continue;
         if (row['restored_at'] != null) continue;
 
-        final bucket = _floor(DateTime.fromMillisecondsSinceEpoch(at), granularity);
+        final bucket = _floor(
+          DateTime.fromMillisecondsSinceEpoch(at),
+          granularity,
+        );
         (tallies[bucket.millisecondsSinceEpoch] ??= _ReclaimTally()).add(row);
       }
 
@@ -709,8 +714,8 @@ class TidyStore {
             averageDuration: Duration(
               milliseconds: ((totalMs[entry.key] ?? 0) / entry.value).round(),
             ),
-            averageBytesFound: ((totalBytes[entry.key] ?? 0) / entry.value)
-                .round(),
+            averageBytesFound:
+                ((totalBytes[entry.key] ?? 0) / entry.value).round(),
             lastRunAt: _dateOrNull(lastAt[entry.key]),
           ),
       ]..sort((a, b) => b.runs.compareTo(a.runs));
@@ -829,29 +834,31 @@ class TidyStore {
       final directory = await _supportDirectory();
       if (directory == null) return null;
 
-      final stamp = DateTime.now()
-          .toIso8601String()
-          .replaceAll(':', '-')
-          .split('.')
-          .first;
+      final stamp =
+          DateTime.now()
+              .toIso8601String()
+              .replaceAll(':', '-')
+              .split('.')
+              .first;
       final file = File(p.join(directory.path, 'tidy-history-$stamp.json'));
 
       List<Map<String, Object?>> dump(Box<Map> box, String orderBy) {
-        final rows = box.values.map(_mutable).toList()
-          ..sort((a, b) => _int(a, orderBy).compareTo(_int(b, orderBy)));
+        final rows =
+            box.values.map(_mutable).toList()
+              ..sort((a, b) => _int(a, orderBy).compareTo(_int(b, orderBy)));
         return rows;
       }
 
-      final buckets = boxes.metrics.values.map(_mutable).toList()
-        ..sort((a, b) {
-          final bySeries = '${a['series']}'.compareTo('${b['series']}');
-          if (bySeries != 0) return bySeries;
-          final byGranularity = '${a['granularity']}'.compareTo(
-            '${b['granularity']}',
-          );
-          if (byGranularity != 0) return byGranularity;
-          return _int(a, 'at').compareTo(_int(b, 'at'));
-        });
+      final buckets =
+          boxes.metrics.values.map(_mutable).toList()..sort((a, b) {
+            final bySeries = '${a['series']}'.compareTo('${b['series']}');
+            if (bySeries != 0) return bySeries;
+            final byGranularity = '${a['granularity']}'.compareTo(
+              '${b['granularity']}',
+            );
+            if (byGranularity != 0) return byGranularity;
+            return _int(a, 'at').compareTo(_int(b, 'at'));
+          });
 
       await file.writeAsString(
         const JsonEncoder.withIndent('  ').convert({
@@ -973,9 +980,10 @@ class TidyStore {
         safety: row['safety'] as String?,
         restoredAt: _dateOrNull(row['restored_at']),
         operationLabel: operation?['label'] as String?,
-        operationKind: operation == null
-            ? null
-            : OperationKind.parse(operation['kind'] as String?),
+        operationKind:
+            operation == null
+                ? null
+                : OperationKind.parse(operation['kind'] as String?),
       );
 
   static DateTime? _dateOrNull(Object? raw) {
@@ -1045,7 +1053,12 @@ class TidyStore {
     if (home == null) return null;
 
     final dir = Directory(
-      p.join(home, 'Library', 'Application Support', Brand.supportDirectoryName),
+      p.join(
+        home,
+        'Library',
+        'Application Support',
+        Brand.supportDirectoryName,
+      ),
     );
     try {
       if (!dir.existsSync()) await dir.create(recursive: true);

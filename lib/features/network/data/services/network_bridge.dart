@@ -72,11 +72,7 @@ class NetworkBridge {
       if (result == null) return NetworkSample.unknown;
       return NetworkSample.fromMap(result);
     } catch (e) {
-      AppLog.network.failed(
-        'read a sample',
-        e,
-        fields: {'method': method},
-      );
+      AppLog.network.failed('read a sample', e, fields: {'method': method});
       return NetworkSample.unknown;
     }
   }
@@ -84,17 +80,14 @@ class NetworkBridge {
   /// One range's buckets, already at the granularity the chart wants.
   static Future<NetworkSeries> history(NetworkRange range) async {
     try {
-      final result = await _channel.invokeMapMethod<String, dynamic>('history', {
-        'range': range.id,
-      });
+      final result = await _channel.invokeMapMethod<String, dynamic>(
+        'history',
+        {'range': range.id},
+      );
       if (result == null) return NetworkSeries.empty;
       return NetworkSeries.fromMap(result);
     } catch (e) {
-      AppLog.network.failed(
-        'read the history',
-        e,
-        fields: {'range': range.id},
-      );
+      AppLog.network.failed('read the history', e, fields: {'range': range.id});
       return NetworkSeries.empty;
     }
   }
@@ -102,7 +95,9 @@ class NetworkBridge {
   /// Today, this month, and the busiest day on record.
   static Future<NetworkHeadline> headline() async {
     try {
-      final result = await _channel.invokeMapMethod<String, dynamic>('headline');
+      final result = await _channel.invokeMapMethod<String, dynamic>(
+        'headline',
+      );
       if (result == null) return NetworkHeadline.empty;
       return NetworkHeadline.fromMap(result);
     } catch (e) {

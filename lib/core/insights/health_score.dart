@@ -89,13 +89,13 @@ class HealthScore extends Equatable {
 
   /// The weakest signals first — what to fix, in order.
   List<HealthSignal> get dragging {
-    final list = signals.where((s) => s.isDragging).toList()
-      ..sort((a, b) {
-        final byImpact = (a.goodness * a.weight).compareTo(
-          b.goodness * b.weight,
-        );
-        return byImpact != 0 ? byImpact : b.weight.compareTo(a.weight);
-      });
+    final list =
+        signals.where((s) => s.isDragging).toList()..sort((a, b) {
+          final byImpact = (a.goodness * a.weight).compareTo(
+            b.goodness * b.weight,
+          );
+          return byImpact != 0 ? byImpact : b.weight.compareTo(a.weight);
+        });
     return list;
   }
 
@@ -166,11 +166,7 @@ class HealthScore extends Equatable {
       signals.add(
         HealthSignal(
           label: 'Junk files',
-          goodness: _ramp(
-            junkBytes / _gigabyte,
-            good: 1,
-            bad: 20,
-          ),
+          goodness: _ramp(junkBytes / _gigabyte, good: 1, bad: 20),
           weight: 15,
           detail:
               junkBytes == 0
@@ -265,7 +261,11 @@ class HealthScore extends Equatable {
   }
 
   /// 1 at or below [good], 0 at or above [bad], straight line between.
-  static double _ramp(double value, {required double good, required double bad}) {
+  static double _ramp(
+    double value, {
+    required double good,
+    required double bad,
+  }) {
     if (value <= good) return 1;
     if (value >= bad) return 0;
     return 1 - (value - good) / (bad - good);

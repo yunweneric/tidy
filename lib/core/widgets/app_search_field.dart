@@ -28,7 +28,10 @@ class AppSearchField extends StatelessWidget {
           size: 17,
           color: context.colors.textMuted,
         ),
-        prefixIconConstraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+        prefixIconConstraints: const BoxConstraints(
+          minWidth: 36,
+          minHeight: 36,
+        ),
       ),
       onChanged: onChanged,
     );

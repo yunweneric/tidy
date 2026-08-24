@@ -36,8 +36,12 @@ class _SplashScreenState extends State<SplashScreen>
 
     // Reduce Motion gets the finished state, not a faster version of the
     // animation — the point of the setting is that nothing moves.
-    final curve = CurvedAnimation(parent: _entrance, curve: Curves.easeOutCubic);
-    final progress = reduced ? const AlwaysStoppedAnimation<double>(1.0) : curve;
+    final curve = CurvedAnimation(
+      parent: _entrance,
+      curve: Curves.easeOutCubic,
+    );
+    final progress =
+        reduced ? const AlwaysStoppedAnimation<double>(1.0) : curve;
 
     return AmbientBackground(
       tone: ModuleTone.brand,
@@ -53,7 +57,10 @@ class _SplashScreenState extends State<SplashScreen>
                 opacity: t,
                 // A short rise, not a zoom: the mark lands where it started
                 // rather than growing into place.
-                child: Transform.translate(offset: Offset(0, 14 * (1 - t)), child: child),
+                child: Transform.translate(
+                  offset: Offset(0, 14 * (1 - t)),
+                  child: child,
+                ),
               );
             },
             child: Column(

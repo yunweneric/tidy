@@ -33,11 +33,12 @@ class ClipboardPreviewDialog extends StatelessWidget {
   }) {
     return showTidyDialog<void>(
       context,
-      builder: (_) => ClipboardPreviewDialog(
-        entry: entry,
-        service: service,
-        onCopy: onCopy,
-      ),
+      builder:
+          (_) => ClipboardPreviewDialog(
+            entry: entry,
+            service: service,
+            onCopy: onCopy,
+          ),
     );
   }
 
@@ -57,12 +58,13 @@ class ClipboardPreviewDialog extends StatelessWidget {
           label: 'Copy',
           style: TidyActionStyle.primary,
           icon: AppIcons.copy,
-          onPressed: entry.isEmptied
-              ? null
-              : () {
-                  Navigator.of(context).maybePop();
-                  onCopy();
-                },
+          onPressed:
+              entry.isEmptied
+                  ? null
+                  : () {
+                    Navigator.of(context).maybePop();
+                    onCopy();
+                  },
         ),
       ],
       child: _body(context),
@@ -110,7 +112,10 @@ class ClipboardPreviewDialog extends StatelessWidget {
         }
         final bytes = snapshot.data;
         if (bytes == null) {
-          return Text('That image could not be read back.', style: context.text.bodyM);
+          return Text(
+            'That image could not be read back.',
+            style: context.text.bodyM,
+          );
         }
         return ClipRRect(
           borderRadius: AppRadii.mdAll,
@@ -147,7 +152,10 @@ class ClipboardPreviewDialog extends StatelessWidget {
         }
         final text = snapshot.data;
         if (text == null || text.isEmpty) {
-          return Text('That text could not be read back.', style: context.text.bodyM);
+          return Text(
+            'That text could not be read back.',
+            style: context.text.bodyM,
+          );
         }
         return SelectableText(
           text,

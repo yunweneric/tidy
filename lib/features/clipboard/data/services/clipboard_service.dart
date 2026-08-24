@@ -57,8 +57,10 @@ class ClipboardService {
   Future<ActionOutcome> copyToClipboard(ClipboardEntry entry) =>
       ClipboardBridge.copyToPasteboard(entry.id);
 
-  Future<ActionOutcome> setPinned(ClipboardEntry entry, {required bool pinned}) =>
-      ClipboardBridge.setPinned(entry.id, pinned: pinned);
+  Future<ActionOutcome> setPinned(
+    ClipboardEntry entry, {
+    required bool pinned,
+  }) => ClipboardBridge.setPinned(entry.id, pinned: pinned);
 
   Future<ActionOutcome> delete(List<String> ids) {
     ids.forEach(_blobs.remove);

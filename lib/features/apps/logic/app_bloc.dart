@@ -281,7 +281,8 @@ class AppsBloc extends Bloc<AppsEvent, AppsState> {
       operationId: operationId,
       removed: removedPaths,
       sizes: sizes,
-      categoryOf: (path) => _isBundle(path, event.apps) ? 'Application' : 'Leftovers',
+      categoryOf:
+          (path) => _isBundle(path, event.apps) ? 'Application' : 'Leftovers',
       nameOf: (path) => _nameFor(path, event.apps),
       toTrash: event.toTrash,
       failureCount: result.failures.length,
