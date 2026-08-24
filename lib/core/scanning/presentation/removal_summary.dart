@@ -53,9 +53,9 @@ class RemovalSummary extends StatelessWidget {
             Text(
               trashed
                   ? 'moved to Trash from ${outcome.removedCount} item'
-                        '${outcome.removedCount == 1 ? '' : 's'}'
+                      '${outcome.removedCount == 1 ? '' : 's'}'
                   : 'removed from ${outcome.removedCount} item'
-                        '${outcome.removedCount == 1 ? '' : 's'}',
+                      '${outcome.removedCount == 1 ? '' : 's'}',
               style: context.text.bodyM,
             ),
             if (trashed) ...[

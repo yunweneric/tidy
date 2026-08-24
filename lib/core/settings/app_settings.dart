@@ -20,6 +20,7 @@ class AppSettings extends ChangeNotifier {
   static const String _themeKey = 'themeMode';
   static const String _reduceMotionKey = 'reduceMotion';
   static const String _onboardingKey = 'onboardingCompletedVersion';
+  static const String _coverageNoteKey = 'smartCareCoverageSeen';
 
   /// Bumping this shows onboarding again — for when a release adds a
   /// permission or a capability the existing copy does not cover.
@@ -49,7 +50,12 @@ class AppSettings extends ChangeNotifier {
     if (home == null) return null;
 
     final dir = Directory(
-      p.join(home, 'Library', 'Application Support', Brand.supportDirectoryName),
+      p.join(
+        home,
+        'Library',
+        'Application Support',
+        Brand.supportDirectoryName,
+      ),
     );
     try {
       if (!dir.existsSync()) await dir.create(recursive: true);
@@ -94,6 +100,21 @@ class AppSettings extends ChangeNotifier {
   /// Used by the "show me the intro again" affordance in Settings.
   void resetOnboarding() {
     _values.remove(_onboardingKey);
+    _persist();
+  }
+
+  /// Whether Smart Care has already shown its coverage note.
+  ///
+  /// The note says which checks are built and which are not, which matters
+  /// enormously the first time and is clutter every time after. It appears on
+  /// the first visit and never again — the checkbox on it is there so someone
+  /// who wants it gone before they have finished reading can say so outright.
+  bool get hasSeenSmartCareCoverage =>
+      _values[_coverageNoteKey] as bool? ?? false;
+
+  void markSmartCareCoverageSeen() {
+    if (hasSeenSmartCareCoverage) return;
+    _values[_coverageNoteKey] = true;
     _persist();
   }
 

@@ -64,8 +64,14 @@ class LaunchItem extends Equatable {
       path: map['path'] as String? ?? '',
       label: map['label'] as String? ?? '',
       name: map['name'] as String? ?? map['label'] as String? ?? 'Unnamed item',
-      kind: map['kind'] == 'daemon' ? LaunchItemKind.daemon : LaunchItemKind.agent,
-      scope: map['scope'] == 'global' ? LaunchItemScope.global : LaunchItemScope.user,
+      kind:
+          map['kind'] == 'daemon'
+              ? LaunchItemKind.daemon
+              : LaunchItemKind.agent,
+      scope:
+          map['scope'] == 'global'
+              ? LaunchItemScope.global
+              : LaunchItemScope.user,
       enabled: map['enabled'] as bool? ?? true,
       runAtLoad: map['runAtLoad'] as bool? ?? false,
       keepAlive: map['keepAlive'] as bool? ?? false,
@@ -79,9 +85,12 @@ class LaunchItem extends Equatable {
       startIntervalSeconds: (map['startIntervalSeconds'] as num?)?.toInt(),
       hasSchedule: map['hasSchedule'] as bool? ?? false,
       watchesPaths: map['watchesPaths'] as bool? ?? false,
-      modified: map['modified'] == null
-          ? null
-          : DateTime.fromMillisecondsSinceEpoch((map['modified'] as num).toInt() * 1000),
+      modified:
+          map['modified'] == null
+              ? null
+              : DateTime.fromMillisecondsSinceEpoch(
+                (map['modified'] as num).toInt() * 1000,
+              ),
     );
   }
 
@@ -144,9 +153,26 @@ class LaunchItem extends Equatable {
   /// Editable right now — user scope, and readable.
   bool get canToggle => !requiresAdmin && !unreadable && label.isNotEmpty;
 
-  /// Removable right now. A broken item is the one we are comfortable
-  /// suggesting; everything else is the user's call.
+  /// Removable right now, with no elevation. A broken item is the one we are
+  /// comfortable suggesting; everything else is the user's call.
   bool get canRemove => !requiresAdmin && path.isNotEmpty;
+
+  /// Removable, but only behind macOS's authorization prompt.
+  ///
+  /// Deliberately narrow: a machine-wide item qualifies only when it is
+  /// [LaunchItemHealth.broken] — the program it points at is gone, or the file
+  /// is an empty stub. Those cannot start anything, so removing one changes no
+  /// behaviour, which is the only case where asking someone for their password
+  /// is worth it. A working machine-wide item stays hands-off until there is a
+  /// privileged helper to do it properly.
+  bool get canRemoveWithAdmin =>
+      requiresAdmin && path.isNotEmpty && health == LaunchItemHealth.broken;
+
+  /// True when removing this will ask for a password first.
+  bool get removalNeedsAuthorization => canRemoveWithAdmin;
+
+  /// Whether a remove action should be offered at all.
+  bool get isRemovable => canRemove || canRemoveWithAdmin;
 
   /// One plain line saying when this thing runs.
   String get trigger {
@@ -157,7 +183,9 @@ class LaunchItem extends Equatable {
           ? 'Starts when the Mac boots'
           : 'Starts when you log in';
     }
-    if (startIntervalSeconds != null) return 'Runs ${_everyPhrase(startIntervalSeconds!)}';
+    if (startIntervalSeconds != null) {
+      return 'Runs ${_everyPhrase(startIntervalSeconds!)}';
+    }
     if (hasSchedule) return 'Runs on a schedule';
     if (watchesPaths) return 'Runs when certain files change';
     return 'Runs only when something asks for it';
@@ -195,5 +223,12 @@ class LaunchItem extends Equatable {
   }
 
   @override
-  List<Object?> get props => [path, label, enabled, programMissing, emptyStub, unreadable];
+  List<Object?> get props => [
+    path,
+    label,
+    enabled,
+    programMissing,
+    emptyStub,
+    unreadable,
+  ];
 }

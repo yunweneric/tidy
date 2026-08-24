@@ -46,13 +46,17 @@ class PaginationBar extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         TextButton(
-          onPressed: currentPage > 1 ? () => onPageChanged(currentPage - 1) : null,
+          onPressed:
+              currentPage > 1 ? () => onPageChanged(currentPage - 1) : null,
           child: const Text('Previous'),
         ),
+        // The numbers are their own group, set apart from Previous and Next so
+        // the row does not read as one undifferentiated run of words.
+        const SizedBox(width: AppSpacing.sm),
         for (final page in _pages)
           if (page == null)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
               child: Text('…', style: context.text.bodyM),
             )
           else
@@ -61,10 +65,12 @@ class PaginationBar extends StatelessWidget {
               active: page == currentPage,
               onPressed: () => onPageChanged(page),
             ),
+        const SizedBox(width: AppSpacing.sm),
         TextButton(
-          onPressed: currentPage < totalPages
-              ? () => onPageChanged(currentPage + 1)
-              : null,
+          onPressed:
+              currentPage < totalPages
+                  ? () => onPageChanged(currentPage + 1)
+                  : null,
           child: const Text('Next'),
         ),
       ],
@@ -88,23 +94,32 @@ class _PageButton extends StatelessWidget {
     final colors = context.colors;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 3),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
       child: Material(
         color: active ? colors.accent : Colors.transparent,
         borderRadius: AppRadii.smAll,
         child: InkWell(
           onTap: onPressed,
           borderRadius: AppRadii.smAll,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.sm + 2,
-              vertical: AppSpacing.sm,
-            ),
-            child: Text(
-              '$page',
-              style: context.text.label.copyWith(
-                color: active ? colors.textOnAccent : colors.textSecondary,
-                fontWeight: active ? FontWeight.w600 : FontWeight.w400,
+          // A floor rather than a fixed size: single and double digits get the
+          // same footprint, so the row does not resize as you page through it,
+          // and three-digit pages still fit instead of being clipped.
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 30),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.sm,
+                vertical: AppSpacing.sm,
+              ),
+              child: Center(
+                widthFactor: 1,
+                child: Text(
+                  '$page',
+                  style: context.text.label.copyWith(
+                    color: active ? colors.textOnAccent : colors.textSecondary,
+                    fontWeight: active ? FontWeight.w600 : FontWeight.w400,
+                  ),
+                ),
               ),
             ),
           ),

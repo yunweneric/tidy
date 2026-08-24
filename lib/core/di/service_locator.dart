@@ -10,6 +10,7 @@ import 'package:mac_uninstaller/features/cleanup/data/cleanup_scan_module.dart';
 import 'package:mac_uninstaller/features/performance/data/services/launch_items_service.dart';
 import 'package:mac_uninstaller/features/performance/data/services/maintenance_service.dart';
 import 'package:mac_uninstaller/features/performance/data/services/process_monitor_service.dart';
+import 'package:mac_uninstaller/features/recycle_bin/data/services/recycle_bin_service.dart';
 import 'package:mac_uninstaller/features/smart_care/data/smart_care_module.dart';
 
 final GetIt locator = GetIt.instance;
@@ -67,6 +68,9 @@ Future<void> setUpLocator({required bool includeUi}) async {
   locator.registerLazySingleton<ProcessMonitorService>(
     ProcessMonitorService.new,
   );
+
+  // ─── Recycle Bin ─────────────────────────────────────────────────────────
+  locator.registerLazySingleton<RecycleBinService>(RecycleBinService.new);
 
   // The popover has no settings UI and no theme switcher, so it skips the
   // file read entirely.

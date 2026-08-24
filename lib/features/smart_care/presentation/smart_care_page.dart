@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mac_uninstaller/core/design/design.dart';
 import 'package:mac_uninstaller/core/di/service_locator.dart';
 import 'package:mac_uninstaller/core/platform/full_disk_access_service.dart';
+import 'package:mac_uninstaller/core/settings/app_settings.dart';
 import 'package:mac_uninstaller/core/scanning/logic/scan_bloc.dart';
 import 'package:mac_uninstaller/core/scanning/presentation/scan_view.dart';
 import 'package:mac_uninstaller/core/widgets/tidy_card.dart';
@@ -24,13 +25,15 @@ class SmartCarePage extends StatelessWidget {
     // the sidebar can read it; Smart Care runs a different, wider scan and must
     // not overwrite that one.
     return BlocProvider(
-      create: (_) => ScanBloc(
-        locator<SmartCareModule>(),
-        hasFullDiskAccess: fullDiskAccess.granted ?? true,
-      ),
+      create:
+          (_) => ScanBloc(
+            locator<SmartCareModule>(),
+            hasFullDiskAccess: fullDiskAccess.granted ?? true,
+          ),
       child: ScanView(
         title: 'Smart Care',
-        subtitle: 'Every check that is built, in one pass, reviewed in one place.',
+        subtitle:
+            'Every check that is built, in one pass, reviewed in one place.',
         idleHeadline: 'Give your Mac a once-over',
         idleMessage:
             'Runs the checks below together and puts everything they find in a '
@@ -44,12 +47,39 @@ class SmartCarePage extends StatelessWidget {
 }
 
 /// States plainly which checks ran and which do not exist yet.
-class _CoverageNote extends StatelessWidget {
+///
+/// Shown on the first visit to Smart Care and never again. The information is
+/// essential once — "Smart Care" sounds comprehensive and it is not — and it is
+/// clutter above every scan after that. The checkbox is for someone who wants
+/// it gone before they have finished reading; ticking it and simply leaving the
+/// page have the same lasting effect, which is why the checkbox dismisses
+/// rather than needing a separate confirm.
+class _CoverageNote extends StatefulWidget {
   const _CoverageNote();
+
+  @override
+  State<_CoverageNote> createState() => _CoverageNoteState();
+}
+
+class _CoverageNoteState extends State<_CoverageNote> {
+  final AppSettings _settings = locator<AppSettings>();
+
+  /// Captured once, in initState, rather than read on every build: the visit
+  /// is marked seen immediately, and reading the flag live would make the note
+  /// vanish out from under whoever is still reading it.
+  late final bool _visible = !_settings.hasSeenSmartCareCoverage;
+  bool _dismissed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _settings.markSmartCareCoverageSeen();
+  }
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    if (!_visible || _dismissed) return const SizedBox.shrink();
 
     return TidyCard(
       padding: const EdgeInsets.all(AppSpacing.lg),
@@ -95,10 +125,42 @@ class _CoverageNote extends StatelessWidget {
                   'clean bill of health — only a clean result for what ran.',
                   style: context.text.bodyS,
                 ),
+                const SizedBox(height: AppSpacing.md),
+                _NeverAgain(onChanged: () => setState(() => _dismissed = true)),
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// The dismiss control. A checkbox rather than an X, because the question is
+/// "should this come back?" and not "close this".
+class _NeverAgain extends StatelessWidget {
+  const _NeverAgain({required this.onChanged});
+
+  final VoidCallback onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onChanged,
+      borderRadius: AppRadii.smAll,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox.square(
+              dimension: 18,
+              child: Checkbox(value: false, onChanged: (_) => onChanged()),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Text("Don't show this again", style: context.text.bodyS),
+          ],
+        ),
       ),
     );
   }

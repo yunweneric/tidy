@@ -79,6 +79,12 @@ enum SystemChannel {
     DispatchQueue.global(qos: .userInitiated).async {
       var removed: [String] = []
       var failures: [[String: String]] = []
+      // Original path -> where it landed in the Trash. `trashItem` is the only
+      // moment anyone knows both halves: afterwards the Trash holds a file with
+      // no record of where it came from, and macOS keeps its own put-back index
+      // in a binary `.DS_Store` no other app can read. Reporting the pair here
+      // is what lets Recycle Bin offer a real "Put Back" later.
+      var trashed: [String: String] = [:]
 
       for path in paths {
         guard isRemovable(path) else {
@@ -98,7 +104,9 @@ enum SystemChannel {
 
         do {
           if toTrash {
-            try FileManager.default.trashItem(at: url, resultingItemURL: nil)
+            var landed: NSURL?
+            try FileManager.default.trashItem(at: url, resultingItemURL: &landed)
+            if let landed = landed as URL? { trashed[path] = landed.path }
           } else {
             do {
               try FileManager.default.removeItem(at: url)
@@ -115,7 +123,7 @@ enum SystemChannel {
       }
 
       DispatchQueue.main.async {
-        result(["removed": removed, "failures": failures])
+        result(["removed": removed, "failures": failures, "trashed": trashed])
       }
     }
   }
@@ -130,6 +138,7 @@ enum SystemChannel {
     if path.isEmpty || path == "/" { return false }
     if path.hasPrefix("/System") { return false }
     if protectedPaths.contains(path) { return false }
+    if isTrashRoot(path) { return false }
 
     // Resolve symlinks too, so a link inside an allowed root cannot be used to
     // reach a protected target. Both forms have to clear the deny list.
@@ -138,6 +147,7 @@ enum SystemChannel {
       if resolved.isEmpty || resolved == "/" { return false }
       if resolved.hasPrefix("/System") { return false }
       if protectedPaths.contains(resolved) { return false }
+      if isTrashRoot(resolved) { return false }
     }
 
     // Refuse volume roots and mount points: deleting one of those means
@@ -150,6 +160,27 @@ enum SystemChannel {
     if components.count < 2 { return false }
 
     return true
+  }
+
+  /// True when `path` is a Trash folder rather than something inside one.
+  ///
+  /// Emptying the bin deletes its *contents*; deleting `~/.Trash` or a volume's
+  /// `.Trashes` takes the folder macOS puts things into, and Finder does not
+  /// always recreate it. Checked as strings rather than added to
+  /// `protectedPaths` because that set is rebuilt per path and enumerating
+  /// mounted volumes there would be a syscall on every candidate.
+  private static func isTrashRoot(_ path: String) -> Bool {
+    if path == "\(NSHomeDirectory())/.Trash" { return true }
+    if path.hasSuffix("/.Trash") && path.hasPrefix("/Users/") { return true }
+    if path.hasSuffix("/.Trashes") { return true }
+
+    // "/Volumes/Disk/.Trashes/501" — the per-user bin on another volume.
+    let url = URL(fileURLWithPath: path)
+    if url.deletingLastPathComponent().lastPathComponent == ".Trashes",
+       Int(url.lastPathComponent) != nil {
+      return true
+    }
+    return false
   }
 
   /// True when `path` is where a filesystem is mounted.

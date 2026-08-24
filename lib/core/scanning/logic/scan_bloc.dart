@@ -13,7 +13,8 @@ import 'package:mac_uninstaller/core/scanning/logic/scan_state.dart';
 /// Deliberately module-agnostic: every scanner gets the same state machine, and
 /// adding a module means writing a data source, not another bloc.
 class ScanBloc extends Bloc<ScanEvent, ScanState> {
-  ScanBloc(this.module, {this.hasFullDiskAccess = true}) : super(const ScanState()) {
+  ScanBloc(this.module, {this.hasFullDiskAccess = true})
+    : super(const ScanState()) {
     on<StartScan>(_onStart);
     on<CancelScan>(_onCancel);
     on<ResetScan>(_onReset);
@@ -53,10 +54,11 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
       await emit.forEach<ScanProgress>(
         module.scan(request),
         onData: (progress) => _fromProgress(progress),
-        onError: (error, _) => state.copyWith(
-          phase: ScanPhase.failed,
-          error: 'That scan could not finish.\n$error',
-        ),
+        onError:
+            (error, _) => state.copyWith(
+              phase: ScanPhase.failed,
+              error: 'That scan could not finish.\n$error',
+            ),
       );
     } catch (e) {
       emit(
@@ -76,17 +78,35 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
 
     // Keep whatever the user has already ticked, drop ids the rescan removed,
     // and default-select anything newly discovered.
-    final selection = state.phase == ScanPhase.scanning && state.selection.isEmpty
-        ? ScanSelection.defaultFor(roots)
-        : ScanSelection.defaultFor(roots).reconcile(roots);
+    final selection =
+        state.phase == ScanPhase.scanning && state.selection.isEmpty
+            ? ScanSelection.defaultFor(roots)
+            : ScanSelection.defaultFor(roots).reconcile(roots);
 
     if (!progress.done) {
+      // Only count a place once. Modules emit a progress frame per result as
+      // well as per directory, so counting every frame would inflate the number
+      // into something that is technically moving and factually meaningless.
+      final path = progress.currentPath;
+      final isNew =
+          path != null &&
+          path.isNotEmpty &&
+          (state.recentPaths.isEmpty || state.recentPaths.first != path);
+
       return state.copyWith(
         phase: ScanPhase.scanning,
         roots: roots,
         selection: selection,
         fraction: progress.fraction,
         currentPath: progress.currentPath,
+        recentPaths:
+            isNew
+                ? [
+                  path,
+                  ...state.recentPaths.take(ScanState.recentPathLimit - 1),
+                ]
+                : state.recentPaths,
+        visitedCount: isNew ? state.visitedCount + 1 : state.visitedCount,
         permissionLimited: progress.skippedForPermission,
       );
     }
@@ -149,9 +169,10 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
     final expected = state.selectedBytes;
     emit(state.copyWith(phase: ScanPhase.cleaning, clearOutcome: true));
 
-    final result = event.toTrash
-        ? await SystemBridge.trashItems(paths)
-        : await SystemBridge.deleteItems(paths);
+    final result =
+        event.toTrash
+            ? await SystemBridge.trashItems(paths)
+            : await SystemBridge.deleteItems(paths);
 
     final removed = result.removed.toSet();
     final survivors = _withoutRemoved(state.roots, removed);
@@ -178,7 +199,10 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
 
   /// Rebuilds the tree without the leaves that actually went, so a partial
   /// failure leaves the survivors on screen instead of blanking everything.
-  static List<ScanNode> _withoutRemoved(List<ScanNode> nodes, Set<String> removed) {
+  static List<ScanNode> _withoutRemoved(
+    List<ScanNode> nodes,
+    Set<String> removed,
+  ) {
     final result = <ScanNode>[];
     for (final node in nodes) {
       if (node.isLeaf) {

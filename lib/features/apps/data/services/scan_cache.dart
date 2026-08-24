@@ -66,7 +66,9 @@ class ScanCache {
       if (decoded is! Map) return null;
       if (decoded['formatVersion'] != _formatVersion) return null;
 
-      final scannedAt = DateTime.tryParse(decoded['scannedAt'] as String? ?? '');
+      final scannedAt = DateTime.tryParse(
+        decoded['scannedAt'] as String? ?? '',
+      );
       final rawApps = decoded['apps'];
       if (scannedAt == null || rawApps is! List) return null;
 
@@ -115,7 +117,9 @@ class ScanCache {
     if (cached == null) return;
 
     final removed = paths.toSet();
-    await write(cached.apps.where((app) => !removed.contains(app.path)).toList());
+    await write(
+      cached.apps.where((app) => !removed.contains(app.path)).toList(),
+    );
   }
 
   /// Icons are stored as loose PNGs rather than base64 in the JSON so the cache

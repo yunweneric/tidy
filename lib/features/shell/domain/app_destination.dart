@@ -103,6 +103,18 @@ enum AppDestination {
     icon: AppIcons.settings,
     group: NavGroup.footer,
     blurb: 'Appearance, scanning and permissions.',
+  ),
+
+  /// Appended rather than slotted in next to Space Lens: branches are declared
+  /// in enum order, so inserting in the middle renumbers every branch after it.
+  /// The sidebar groups by [NavGroup] regardless, so this still lists under
+  /// MORE with the other supporting views.
+  recycleBin(
+    path: '/recycle-bin',
+    label: 'Recycle Bin',
+    icon: AppIcons.recycleBin,
+    group: NavGroup.secondary,
+    blurb: 'See what is in the Trash, put things back, or clear it for good.',
   );
 
   const AppDestination({

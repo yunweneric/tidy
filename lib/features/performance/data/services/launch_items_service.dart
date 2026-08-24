@@ -20,7 +20,8 @@ class LaunchItemsService {
 
   Future<List<LaunchItem>> load() async {
     final raw = await PerformanceBridge.launchItems();
-    final items = raw.map(LaunchItem.fromMap).toList()..sort(_byUrgencyThenName);
+    final items =
+        raw.map(LaunchItem.fromMap).toList()..sort(_byUrgencyThenName);
     await _loadIcons(items);
     return items;
   }
@@ -50,15 +51,30 @@ class LaunchItemsService {
   /// than a native delete here so it passes the same `isRemovable` guard as
   /// every other deletion in the app.
   Future<ActionOutcome> remove(LaunchItem item) async {
-    if (!item.canRemove) {
-      return const ActionOutcome(
-        ok: false,
-        message: 'That item is set up for every user, so removing it needs '
-            'administrator rights.',
+    // A machine-wide item that cannot start anything goes through macOS's own
+    // authorization prompt, which does the bootout and the move to Trash in one
+    // elevated step. Everything else is user-space and needs no password.
+    if (item.canRemoveWithAdmin) {
+      return PerformanceBridge.removeLaunchItemElevated(
+        path: item.path,
+        label: item.label,
+        kind: item.kind.name,
       );
     }
 
-    await PerformanceBridge.unloadLaunchItem(label: item.label, scope: item.scope.name);
+    if (!item.canRemove) {
+      return const ActionOutcome(
+        ok: false,
+        message:
+            'That item is set up for every user and still works, so Tidy '
+            'leaves it alone.',
+      );
+    }
+
+    await PerformanceBridge.unloadLaunchItem(
+      label: item.label,
+      scope: item.scope.name,
+    );
 
     final result = await SystemBridge.trashItems([item.path]);
     if (result.isCompleteSuccess) return ActionOutcome.success;
@@ -68,7 +84,8 @@ class LaunchItemsService {
   Future<void> _loadIcons(List<LaunchItem> items) async {
     final wanted = <String>{
       for (final item in items)
-        if (item.appPath != null && !_icons.containsKey(item.appPath)) item.appPath!,
+        if (item.appPath != null && !_icons.containsKey(item.appPath))
+          item.appPath!,
     };
     if (wanted.isEmpty) return;
 

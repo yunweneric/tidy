@@ -53,7 +53,8 @@ class ResultTiles extends StatelessWidget {
                 width: tileWidth,
                 child: _ResultTile(
                   node: node,
-                  fractionOfLargest: largest == 0 ? 0 : node.totalBytes / largest,
+                  fractionOfLargest:
+                      largest == 0 ? 0 : node.totalBytes / largest,
                   state: selection.stateOf(node),
                   onReview: () => onReview(node),
                   onToggle: (select) => onToggle(node, select),

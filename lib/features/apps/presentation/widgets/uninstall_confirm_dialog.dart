@@ -1,9 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mac_uninstaller/core/platform/system_bridge.dart';
 import 'package:mac_uninstaller/core/design/design.dart';
+import 'package:mac_uninstaller/core/feedback/feedback.dart';
 import 'package:mac_uninstaller/features/apps/data/models/leftover_item.dart';
 import 'package:mac_uninstaller/features/apps/data/models/mac_app_model.dart';
+import 'package:mac_uninstaller/features/apps/data/models/removal_progress.dart';
 import 'package:mac_uninstaller/features/apps/data/services/leftover_scanner.dart';
+import 'package:mac_uninstaller/features/apps/logic/app_bloc.dart';
+import 'package:mac_uninstaller/features/apps/logic/app_event.dart';
+import 'package:mac_uninstaller/features/apps/logic/app_states.dart';
+import 'package:mac_uninstaller/features/apps/presentation/widgets/app_icon.dart';
 import 'package:mac_uninstaller/core/widgets/status_chip.dart';
 import 'package:mac_uninstaller/features/apps/utils/size_utils.dart';
 
@@ -23,25 +30,41 @@ class UninstallPlan {
 }
 
 /// Safe-preview dialog: scans for everything an uninstall would remove, lets
-/// the user deselect individual items, and only then reports a plan back.
+/// the user deselect individual items, then runs it without going away.
 ///
-/// Nothing is deleted here — the dialog returns an [UninstallPlan] and the
-/// caller dispatches it.
+/// It used to hand a plan back and close on the button press, which left the
+/// window looking like nothing had happened for however long trashing a 12 GB
+/// bundle takes — the only sign was a row quietly disappearing later. Now the
+/// dialog dispatches the removal itself, stays up showing what is being
+/// removed, and closes only once the work is finished. The result is then a
+/// toast, because a finished uninstall is news rather than a decision.
 class UninstallConfirmDialog extends StatefulWidget {
   const UninstallConfirmDialog({super.key, required this.apps, this.scanner});
 
   final List<MacApp> apps;
   final LeftoverScanner? scanner;
 
-  /// Returns the approved plan, or null if the user cancelled.
+  /// Resolves once the dialog has gone — either cancelled, or the removal ran
+  /// to completion. Callers use it to tidy up their own selection.
   static Future<UninstallPlan?> show(BuildContext context, List<MacApp> apps) {
     final removable = apps.where((app) => !app.isSystem).toList();
     if (removable.isEmpty) return Future.value(null);
 
-    return showDialog<UninstallPlan>(
-      context: context,
+    // The dialog goes on the root navigator, above the shell that provides
+    // AppsBloc, so it cannot find the bloc for itself. Hand it down.
+    final bloc = context.read<AppsBloc>();
+
+    return showTidyDialog<UninstallPlan>(
+      context,
+      // A scan is running behind this dialog and the checkboxes are a real
+      // decision — a stray click on the scrim should not throw either away.
+      // Once removal starts there is nothing left to dismiss safely either.
       barrierDismissible: false,
-      builder: (_) => UninstallConfirmDialog(apps: removable),
+      builder:
+          (_) => BlocProvider<AppsBloc>.value(
+            value: bloc,
+            child: UninstallConfirmDialog(apps: removable),
+          ),
     );
   }
 
@@ -59,10 +82,46 @@ class _UninstallConfirmDialogState extends State<UninstallConfirmDialog> {
   bool _scanning = true;
   bool _toTrash = true;
 
+  /// Set once the user commits. From here the dialog is a progress view: the
+  /// checkboxes stop mattering, the buttons go, and it closes itself when the
+  /// bloc reports an outcome.
+  UninstallPlan? _running;
+
   @override
   void initState() {
     super.initState();
     _scan();
+  }
+
+  void _start() {
+    final bloc = context.read<AppsBloc>();
+    final plan = UninstallPlan(
+      apps: widget.apps,
+      paths: _selectedPaths,
+      totalBytes: _selectedBytes,
+      toTrash: _toTrash,
+    );
+
+    final event = UninstallAppsEvent(
+      apps: plan.apps,
+      paths: plan.paths,
+      toTrash: plan.toTrash,
+      expectedBytes: plan.totalBytes,
+    );
+
+    // The handler ignores the event unless the list is loaded, and the progress
+    // view has no close button — entering it against a bloc that will never
+    // report an outcome would strand the user in a dialog they cannot leave.
+    // That should not happen from this screen, but "should not" is not a state
+    // machine.
+    if (bloc.state is! AppsLoaded) {
+      bloc.add(event);
+      Navigator.of(context).pop(plan);
+      return;
+    }
+
+    setState(() => _running = plan);
+    bloc.add(event);
   }
 
   Future<void> _scan() async {
@@ -113,90 +172,152 @@ class _UninstallConfirmDialogState extends State<UninstallConfirmDialog> {
 
   @override
   Widget build(BuildContext context) {
+    // Only listens once removal is under way. The outcome is the signal that
+    // the work is done — the page is listening for the same emission and turns
+    // it into the toast, so this only has to get out of the way.
+    return BlocListener<AppsBloc, AppsState>(
+      listenWhen:
+          (_, current) =>
+              _running != null &&
+              current is AppsLoaded &&
+              current.lastOutcome != null,
+      listener: (context, _) {
+        if (Navigator.of(context).canPop()) {
+          Navigator.of(context).pop(_running);
+        }
+      },
+      child: _running == null ? _preview(context) : _progress(context),
+    );
+  }
+
+  /// The removal in flight: the same dialog frame, no buttons, and a line
+  /// naming what is going right now.
+  Widget _progress(BuildContext context) {
+    final plan = _running!;
+    final trashing = plan.toTrash;
+
+    return BlocBuilder<AppsBloc, AppsState>(
+      builder: (context, state) {
+        final progress = state is AppsLoaded ? state.removal : null;
+        final fallback = RemovalProgress(
+          completed: 0,
+          total: plan.paths.length,
+          movedToTrash: trashing,
+        );
+        final live = progress ?? fallback;
+
+        return TidyDialog(
+          tone: FeedbackTone.warning,
+          icon: trashing ? AppIcons.trash : AppIcons.delete,
+          width: 620,
+          maxContentHeight: 200,
+          // No close button and no actions: there is no safe way to stop
+          // half-way through, so the dialog does not pretend to offer one.
+          showClose: false,
+          title:
+              trashing
+                  ? 'Moving to the Trash\u2026'
+                  : 'Deleting permanently\u2026',
+          subtitle:
+              live.total <= 1
+                  ? 'This can take a moment for a large application.'
+                  : '${live.completed} of ${live.total} items done.',
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              ClipRRect(
+                borderRadius: AppRadii.xsAll,
+                child: LinearProgressIndicator(
+                  // A single path is one step, so a determinate bar would sit
+                  // at zero and then jump. Sweep instead.
+                  value: live.isIndeterminate ? null : live.fraction,
+                  minHeight: 6,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              Text(
+                live.currentLabel == null
+                    ? 'Finishing up\u2026'
+                    : 'Removing ${live.currentLabel}',
+                style: context.text.bodyM,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              Text(
+                trashing
+                    ? 'Everything goes to the Trash, so you can put it back. '
+                        'Your disk will not show the space as free until the '
+                        'Trash is emptied.'
+                    : 'These are being removed for good. Nothing can be put '
+                        'back afterwards.',
+                style: context.text.bodyS,
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _preview(BuildContext context) {
     final multiple = widget.apps.length > 1;
 
-    return AlertDialog(
-      titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
-      contentPadding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
-      title: Text(
-        multiple
-            ? 'Uninstall ${widget.apps.length} applications?'
-            : 'Uninstall “${widget.apps.first.name}”?',
-        style: context.text.titleM,
-      ),
-      content: SizedBox(
-        width: 580,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return TidyDialog(
+      // Amber, not red: nothing has been removed yet, and this is the screen
+      // where the user is meant to look rather than flinch.
+      tone: FeedbackTone.warning,
+      icon: AppIcons.trash,
+      width: 620,
+      maxContentHeight: 380,
+      title:
+          multiple
+              ? 'Uninstall ${widget.apps.length} applications?'
+              : 'Uninstall \u201C${widget.apps.first.name}\u201D?',
+      subtitle:
+          _scanning
+              ? 'Looking for the files these apps left around the system\u2026'
+              : _leftoverCount == 0
+              ? 'Nothing was left behind \u2014 only the app itself will go.'
+              : 'Found ${_leftoverCount == 1 ? '1 leftover item' : '$_leftoverCount leftover items'}. '
+                  'Uncheck anything you want to keep.',
+      actionsLeading: Text.rich(
+        TextSpan(
+          text: _toTrash ? 'Moves ' : 'Removes ',
+          style: context.text.bodyM,
           children: [
-            Text(
-              _scanning
-                  ? 'Scanning for leftover files…'
-                  : _leftoverCount == 0
-                  ? 'No leftover files were found.'
-                  : 'Found $_leftoverCount leftover ${_leftoverCount == 1 ? 'item' : 'items'}. '
-                        'Uncheck anything you want to keep.',
-              style: context.text.bodyM,
+            TextSpan(
+              text: formatBytes(_selectedBytes),
+              style: context.text.titleM.copyWith(color: context.colors.safe),
             ),
-            if (_scanning) ...[
-              const SizedBox(height: AppSpacing.sm),
-              const LinearProgressIndicator(minHeight: 3),
-            ],
-            const SizedBox(height: 16),
-            Flexible(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxHeight: 340),
-                child: SingleChildScrollView(child: _buildItemList()),
-              ),
-            ),
-            const SizedBox(height: 16),
-            _buildModeSelector(),
           ],
         ),
       ),
-      actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
       actions: [
-        Row(
-          children: [
-            Text.rich(
-              TextSpan(
-                text: _toTrash ? 'Moves ' : 'Removes ',
-                style: context.text.bodyM,
-                children: [
-                  TextSpan(
-                    text: formatBytes(_selectedBytes),
-                    style: context.text.titleM.copyWith(color: context.colors.safe),
-                  ),
-                ],
-              ),
-            ),
-            const Spacer(),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
-            const SizedBox(width: 8),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: context.colors.risky,
-                foregroundColor: context.colors.textOnAccent,
-              ),
-              onPressed: _scanning
-                  ? null
-                  : () => Navigator.of(context).pop(
-                      UninstallPlan(
-                        apps: widget.apps,
-                        paths: _selectedPaths,
-                        totalBytes: _selectedBytes,
-                        toTrash: _toTrash,
-                      ),
-                    ),
-              child: Text(_toTrash ? 'Move to Trash' : 'Delete permanently'),
-            ),
-          ],
+        TidyDialogAction(
+          label: 'Cancel',
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        TidyDialogAction(
+          label: _toTrash ? 'Move to Trash' : 'Delete permanently',
+          icon: _toTrash ? AppIcons.trash : AppIcons.delete,
+          style: TidyActionStyle.destructive,
+          onPressed: _scanning ? null : _start,
         ),
       ],
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (_scanning) ...[
+            const LinearProgressIndicator(minHeight: 3),
+            const SizedBox(height: AppSpacing.lg),
+          ],
+          _buildItemList(),
+          const SizedBox(height: AppSpacing.lg),
+          _buildModeSelector(),
+        ],
+      ),
     );
   }
 
@@ -211,7 +332,11 @@ class _UninstallConfirmDialogState extends State<UninstallConfirmDialog> {
             sizeBytes: app.sizeBytes,
             selected: true,
             locked: true,
-            categoryLabel: LeftoverCategory.appBundle.label,
+            category: LeftoverCategory.appBundle,
+            // The bundle row shows the app's real icon rather than a category
+            // glyph. It is the one row here the user already recognises, and
+            // it anchors the rest of the list as belonging to that app.
+            app: app,
             onChanged: (_) {},
           ),
           for (final item in _leftovers[app.path] ?? const <LeftoverItem>[])
@@ -221,7 +346,7 @@ class _UninstallConfirmDialogState extends State<UninstallConfirmDialog> {
               sizeBytes: item.sizeBytes,
               selected: _isSelected(item.path),
               requiresAdmin: item.requiresAdmin,
-              categoryLabel: item.category.label,
+              category: item.category,
               onChanged: (value) => _toggle(item.path, value),
               onReveal: () => SystemBridge.revealInFinder(item.path),
             ),
@@ -245,9 +370,7 @@ class _UninstallConfirmDialogState extends State<UninstallConfirmDialog> {
       child: Row(
         children: [
           Icon(
-            _toTrash
-                ? AppIcons.restore
-                : AppIcons.risky,
+            _toTrash ? AppIcons.restore : AppIcons.risky,
             size: 17,
             color: _toTrash ? colors.safe : colors.risky,
           ),
@@ -256,8 +379,8 @@ class _UninstallConfirmDialogState extends State<UninstallConfirmDialog> {
             child: Text(
               _toTrash
                   ? 'Everything moves to the Trash, so you can put it back. '
-                        'Your disk will not show the space as free until the '
-                        'Trash is emptied.'
+                      'Your disk will not show the space as free until the '
+                      'Trash is emptied.'
                   : 'Removed immediately. Nothing can be recovered.',
               style: context.text.bodyS,
             ),
@@ -276,14 +399,52 @@ class _UninstallConfirmDialogState extends State<UninstallConfirmDialog> {
 }
 
 /// One line in the preview: what it is, where it lives, how big it is.
+/// The category glyph, on the same 26pt footprint as the app icon so every row
+/// in the list lines up whichever kind it is.
+class _CategoryIcon extends StatelessWidget {
+  const _CategoryIcon({required this.category});
+
+  final LeftoverCategory category;
+
+  /// Mapped here rather than on [LeftoverCategory] itself: the enum lives in
+  /// the data layer, and giving it an `IconData` would drag Flutter in with it.
+  static IconData glyphFor(LeftoverCategory category) => switch (category) {
+    LeftoverCategory.appBundle => AppIcons.applications,
+    LeftoverCategory.applicationSupport => AppIcons.folder,
+    LeftoverCategory.caches => AppIcons.cleanup,
+    LeftoverCategory.preferences => AppIcons.settings,
+    LeftoverCategory.logs => AppIcons.document,
+    LeftoverCategory.containers => AppIcons.archive,
+    LeftoverCategory.savedState => AppIcons.snapshot,
+    LeftoverCategory.launchAgents => AppIcons.loginItems,
+    LeftoverCategory.other => AppIcons.document,
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+
+    return Container(
+      width: 26,
+      height: 26,
+      decoration: BoxDecoration(
+        color: colors.surfaceRaised,
+        borderRadius: AppRadii.smAll,
+      ),
+      child: Icon(glyphFor(category), size: 14, color: colors.textSecondary),
+    );
+  }
+}
+
 class _PreviewRow extends StatelessWidget {
   const _PreviewRow({
     required this.title,
     required this.subtitle,
     required this.sizeBytes,
     required this.selected,
-    required this.categoryLabel,
+    required this.category,
     required this.onChanged,
+    this.app,
     this.locked = false,
     this.requiresAdmin = false,
     this.onReveal,
@@ -293,8 +454,11 @@ class _PreviewRow extends StatelessWidget {
   final String subtitle;
   final int sizeBytes;
   final bool selected;
-  final String categoryLabel;
+  final LeftoverCategory category;
   final ValueChanged<bool> onChanged;
+
+  /// Set only on the app-bundle row, which shows the real icon instead.
+  final MacApp? app;
   final bool locked;
   final bool requiresAdmin;
   final VoidCallback? onReveal;
@@ -312,6 +476,14 @@ class _PreviewRow extends StatelessWidget {
               onChanged: locked ? null : (value) => onChanged(value ?? false),
             ),
           ),
+          // A glyph per category, so the list is scannable by shape before it
+          // is read. Twelve rows of identical text is how a preview stops being
+          // looked at, and this preview is the whole safety story.
+          if (app != null)
+            AppIcon(app: app!, size: 26)
+          else
+            _CategoryIcon(category: category),
+          const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -327,13 +499,14 @@ class _PreviewRow extends StatelessWidget {
                     ),
                     const SizedBox(width: AppSpacing.sm),
                     StatusChip(
-                      label: categoryLabel,
+                      label: category.label,
                       color: context.colors.textMuted,
                     ),
                     if (requiresAdmin) ...[
                       const SizedBox(width: AppSpacing.xs),
                       Tooltip(
-                        message: 'Needs administrator rights — this one may fail',
+                        message:
+                            'Needs administrator rights — this one may fail',
                         child: Icon(
                           AppIcons.locked,
                           size: 13,
@@ -368,4 +541,3 @@ class _PreviewRow extends StatelessWidget {
     );
   }
 }
-

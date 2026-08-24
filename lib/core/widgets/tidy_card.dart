@@ -98,6 +98,20 @@ class _TidyCardState extends State<TidyCard> {
               color: borderColor,
               width: widget.selected ? 1.5 : 1,
             ),
+            // Light mode only. There a near-white card sits on a tinted
+            // backdrop and needs the lift to read as a separate plane; in dark
+            // the card is a lighter veil on a darker base, which separates on
+            // its own, and a shadow there just reads as grime.
+            boxShadow:
+                colors.isDark
+                    ? null
+                    : [
+                      BoxShadow(
+                        color: colors.shadow,
+                        blurRadius: 12,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
           ),
           child: widget.child,
         ),

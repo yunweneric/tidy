@@ -20,9 +20,13 @@ class ProcessMonitorService {
     final raw = await PerformanceBridge.processSamples();
     final rows = (raw['processes'] as List?) ?? const [];
 
-    final processes = rows
-        .map((entry) => ProcessSample.fromMap((entry as Map).cast<String, dynamic>()))
-        .toList();
+    final processes =
+        rows
+            .map(
+              (entry) =>
+                  ProcessSample.fromMap((entry as Map).cast<String, dynamic>()),
+            )
+            .toList();
 
     await _loadIcons(processes);
 
@@ -40,7 +44,8 @@ class ProcessMonitorService {
   Future<void> _loadIcons(List<ProcessSample> processes) async {
     final wanted = <String>{
       for (final process in processes)
-        if (process.bundlePath != null && !_icons.containsKey(process.bundlePath))
+        if (process.bundlePath != null &&
+            !_icons.containsKey(process.bundlePath))
           process.bundlePath!,
     };
     if (wanted.isEmpty) return;
@@ -52,15 +57,22 @@ class ProcessMonitorService {
   /// Orders a snapshot for display. Processes still waiting on their second
   /// sample sort last under CPU — they have no reading yet, and floating them
   /// to the top as zeroes would bury whatever is actually busy.
-  static List<ProcessSample> sorted(List<ProcessSample> processes, ProcessSort by) {
+  static List<ProcessSample> sorted(
+    List<ProcessSample> processes,
+    ProcessSort by,
+  ) {
     final ordered = List.of(processes);
     switch (by) {
       case ProcessSort.cpu:
-        ordered.sort((a, b) => (b.cpuPercent ?? -1).compareTo(a.cpuPercent ?? -1));
+        ordered.sort(
+          (a, b) => (b.cpuPercent ?? -1).compareTo(a.cpuPercent ?? -1),
+        );
       case ProcessSort.memory:
         ordered.sort((a, b) => b.memoryBytes.compareTo(a.memoryBytes));
       case ProcessSort.name:
-        ordered.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+        ordered.sort(
+          (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+        );
     }
     return ordered;
   }

@@ -1,8 +1,9 @@
 import 'package:mac_uninstaller/core/platform/system_bridge.dart';
 import 'package:mac_uninstaller/features/apps/data/models/mac_app_model.dart';
+import 'package:mac_uninstaller/features/apps/data/models/removal_progress.dart';
 import 'package:mac_uninstaller/features/apps/data/services/junk_scanner.dart';
 
-/// Result of a removal, surfaced once as a snack bar rather than replacing the
+/// Result of a removal, surfaced once as a toast rather than replacing the
 /// list with an error screen.
 class RemovalOutcome {
   const RemovalOutcome({
@@ -33,6 +34,7 @@ class AppsLoaded extends AppsState {
     this.junk = JunkReport.empty,
     this.isRefreshing = false,
     this.isScanningJunk = false,
+    this.removal,
     this.lastOutcome,
     this.scannedAt,
   });
@@ -46,6 +48,11 @@ class AppsLoaded extends AppsState {
 
   /// The junk sweep is slower than the app scan and finishes separately.
   final bool isScanningJunk;
+
+  /// Non-null only while a removal is running. The confirm dialog stays open
+  /// and renders this, so the user watches the work instead of watching a
+  /// dialog vanish and nothing visibly happen.
+  final RemovalProgress? removal;
 
   /// Set for exactly one emission after a removal.
   final RemovalOutcome? lastOutcome;
@@ -61,9 +68,11 @@ class AppsLoaded extends AppsState {
     JunkReport? junk,
     bool? isRefreshing,
     bool? isScanningJunk,
+    RemovalProgress? removal,
     RemovalOutcome? lastOutcome,
     DateTime? scannedAt,
     bool clearOutcome = false,
+    bool clearRemoval = false,
   }) {
     return AppsLoaded(
       apps: apps ?? this.apps,
@@ -71,6 +80,7 @@ class AppsLoaded extends AppsState {
       junk: junk ?? this.junk,
       isRefreshing: isRefreshing ?? this.isRefreshing,
       isScanningJunk: isScanningJunk ?? this.isScanningJunk,
+      removal: clearRemoval ? null : (removal ?? this.removal),
       lastOutcome: clearOutcome ? null : (lastOutcome ?? this.lastOutcome),
       scannedAt: scannedAt ?? this.scannedAt,
     );

@@ -104,7 +104,7 @@ class _ShellScaffoldState extends State<ShellScaffold>
       ],
       child: Scaffold(
         // The flat canvas is only a fallback; AmbientBackground paints the
-        // real backdrop over it.
+        // module's own colour over it.
         backgroundColor: context.colors.canvas,
         body: AnimatedBuilder(
           animation: _fullDiskAccess,
@@ -112,9 +112,9 @@ class _ShellScaffoldState extends State<ShellScaffold>
             return BlocBuilder<ScanBloc, ScanState>(
               builder: (context, cleanupState) {
                 return AmbientBackground(
-                  // Each module owns a colour of light, so switching branches
-                  // changes the window's hue as well as its content.
-                  tint: context.colors.moduleTint(current.tone),
+                  // The module owns the window's colour, so switching branches
+                  // repaints the whole frame, sidebar included.
+                  tone: current.tone,
                   child: Row(
                     children: [
                       NavSidebar(

@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:mac_uninstaller/core/platform/trash_ledger.dart';
 
 /// Free/total capacity of the boot volume.
 class DiskUsage {
@@ -42,10 +43,18 @@ class RemovalFailure {
 
 /// Outcome of a trash/delete request.
 class RemovalResult {
-  const RemovalResult({required this.removed, required this.failures});
+  const RemovalResult({
+    required this.removed,
+    required this.failures,
+    this.trashedTo = const {},
+  });
 
   final List<String> removed;
   final List<RemovalFailure> failures;
+
+  /// Original path to where it landed in the Trash. Only a trash request fills
+  /// this in, and only for items macOS actually moved.
+  final Map<String, String> trashedTo;
 
   bool get isCompleteSuccess => failures.isEmpty;
 
@@ -65,8 +74,19 @@ class SystemBridge {
   );
 
   /// Moves [paths] to the user's Trash.
-  static Future<RemovalResult> trashItems(List<String> paths) =>
-      _remove('trashItems', paths);
+  ///
+  /// Records where each item came from in [TrashLedger] on the way through.
+  /// Here rather than at the call sites because this is the app's only route to
+  /// the Trash, so recording here is the only version of it that cannot be
+  /// forgotten by a new scanner — and without a record, Recycle Bin's "Put
+  /// Back" has nowhere to put anything back to.
+  static Future<RemovalResult> trashItems(List<String> paths) async {
+    final result = await _remove('trashItems', paths);
+    if (result.trashedTo.isNotEmpty) {
+      await TrashLedger.instance.record(result.trashedTo);
+    }
+    return result;
+  }
 
   /// Permanently deletes [paths]. Nothing is recoverable afterwards.
   static Future<RemovalResult> deleteItems(List<String> paths) =>
@@ -81,6 +101,10 @@ class SystemBridge {
       if (result == null) return RemovalResult.empty;
 
       final removed = (result['removed'] as List?)?.cast<String>() ?? const [];
+      final trashedTo =
+          ((result['trashed'] as Map?) ?? const {}).map(
+            (key, value) => MapEntry(key as String, value as String),
+          );
       final failures = ((result['failures'] as List?) ?? const [])
           .map(
             (raw) => RemovalFailure(
@@ -89,7 +113,11 @@ class SystemBridge {
             ),
           )
           .toList();
-      return RemovalResult(removed: removed, failures: failures);
+      return RemovalResult(
+        removed: removed,
+        failures: failures,
+        trashedTo: trashedTo,
+      );
     } catch (e) {
       final message = e is PlatformException ? (e.message ?? e.code) : e.toString();
       return RemovalResult(

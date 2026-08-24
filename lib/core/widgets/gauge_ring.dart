@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:mac_uninstaller/core/design/design.dart';
+import 'package:mac_uninstaller/core/widgets/ambient_background.dart';
 
 /// The signature radial gauge.
 ///
@@ -35,7 +36,8 @@ class GaugeRing extends StatefulWidget {
   State<GaugeRing> createState() => _GaugeRingState();
 }
 
-class _GaugeRingState extends State<GaugeRing> with SingleTickerProviderStateMixin {
+class _GaugeRingState extends State<GaugeRing>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _spin = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 2400),
@@ -94,10 +96,14 @@ class _GaugeRingState extends State<GaugeRing> with SingleTickerProviderStateMix
                   return CustomPaint(
                     size: Size.square(widget.size),
                     painter: _RingPainter(
-                      progress: widget.progress == null ? null : animatedProgress,
+                      progress:
+                          widget.progress == null ? null : animatedProgress,
                       rotation: _spin.value,
                       strokeWidth: widget.strokeWidth,
-                      gradient: widget.gradient ?? colors.accentGradient,
+                      gradient:
+                          widget.gradient ??
+                          ModuleTint.of(context)?.ramp ??
+                          colors.accentGradient,
                       trackColor: widget.trackColor ?? colors.surfaceHover,
                     ),
                   );
@@ -153,14 +159,14 @@ class _RingPainter extends CustomPainter {
         ..color = trackColor,
     );
 
-    final sweep = progress == null
-        ? math.pi * 2 * _sweepFraction
-        : math.pi * 2 * progress!.clamp(0.0, 1.0);
+    final sweep =
+        progress == null
+            ? math.pi * 2 * _sweepFraction
+            : math.pi * 2 * progress!.clamp(0.0, 1.0);
     if (sweep <= 0) return;
 
-    final startAngle = progress == null
-        ? _start + rotation * math.pi * 2
-        : _start;
+    final startAngle =
+        progress == null ? _start + rotation * math.pi * 2 : _start;
 
     canvas.drawArc(
       inset,

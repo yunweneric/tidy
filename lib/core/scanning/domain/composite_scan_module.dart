@@ -64,30 +64,34 @@ class CompositeScanModule implements ScanModule {
 
       // Children that cannot know their own totals report null; averaging what
       // we do have is more honest than inventing a denominator.
-      final fractions = latest.values
-          .map((progress) => progress.fraction)
-          .whereType<double>()
-          .toList();
-      final fraction = done
-          ? 1.0
-          : (fractions.length == modules.length
-                ? fractions.reduce((a, b) => a + b) / modules.length
-                : null);
+      final fractions =
+          latest.values
+              .map((progress) => progress.fraction)
+              .whereType<double>()
+              .toList();
+      final fraction =
+          done
+              ? 1.0
+              : (fractions.length == modules.length
+                  ? fractions.reduce((a, b) => a + b) / modules.length
+                  : null);
 
       controller.add(
         ScanProgress(
           roots: merged,
           fraction: fraction,
-          currentPath: done
-              ? null
-              : latest.values
-                    .where((progress) => !progress.done)
-                    .map((progress) => progress.currentPath)
-                    .whereType<String>()
-                    .firstOrNull,
+          currentPath:
+              done
+                  ? null
+                  : latest.values
+                      .where((progress) => !progress.done)
+                      .map((progress) => progress.currentPath)
+                      .whereType<String>()
+                      .firstOrNull,
           done: done,
-          skippedForPermission:
-              latest.values.any((progress) => progress.skippedForPermission),
+          skippedForPermission: latest.values.any(
+            (progress) => progress.skippedForPermission,
+          ),
         ),
       );
 
@@ -96,26 +100,28 @@ class CompositeScanModule implements ScanModule {
 
     for (final module in modules) {
       subscriptions.add(
-        module.scan(request).listen(
-          (progress) {
-            latest[module.id] = progress;
-            publish();
-          },
-          // One module failing must not take the whole sweep with it: record
-          // what it managed and let the others finish.
-          onError: (Object _) {
-            latest[module.id] = ScanProgress.done(
-              latest[module.id]?.roots ?? const [],
-            );
-            running--;
-            publish();
-          },
-          onDone: () {
-            running--;
-            publish();
-          },
-          cancelOnError: true,
-        ),
+        module
+            .scan(request)
+            .listen(
+              (progress) {
+                latest[module.id] = progress;
+                publish();
+              },
+              // One module failing must not take the whole sweep with it: record
+              // what it managed and let the others finish.
+              onError: (Object _) {
+                latest[module.id] = ScanProgress.done(
+                  latest[module.id]?.roots ?? const [],
+                );
+                running--;
+                publish();
+              },
+              onDone: () {
+                running--;
+                publish();
+              },
+              cancelOnError: true,
+            ),
       );
     }
 

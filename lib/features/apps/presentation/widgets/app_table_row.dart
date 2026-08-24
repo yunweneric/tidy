@@ -69,27 +69,30 @@ class _AppTableRowState extends State<AppTableRow> {
     final app = widget.app;
     final removable = !app.isSystem;
 
-    final background = widget.selected
-        ? colors.accentMuted
-        : (_hovered ? colors.surfaceHover : Colors.transparent);
+    final background =
+        widget.selected
+            ? colors.accentMuted
+            : (_hovered ? colors.surfaceHover : Colors.transparent);
 
     return MouseRegion(
       cursor: removable ? SystemMouseCursors.click : MouseCursor.defer,
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
       child: GestureDetector(
-        onTap: removable
-            ? () => widget.onSelectionChanged(!widget.selected)
-            : null,
+        onTap:
+            removable
+                ? () => widget.onSelectionChanged(!widget.selected)
+                : null,
         child: AnimatedContainer(
           duration: context.motion.fast,
           height: AppTableLayout.rowHeight,
           padding: AppTableLayout.rowPadding,
           decoration: BoxDecoration(
             color: background,
-            border: widget.isLast
-                ? null
-                : Border(bottom: BorderSide(color: colors.border)),
+            border:
+                widget.isLast
+                    ? null
+                    : Border(bottom: BorderSide(color: colors.border)),
           ),
           child: Row(
             children: [
@@ -97,9 +100,10 @@ class _AppTableRowState extends State<AppTableRow> {
                 width: AppTableLayout.checkbox,
                 child: Checkbox(
                   value: widget.selected,
-                  onChanged: removable
-                      ? (_) => widget.onSelectionChanged(!widget.selected)
-                      : null,
+                  onChanged:
+                      removable
+                          ? (_) => widget.onSelectionChanged(!widget.selected)
+                          : null,
                 ),
               ),
               Expanded(
@@ -128,9 +132,10 @@ class _AppTableRowState extends State<AppTableRow> {
                   app.lastUsedLabel,
                   style: context.text.bodyM.copyWith(
                     // "Never" is the signal that matters on this screen.
-                    color: app.lastUsed == null
-                        ? colors.textMuted
-                        : colors.textSecondary,
+                    color:
+                        app.lastUsed == null
+                            ? colors.textMuted
+                            : colors.textSecondary,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),

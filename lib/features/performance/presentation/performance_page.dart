@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mac_uninstaller/core/design/design.dart';
+import 'package:mac_uninstaller/core/feedback/feedback.dart';
 import 'package:mac_uninstaller/core/di/service_locator.dart';
 import 'package:mac_uninstaller/core/widgets/widgets.dart';
 import 'package:mac_uninstaller/features/performance/data/services/launch_items_service.dart';
@@ -43,10 +44,11 @@ class PerformancePage extends StatelessWidget {
     return MultiBlocProvider(
       providers: [
         BlocProvider(
-          create: (_) => PerformanceBloc(
-            launchItems: locator<LaunchItemsService>(),
-            maintenance: locator<MaintenanceService>(),
-          )..add(const LoadPerformance()),
+          create:
+              (_) => PerformanceBloc(
+                launchItems: locator<LaunchItemsService>(),
+                maintenance: locator<MaintenanceService>(),
+              )..add(const LoadPerformance()),
         ),
         BlocProvider(
           create: (_) => ProcessMonitorBloc(locator<ProcessMonitorService>()),
@@ -122,54 +124,95 @@ class _PerformanceViewState extends State<_PerformanceView>
           ActiveDestination.isVisible(context, AppDestination.performance),
     );
 
-    return BlocBuilder<PerformanceBloc, PerformanceState>(
-      builder: (context, state) {
-        final bloc = context.read<PerformanceBloc>();
+    // Everything on this page acts immediately and persistently — a disabled
+    // agent stays disabled across reboots, a quit app is gone — so none of it
+    // is allowed to silently redraw. It used to say so in a card wedged above
+    // the list, which pushed the rows down and then waited to be dismissed;
+    // a toast says the same thing without moving the thing the user just acted
+    // on. The notice is cleared as soon as it is shown, so doing the same
+    // thing twice toasts twice.
+    return MultiBlocListener(
+      listeners: [
+        BlocListener<PerformanceBloc, PerformanceState>(
+          listenWhen:
+              (previous, current) =>
+                  current.notice != null && previous.notice != current.notice,
+          listener: (context, state) {
+            _toastNotice(context, state.notice!);
+            context.read<PerformanceBloc>().add(const DismissNotice());
+          },
+        ),
+        BlocListener<ProcessMonitorBloc, ProcessMonitorState>(
+          listenWhen:
+              (previous, current) =>
+                  current.notice != null && previous.notice != current.notice,
+          listener: (context, state) {
+            _toastNotice(context, state.notice!);
+            context.read<ProcessMonitorBloc>().add(
+              const MonitorNoticeDismissed(),
+            );
+          },
+        ),
+      ],
+      child: BlocBuilder<PerformanceBloc, PerformanceState>(
+        builder: (context, state) {
+          final bloc = context.read<PerformanceBloc>();
 
-        return ModuleScaffold(
-          title: AppDestination.performance.label,
-          subtitle: AppDestination.performance.blurb,
-          scrollable: false,
-          actions: [
-            TextButton.icon(
-              onPressed: state.status == PerformanceStatus.loading
-                  ? null
-                  : () => bloc.add(const LoadPerformance(silent: true)),
-              icon: const Icon(AppIcons.refresh, size: 15),
-              label: const Text('Refresh'),
-            ),
-          ],
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Align(
-                alignment: Alignment.centerLeft,
-                child: SegmentedTabs(
-                  labels: [for (final section in _Section.values) section.label],
-                  counts: _counts(state),
-                  selectedIndex: _section.index,
-                  onChanged: (index) => _select(_Section.values[index]),
-                ),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              if (state.notice != null && _section != _Section.heavyConsumers) ...[
-                NoticeBar(
-                  notice: state.notice!,
-                  onDismiss: () => bloc.add(const DismissNotice()),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-              ],
-              Expanded(
-                child: FadeThrough(
-                  trigger: _section.index,
-                  child: _body(context, state),
-                ),
+          return ModuleScaffold(
+            title: AppDestination.performance.label,
+            subtitle: AppDestination.performance.blurb,
+            scrollable: false,
+            actions: [
+              TextButton.icon(
+                onPressed:
+                    state.status == PerformanceStatus.loading
+                        ? null
+                        : () => bloc.add(const LoadPerformance(silent: true)),
+                icon: const Icon(AppIcons.refresh, size: 15),
+                label: const Text('Refresh'),
               ),
             ],
-          ),
-        );
-      },
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: SegmentedTabs(
+                    labels: [
+                      for (final section in _Section.values) section.label,
+                    ],
+                    counts: _counts(state),
+                    selectedIndex: _section.index,
+                    onChanged: (index) => _select(_Section.values[index]),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                Expanded(
+                  child: FadeThrough(
+                    trigger: _section.index,
+                    child: _body(context, state),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
     );
+  }
+
+  /// Says what the last action did.
+  ///
+  /// `ok` is the bloc's own judgement of whether the thing happened, so it maps
+  /// straight onto the tone. A failure gets a title because the message is an
+  /// explanation and needs a headline over it; a success does not, because
+  /// "Asked Safari to quit" is already the whole story.
+  void _toastNotice(BuildContext context, PerformanceNotice notice) {
+    if (notice.ok) {
+      context.toastSuccess(notice.message);
+    } else {
+      context.toastError(notice.message, title: 'That did not go through');
+    }
   }
 
   /// Counts appear only where they mean something. Heavy Consumers has none:
@@ -193,8 +236,9 @@ class _PerformanceViewState extends State<_PerformanceView>
         title: 'That did not work',
         message: state.error,
         action: ElevatedButton(
-          onPressed: () =>
-              context.read<PerformanceBloc>().add(const LoadPerformance()),
+          onPressed:
+              () =>
+                  context.read<PerformanceBloc>().add(const LoadPerformance()),
           child: const Text('Try again'),
         ),
       );
@@ -265,7 +309,10 @@ class _LoginItemsFooter extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Some login items are not listed here', style: context.text.titleS),
+                Text(
+                  'Some login items are not listed here',
+                  style: context.text.titleS,
+                ),
                 const SizedBox(height: AppSpacing.xxs),
                 Text(
                   'Since macOS 13, apps register login items in a way no other '

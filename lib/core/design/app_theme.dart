@@ -87,9 +87,12 @@ class TidyTheme {
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: c.accent,
-          foregroundColor: c.textOnAccent,
-          disabledBackgroundColor: c.surfaceHover,
+          // A neutral veil, not the accent. Every ordinary button sits on a
+          // saturated module colour, and the one action that gets to wear a
+          // colour is GradientButton — which wears the module's own.
+          backgroundColor: c.surfaceHover,
+          foregroundColor: c.textPrimary,
+          disabledBackgroundColor: c.surface,
           disabledForegroundColor: c.textMuted,
           elevation: 0,
           textStyle: type.label.copyWith(fontWeight: FontWeight.w600),
@@ -114,7 +117,7 @@ class TidyTheme {
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: c.accent,
+          foregroundColor: c.textSecondary,
           textStyle: type.label,
           shape: const RoundedRectangleBorder(borderRadius: AppRadii.smAll),
         ),

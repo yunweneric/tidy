@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mac_uninstaller/core/design/design.dart';
+import 'package:mac_uninstaller/core/widgets/ambient_background.dart';
 
 /// The primary call to action, wearing the brand gradient.
 ///
@@ -30,8 +31,9 @@ class GradientButton extends StatefulWidget {
   /// Fills the available width — the sidebar's Reclaim button.
   final bool expand;
 
-  /// Overrides the brand gradient. For a destructive confirm, which should
-  /// still read as the primary action but not as the brand.
+  /// Overrides the ramp. Left null, the button wears the active module's own
+  /// colours — a call to action should never sit on a green page in violet.
+  /// Outside a module it falls back to the brand ramp.
   final List<Color>? gradient;
 
   @override
@@ -74,7 +76,10 @@ class _GradientButtonState extends State<GradientButton> {
     final motion = context.motion;
     final enabled = widget.onPressed != null;
 
-    final stops = widget.gradient ?? colors.accentGradient;
+    final stops =
+        widget.gradient ??
+        ModuleTint.of(context)?.ramp ??
+        colors.accentGradient;
     final foreground = enabled ? colors.textOnAccent : colors.textMuted;
 
     final radius =

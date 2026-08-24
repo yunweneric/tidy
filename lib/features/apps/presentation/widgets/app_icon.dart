@@ -25,16 +25,17 @@ class AppIcon extends StatelessWidget {
         borderRadius: AppRadii.smAll,
         color: colors.surfaceRaised,
       ),
-      child: app.iconBytes == null
-          ? placeholder
-          : ClipRRect(
-              borderRadius: AppRadii.smAll,
-              child: Image.memory(
-                app.iconBytes!,
-                fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => placeholder,
+      child:
+          app.iconBytes == null
+              ? placeholder
+              : ClipRRect(
+                borderRadius: AppRadii.smAll,
+                child: Image.memory(
+                  app.iconBytes!,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, _, _) => placeholder,
+                ),
               ),
-            ),
     );
   }
 }

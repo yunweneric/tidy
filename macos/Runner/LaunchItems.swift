@@ -294,4 +294,105 @@ enum LaunchItems {
     _ = Shell.run("/bin/launchctl", ["bootout", "gui/\(getuid())/\(label)"])
     return nil
   }
+
+  // MARK: - Machine-wide removal
+
+  /// The only directories a machine-wide item may be removed from.
+  ///
+  /// `/System/Library/Launch*` is absent and cannot match — none of these are
+  /// a prefix of it — which is the point. Those are Apple's own, and removing
+  /// one is how a Mac stops booting properly.
+  private static let elevatableRoots = [
+    "/Library/LaunchAgents/",
+    "/Library/LaunchDaemons/",
+    "/Library/PrivilegedHelperTools/",
+  ]
+
+  private static func isElevatable(_ path: String) -> Bool {
+    guard !path.contains("..") else { return false }
+    return elevatableRoots.contains { path.hasPrefix($0) }
+  }
+
+  /// Removes a machine-wide launch item behind one macOS authorization prompt.
+  ///
+  /// Tidy has no privileged helper, so this is `osascript`'s
+  /// `with administrator privileges` — the system's own password dialog, shown
+  /// by macOS and not by us. One invocation does both the bootout and the move,
+  /// so the user is asked once rather than twice.
+  ///
+  /// It **moves to the Trash**; it never deletes. A machine-wide launch item is
+  /// exactly the kind of thing that turns out to have mattered, and the whole
+  /// value of this operation is that it can be walked back. Cancelling the
+  /// password prompt is a normal outcome, not an error, and leaves everything
+  /// where it was.
+  static func removeElevated(path: String, label: String, kind: String) -> String? {
+    guard !path.isEmpty else { return "There is no file to remove." }
+    guard isElevatable(path) else {
+      return "Tidy only removes machine-wide items from LaunchAgents, "
+        + "LaunchDaemons and PrivilegedHelperTools."
+    }
+
+    let fileManager = FileManager.default
+    guard fileManager.fileExists(atPath: path) else {
+      return "That file is already gone."
+    }
+
+    let destination = trashDestination(for: path)
+
+    var commands: [String] = []
+    if !label.isEmpty {
+      // Daemons live in the system domain; machine-wide agents load per GUI
+      // session. A bootout that finds nothing running exits non-zero, which is
+      // expected here and deliberately ignored — the move is what counts.
+      let domain = kind == "daemon" ? "system" : "gui/\(getuid())"
+      commands.append("/bin/launchctl bootout \(shQuote("\(domain)/\(label)")) 2>/dev/null || true")
+    }
+    commands.append("/bin/mv -f \(shQuote(path)) \(shQuote(destination))")
+    // A sentinel rather than an exit status: osascript exits non-zero both for
+    // a genuine failure and for a cancelled prompt, and those want different
+    // words in front of the user.
+    commands.append("echo tidy-removed")
+
+    let script = "do shell script \(appleScriptLiteral(commands.joined(separator: "; ")))"
+      + " with administrator privileges"
+
+    let output = Shell.capture("/usr/bin/osascript", ["-e", script])
+    guard let output, output.contains("tidy-removed") else {
+      return "Nothing was removed — the password prompt was cancelled, or macOS "
+        + "refused the change."
+    }
+    return nil
+  }
+
+  /// A free filename in the user's Trash. Root-owned files land there like any
+  /// other, and stay recoverable from Finder.
+  private static func trashDestination(for path: String) -> String {
+    let trash = "\(NSHomeDirectory())/.Trash"
+    let name = (path as NSString).lastPathComponent
+    let stem = (name as NSString).deletingPathExtension
+    let ext = (name as NSString).pathExtension
+    let suffix = ext.isEmpty ? "" : ".\(ext)"
+
+    var candidate = "\(trash)/\(name)"
+    var attempt = 2
+    while FileManager.default.fileExists(atPath: candidate) {
+      candidate = "\(trash)/\(stem) \(attempt)\(suffix)"
+      attempt += 1
+    }
+    return candidate
+  }
+
+  /// Single-quotes a value for `/bin/sh`, so a path with a space or a quote in
+  /// it cannot turn into extra arguments.
+  private static func shQuote(_ value: String) -> String {
+    "'" + value.replacingOccurrences(of: "'", with: "'\\''") + "'"
+  }
+
+  /// Wraps a shell command as an AppleScript string literal.
+  private static func appleScriptLiteral(_ value: String) -> String {
+    let escaped = value
+      .replacingOccurrences(of: "\\", with: "\\\\")
+      .replacingOccurrences(of: "\"", with: "\\\"")
+    return "\"\(escaped)\""
+  }
 }

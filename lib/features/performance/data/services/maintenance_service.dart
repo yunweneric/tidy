@@ -43,7 +43,8 @@ class MaintenanceService {
     return MaintenanceResult(
       taskId: task.id,
       ok: raw['ok'] as bool? ?? false,
-      message: raw['message'] as String? ??
+      message:
+          raw['message'] as String? ??
           'That task finished without saying how it went.',
       freedBytes: (raw['freedBytes'] as num?)?.toInt() ?? 0,
     );

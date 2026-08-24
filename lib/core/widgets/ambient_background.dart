@@ -3,133 +3,230 @@ import 'dart:ui' show PointMode;
 import 'package:flutter/material.dart';
 import 'package:mac_uninstaller/core/design/design.dart';
 
-/// The window backdrop: one continuous wash, two soft glows, a few large
-/// shapes and a dot grid.
+/// The window backdrop: the active module's colour, edge to edge.
 ///
-/// It spans the *whole* window — sidebar included. Every in-window surface
-/// above it is translucent (see `surface` and `sidebar` in `AppColorTokens`),
-/// so the same backdrop carries through the rail, the cards and the tables
-/// rather than each panel being its own flat rectangle. That continuity is the
-/// entire effect; an opaque sidebar over this would cut the window in half.
+/// The module colour is not a tint on a neutral window — it *is* the window.
+/// It runs under the sidebar, the cards and the tables alike, and every surface
+/// above it is a neutral veil (see `surface` in `AppColorTokens`), so a card
+/// reads as a lighter patch of the same colour rather than a panel pasted on
+/// top. That is the entire effect; one opaque surface anywhere breaks it.
 ///
-/// Everything here is deliberately weak. The glows are lighting, the shapes are
-/// depth, the dots are texture — none of it should ever compete with a size
-/// column. If a pattern is legible enough to count, it is too strong.
+/// On top of the colour: a pool of light pulled toward [ModulePalette.lift], a
+/// couple of oversized ring outlines, and a dot grid. All of it deliberately
+/// weak — the light is depth, the shapes are scale, the dots are texture, and
+/// none of it should ever compete with a size column.
 ///
-/// It is all painted, not blurred. A `BackdropFilter` or `ImageFiltered` here
-/// would cost a full-window offscreen pass on every frame of every scan, and a
-/// wide radial gradient is visually indistinguishable from one.
+/// It is painted, not blurred. A `BackdropFilter` here would cost a full-window
+/// offscreen pass on every frame of every scan, and a wide radial gradient is
+/// visually indistinguishable from one.
 class AmbientBackground extends StatelessWidget {
   const AmbientBackground({
     super.key,
     required this.child,
+    this.tone,
     this.intensity = 1,
     this.pattern = true,
-    this.tint,
   });
 
   final Widget child;
 
-  /// Scales the glows and shapes. Below 1 for dense screens (a table is busy
-  /// enough); above 1 for a hero or an empty state, where the window is mostly
-  /// backdrop.
+  /// Whose colour the window wears. Null keeps the brand tone, which is what
+  /// the views no module owns (Settings, onboarding) use.
+  final ModuleTone? tone;
+
+  /// Scales the light and the shapes. Below 1 for dense screens (a table is
+  /// busy enough); above 1 for a hero, where the window is mostly backdrop.
   final double intensity;
 
   /// The dot grid and the ring outlines. Off for small surfaces — the menu-bar
   /// popover is 360pt wide, and a grid at that size reads as noise.
   final bool pattern;
 
-  /// The module's own colour of light, from `AppColorTokens.moduleTint`. It
-  /// replaces the primary glow and washes a few percent into the top of the
-  /// canvas, so each module's window is recognisably its own — Protection is
-  /// pink, Performance is amber, Cleanup is blue — without any of the content
-  /// being restyled.
-  ///
-  /// Null keeps the theme's own `glowPrimary`. Changing it cross-fades over
-  /// `motion.slow`; snapping between two saturated washes is jarring, and the
-  /// fade is what makes it read as the same window rather than a new one.
-  final Color? tint;
-
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
     final motion = context.motion;
-    final glow = tint ?? colors.glowPrimary;
+    final palette = colors.modulePalette(tone ?? ModuleTone.brand);
 
-    return TweenAnimationBuilder<Color?>(
-      tween: ColorTween(end: glow),
-      duration: motion.slow,
-      curve: motion.smooth,
-      child: child,
-      builder: (context, animatedGlow, child) {
-        final lit = animatedGlow ?? glow;
-
-        return DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: _wash(colors.canvasGradient, lit),
-            ),
-          ),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              // Isolated so the backdrop is rasterised once and reused instead
-              // of being repainted behind every frame of a spinning scan ring.
-              RepaintBoundary(
-                child: IgnorePointer(
-                  child: CustomPaint(
-                    isComplex: true,
-                    willChange: false,
-                    painter: _BackdropPainter(
-                      glowPrimary: lit,
-                      glowSecondary: colors.glowSecondary,
-                      accent: colors.accent,
-                      ink: colors.pattern,
-                      intensity: intensity,
-                      pattern: pattern,
-                    ),
-                  ),
-                ),
-              ),
-              child!,
-            ],
-          ),
-        );
-      },
+    // Changing module cross-fades rather than snapping. Two saturated colours
+    // swapping instantly reads as a different window, not a different page.
+    //
+    // The Theme override sits *outside* the tween on purpose: it takes the
+    // target palette, so it changes once per module switch rather than on
+    // every frame of the fade. A ThemeData change rebuilds every descendant
+    // that reads it, and doing that sixty times a second behind a long table
+    // is exactly the kind of thing that shows up as jank.
+    return Theme(
+      data: _tuned(context, palette),
+      child: TweenAnimationBuilder<ModulePalette>(
+        tween: _PaletteTween(end: palette),
+        duration: motion.slow,
+        curve: motion.smooth,
+        child: child,
+        builder: (context, animated, child) {
+          return _Backdrop(
+            palette: animated,
+            colors: colors,
+            intensity: intensity,
+            pattern: pattern,
+            child: child!,
+          );
+        },
+      ),
     );
   }
 
-  /// Pulls the top of the canvas a few percent toward the module's hue. The
-  /// glow alone is a pool of light in one corner; without this the rest of the
-  /// window stays the same colour on every module and the effect reads as a
-  /// smudge rather than as a theme.
-  static List<Color> _wash(List<Color> canvas, Color lit) {
-    final strong = lit.withValues(alpha: 0.16);
-    final faint = lit.withValues(alpha: 0.05);
-    return [
-      for (var i = 0; i < canvas.length; i++)
-        Color.alphaBlend(i == 0 ? strong : faint, canvas[i]),
-    ];
+  /// Rebinds the accent — and the Material widgets that were built against it —
+  /// to the module's own colour.
+  ///
+  /// Without this a Performance toggle is brand violet on an amber page and a
+  /// Cleanup checkbox is violet on green. The component themes have to be
+  /// rebuilt individually: they captured `accent` when the base theme was
+  /// built, so overriding `colorScheme.primary` alone does nothing to them.
+  ThemeData _tuned(BuildContext context, ModulePalette palette) {
+    final theme = Theme.of(context);
+    final colors = theme.extension<AppColorTokens>();
+    if (colors == null || colors.accent == palette.accent) return theme;
+
+    final tuned = colors.copyWith(
+      accent: palette.accent,
+      accentMuted: palette.accent.withValues(alpha: 0.22),
+    );
+
+    return theme.copyWith(
+      extensions: [
+        tuned,
+        ...theme.extensions.values.where((e) => e is! AppColorTokens),
+      ],
+      colorScheme: theme.colorScheme.copyWith(primary: palette.accent),
+      switchTheme: theme.switchTheme.copyWith(
+        trackColor: WidgetStateProperty.resolveWith(
+          (states) =>
+              states.contains(WidgetState.selected)
+                  ? palette.accent
+                  : tuned.surfaceHover,
+        ),
+      ),
+      checkboxTheme: theme.checkboxTheme.copyWith(
+        fillColor: WidgetStateProperty.resolveWith(
+          (states) =>
+              states.contains(WidgetState.selected)
+                  ? palette.accent
+                  : Colors.transparent,
+        ),
+      ),
+      progressIndicatorTheme: theme.progressIndicatorTheme.copyWith(
+        color: palette.accent,
+      ),
+    );
+  }
+}
+
+/// Interpolates a whole [ModulePalette], so base and lift move together and
+/// the window never passes through a hue neither module owns.
+class _PaletteTween extends Tween<ModulePalette> {
+  _PaletteTween({super.end});
+
+  @override
+  ModulePalette lerp(double t) => ModulePalette.lerp(begin!, end!, t);
+}
+
+/// Exposes the active module's palette to the widgets inside it, so a primary
+/// action can wear the module's ramp without every page threading it down by
+/// hand. Absent outside a module — [ModuleTint.of] returns null there, and the
+/// caller falls back to the brand ramp.
+class ModuleTint extends InheritedWidget {
+  const ModuleTint({super.key, required this.palette, required super.child});
+
+  final ModulePalette palette;
+
+  static ModulePalette? of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<ModuleTint>()?.palette;
+
+  /// Reads the palette *without* subscribing to it.
+  ///
+  /// For capturing the module colour at the moment a dialog or a toast is
+  /// created. Those live in the root overlay, above `AmbientBackground` in the
+  /// tree, so they cannot look the palette up for themselves — the call site
+  /// hands it over and re-provides it. Subscribing here would rebuild whatever
+  /// widget happened to open the dialog every frame of a module cross-fade.
+  static ModulePalette? read(BuildContext context) =>
+      context.getInheritedWidgetOfExactType<ModuleTint>()?.palette;
+
+  @override
+  bool updateShouldNotify(ModuleTint old) =>
+      old.palette.base != palette.base || old.palette.lift != palette.lift;
+}
+
+class _Backdrop extends StatelessWidget {
+  const _Backdrop({
+    required this.palette,
+    required this.colors,
+    required this.intensity,
+    required this.pattern,
+    required this.child,
+  });
+
+  final ModulePalette palette;
+  final AppColorTokens colors;
+  final double intensity;
+  final bool pattern;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return ModuleTint(
+      palette: palette,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              palette.base,
+              Color.lerp(palette.base, palette.lift, 0.18)!,
+              palette.base,
+            ],
+          ),
+        ),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // Isolated so the backdrop rasterises once and is reused, instead
+            // of repainting behind every frame of a spinning scan ring.
+            RepaintBoundary(
+              child: IgnorePointer(
+                child: CustomPaint(
+                  isComplex: true,
+                  willChange: false,
+                  painter: _BackdropPainter(
+                    lift: palette.lift,
+                    ink: colors.pattern,
+                    strength: colors.glowStrength * intensity,
+                    pattern: pattern,
+                  ),
+                ),
+              ),
+            ),
+            child,
+          ],
+        ),
+      ),
+    );
   }
 }
 
 class _BackdropPainter extends CustomPainter {
   const _BackdropPainter({
-    required this.glowPrimary,
-    required this.glowSecondary,
-    required this.accent,
+    required this.lift,
     required this.ink,
-    required this.intensity,
+    required this.strength,
     required this.pattern,
   });
 
-  final Color glowPrimary;
-  final Color glowSecondary;
-  final Color accent;
+  final Color lift;
   final Color ink;
-  final double intensity;
+  final double strength;
   final bool pattern;
 
   /// Grid pitch. Wide enough that the dots read as texture rather than as a
@@ -140,21 +237,20 @@ class _BackdropPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     if (size.isEmpty) return;
-
-    _glows(canvas, size);
+    _light(canvas, size);
     if (!pattern) return;
     _rings(canvas, size);
     _dots(canvas, size);
   }
 
-  /// Three overlapping pools of light, sized off the window so they stay the
-  /// same shape whether the window is at its 1100pt minimum or full screen.
-  void _glows(Canvas canvas, Size size) {
+  /// Two overlapping pools of the module's own light, sized off the window so
+  /// they hold their shape from the 1100pt minimum up to full screen.
+  void _light(Canvas canvas, Size size) {
     final long = size.longestSide;
 
-    void pool(Color color, Alignment at, double radiusFactor, double scale) {
-      final alpha = (color.a * intensity * scale).clamp(0.0, 1.0);
-      if (alpha <= 0) return;
+    void pool(Alignment at, double radiusFactor, double alpha) {
+      final a = (alpha * strength).clamp(0.0, 1.0);
+      if (a <= 0) return;
       final rect = Rect.fromCircle(
         center: at.alongSize(size),
         radius: long * radiusFactor,
@@ -163,70 +259,62 @@ class _BackdropPainter extends CustomPainter {
         rect,
         Paint()
           ..shader = RadialGradient(
-            colors: [
-              color.withValues(alpha: alpha),
-              color.withValues(alpha: 0),
-            ],
+            colors: [lift.withValues(alpha: a), lift.withValues(alpha: 0)],
           ).createShader(rect),
       );
     }
 
-    pool(glowPrimary, const Alignment(-0.85, -1.05), 0.62, 1);
-    pool(glowSecondary, const Alignment(1.05, 1.0), 0.62, 1);
-    // A third, weaker pool off the right shoulder, so the middle of a wide
-    // window is not a dead flat band between two corner glows.
-    pool(accent, const Alignment(1.15, -0.6), 0.45, 0.14);
+    // The main pool sits high and slightly left of centre — where the page
+    // title and the hero ring are, so the brightest part of the window is the
+    // part being read.
+    pool(const Alignment(-0.25, -0.95), 0.72, 0.62);
+    // A weaker counterweight low and right, so the bottom of a long table is
+    // not a flat slab of the base colour.
+    pool(const Alignment(1.0, 1.05), 0.55, 0.30);
   }
 
-  /// Two oversized circle outlines, mostly off-canvas. They give the backdrop
-  /// something with an edge in it — a wash of pure gradient has no scale, and
-  /// reads as flat however many stops it has.
+  /// Two oversized circle outlines, mostly off-canvas. A wash of pure gradient
+  /// has no scale in it and reads as flat however many stops it has; an edge
+  /// somewhere gives the eye something to measure against.
   void _rings(Canvas canvas, Size size) {
     final stroke =
         Paint()
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1.4
-          ..color = ink.withValues(
-            alpha: (ink.a * 1.8 * intensity).clamp(0.0, 1.0),
-          );
+          ..color = ink.withValues(alpha: (ink.a * 1.6).clamp(0.0, 1.0));
 
     final long = size.longestSide;
     final topRight = Offset(size.width * 1.02, -size.height * 0.18);
     canvas.drawCircle(topRight, long * 0.34, stroke);
     canvas.drawCircle(topRight, long * 0.24, stroke);
-
-    final bottomLeft = Offset(-size.width * 0.06, size.height * 1.12);
-    canvas.drawCircle(bottomLeft, long * 0.30, stroke);
+    canvas.drawCircle(
+      Offset(-size.width * 0.06, size.height * 1.12),
+      long * 0.30,
+      stroke,
+    );
   }
 
-  /// The dot grid. ~2–3k points on a typical window, drawn once into the
-  /// repaint boundary's cache.
+  /// The dot grid — a few thousand points, drawn once into the repaint
+  /// boundary's cache.
   void _dots(Canvas canvas, Size size) {
-    final alpha = (ink.a * intensity).clamp(0.0, 1.0);
-    if (alpha <= 0) return;
-
     final paint =
         Paint()
-          ..color = ink.withValues(alpha: alpha)
+          ..color = ink
           ..strokeCap = StrokeCap.round
           ..strokeWidth = _dotRadius * 2;
 
     final columns = (size.width / _dotPitch).ceil() + 1;
     final rows = (size.height / _dotPitch).ceil() + 1;
-    final points = <Offset>[
+    canvas.drawPoints(PointMode.points, [
       for (var y = 0; y < rows; y++)
         for (var x = 0; x < columns; x++) Offset(x * _dotPitch, y * _dotPitch),
-    ];
-
-    canvas.drawPoints(PointMode.points, points, paint);
+    ], paint);
   }
 
   @override
   bool shouldRepaint(_BackdropPainter old) =>
-      old.glowPrimary != glowPrimary ||
-      old.glowSecondary != glowSecondary ||
-      old.accent != accent ||
+      old.lift != lift ||
       old.ink != ink ||
-      old.intensity != intensity ||
+      old.strength != strength ||
       old.pattern != pattern;
 }

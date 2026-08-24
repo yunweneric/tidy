@@ -20,6 +20,12 @@ clean button — stop. That already exists once, in
 at any module. Writing a second one is the mistake this architecture exists to
 prevent.
 
+Two features are plain pages, and both for the same reason: **the scan
+contract's verb is find → select → remove, and theirs is not.** Performance
+turns a login item *off* and *runs* a maintenance task; Recycle Bin *puts
+things back*, and what it lists was never found — the user put it there. Reach
+for a plain page when the verb does not fit, not when the module feels big.
+
 ---
 
 ## 2. Directory layout
@@ -257,6 +263,10 @@ scanner is being refused, the scanner is wrong.
 - `.lproj` stripping and `lipo` thinning. Both invalidate code signatures, which
   on macOS 13+ can stop a notarized app launching. Report the size, never offer
   the action.
+- The Trash **folders** — `~/.Trash`, and any volume's `.Trashes/<uid>`.
+  Emptying the bin removes what is *inside* them; removing the folder itself
+  takes the thing macOS puts deleted files into, and Finder does not reliably
+  recreate it. `SystemChannel.isTrashRoot` refuses all three shapes.
 
 **Prefer the tool's own cleanup command** over `rm -rf` — `brew cleanup -s`,
 `npm cache clean`, `go clean -modcache`, `pod cache clean --all`. It keeps
@@ -264,7 +274,15 @@ lockfiles consistent, and "we ran `brew cleanup`" is a far better story than
 "we deleted 4 GB of unknown files".
 
 **Trashing frees nothing** until the Trash is emptied. Copy says "moved to
-Trash", never "freed".
+Trash", never "freed". Recycle Bin's permanent delete is the one exception —
+that one genuinely frees the bytes, and is allowed to say so.
+
+**Every route to the Trash goes through `SystemBridge.trashItems`**, which
+records where each item came from in `TrashLedger`. macOS keeps Finder's
+put-back index in a binary `.DS_Store` no other app can read, and
+`FileManager.trashItem` writes no record at all, so that ledger is the only
+reason Recycle Bin can offer "Put Back". A scanner that trashes files by some
+other route silently costs the user that.
 
 ---
 

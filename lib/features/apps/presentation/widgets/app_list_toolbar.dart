@@ -18,6 +18,8 @@ enum AppFilter {
 enum AppSort {
   size('Size'),
   name('Name'),
+  developer('Developer'),
+  version('Version'),
   lastUsed('Last used');
 
   const AppSort(this.label);
@@ -61,10 +63,11 @@ class AppListToolbar extends StatelessWidget {
           duration: context.motion.normal,
           opacity: hasSelection ? 1 : 0.45,
           child: ActionButton(
-            label: hasSelection
-                ? 'Uninstall $selectedCount'
-                    '${selectedCount == 1 ? ' app' : ' apps'}'
-                : 'Uninstall selected',
+            label:
+                hasSelection
+                    ? 'Uninstall $selectedCount'
+                        '${selectedCount == 1 ? ' app' : ' apps'}'
+                    : 'Uninstall selected',
             icon: AppIcons.delete,
             variant: ActionButtonVariant.danger,
             onPressed: hasSelection ? onBulkUninstallPressed : null,

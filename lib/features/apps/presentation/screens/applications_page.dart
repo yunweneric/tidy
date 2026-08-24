@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mac_uninstaller/core/design/design.dart';
+import 'package:mac_uninstaller/core/feedback/feedback.dart';
 import 'package:mac_uninstaller/core/widgets/widgets.dart';
 import 'package:mac_uninstaller/features/apps/data/models/mac_app_model.dart';
 import 'package:mac_uninstaller/features/apps/logic/app_bloc.dart';
@@ -32,6 +33,7 @@ class _ApplicationsPageState extends State<ApplicationsPage>
   String _searchQuery = '';
   app_widgets.AppFilter _filter = app_widgets.AppFilter.all;
   app_widgets.AppSort _sort = app_widgets.AppSort.size;
+  bool _ascending = _defaultAscending(app_widgets.AppSort.size);
 
   /// Keyed by install path so it survives list rebuilds — icons arrive after
   /// the first paint and replace the model objects wholesale.
@@ -254,13 +256,17 @@ class _ApplicationsPageState extends State<ApplicationsPage>
               sort: _sortIndicatorFor(app_widgets.AppSort.name),
               onTap: () => _applySort(app_widgets.AppSort.name),
             ),
-            const TableColumn(
+            TableColumn(
               'DEVELOPER',
               flex: app_widgets.AppTableLayout.developerFlex,
+              sort: _sortIndicatorFor(app_widgets.AppSort.developer),
+              onTap: () => _applySort(app_widgets.AppSort.developer),
             ),
-            const TableColumn(
+            TableColumn(
               'VERSION',
               width: app_widgets.AppTableLayout.version,
+              sort: _sortIndicatorFor(app_widgets.AppSort.version),
+              onTap: () => _applySort(app_widgets.AppSort.version),
             ),
             TableColumn(
               'LAST OPENED',
@@ -351,45 +357,96 @@ class _ApplicationsPageState extends State<ApplicationsPage>
               .toList();
     }
 
-    final sorted = List<MacApp>.from(apps);
+    return List<MacApp>.from(apps)..sort(_compare);
+  }
+
+  /// Every column sorts, in both directions.
+  ///
+  /// Missing values sink to the bottom whichever way the column is pointing.
+  /// Flipping the direction is meant to answer "which is the oldest?", not to
+  /// dredge up the rows that have no answer at all.
+  int _compare(MacApp a, MacApp b) {
+    final sign = _ascending ? 1 : -1;
+
     switch (_sort) {
       case app_widgets.AppSort.size:
-        sorted.sort((a, b) => b.sizeBytes.compareTo(a.sizeBytes));
+        return sign * a.sizeBytes.compareTo(b.sizeBytes);
       case app_widgets.AppSort.name:
-        sorted.sort(
-          (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+        return sign * a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      case app_widgets.AppSort.developer:
+        return _nullsLast(
+          a.developer,
+          b.developer,
+          (x, y) => sign * x.toLowerCase().compareTo(y.toLowerCase()),
+        );
+      case app_widgets.AppSort.version:
+        return _nullsLast(
+          a.version.isEmpty ? null : a.version,
+          b.version.isEmpty ? null : b.version,
+          (x, y) => sign * _compareVersions(x, y),
         );
       case app_widgets.AppSort.lastUsed:
-        // Most recently used first; never-used apps sink to the bottom.
-        sorted.sort((a, b) {
-          final aDate = a.lastUsed;
-          final bDate = b.lastUsed;
-          if (aDate == null && bDate == null) return 0;
-          if (aDate == null) return 1;
-          if (bDate == null) return -1;
-          return bDate.compareTo(aDate);
-        });
+        return _nullsLast(
+          a.lastUsed,
+          b.lastUsed,
+          (x, y) => sign * x.compareTo(y),
+        );
     }
-    return sorted;
   }
+
+  static int _nullsLast<T>(T? a, T? b, int Function(T, T) compare) {
+    if (a == null && b == null) return 0;
+    if (a == null) return 1;
+    if (b == null) return -1;
+    return compare(a, b);
+  }
+
+  /// Compares versions segment by segment, numerically where both sides are
+  /// numbers. A plain string sort puts 10.0 before 9.0, which is exactly the
+  /// column someone opens this table to check.
+  static int _compareVersions(String a, String b) {
+    final left = a.split(RegExp(r'[._\-]'));
+    final right = b.split(RegExp(r'[._\-]'));
+
+    for (var i = 0; i < left.length || i < right.length; i++) {
+      final x = i < left.length ? left[i] : '';
+      final y = i < right.length ? right[i] : '';
+      final xn = int.tryParse(x);
+      final yn = int.tryParse(y);
+
+      final result =
+          xn != null && yn != null
+              ? xn.compareTo(yn)
+              : x.toLowerCase().compareTo(y.toLowerCase());
+      if (result != 0) return result;
+    }
+    return 0;
+  }
+
+  /// Which way a column points the first time you tap it. Text reads forwards;
+  /// size and dates are asked about biggest-and-newest first.
+  static bool _defaultAscending(app_widgets.AppSort sort) => switch (sort) {
+    app_widgets.AppSort.name ||
+    app_widgets.AppSort.developer ||
+    app_widgets.AppSort.version => true,
+    app_widgets.AppSort.size || app_widgets.AppSort.lastUsed => false,
+  };
 
   static bool _isUnused(MacApp app) {
     final days = app.daysSinceLastUsed;
     return days == null || days >= _unusedThresholdDays;
   }
 
-  /// Sorting is single-key and always descending except by name, which reads
-  /// backwards that way. Tapping the active column is a no-op rather than a
-  /// direction toggle — there is no meaningful "smallest apps first" view.
   SortDirection _sortIndicatorFor(app_widgets.AppSort candidate) {
     if (_sort != candidate) return SortDirection.none;
-    return candidate == app_widgets.AppSort.name
-        ? SortDirection.ascending
-        : SortDirection.descending;
+    return _ascending ? SortDirection.ascending : SortDirection.descending;
   }
 
+  /// Tapping a new column sorts it the way that column is usually asked about;
+  /// tapping the one already sorted flips it.
   void _applySort(app_widgets.AppSort sort) {
     setState(() {
+      _ascending = sort == _sort ? !_ascending : _defaultAscending(sort);
       _sort = sort;
       _currentPage = 1;
     });
@@ -419,22 +476,19 @@ class _ApplicationsPageState extends State<ApplicationsPage>
 
   // ------------------------------------------------------------------- actions
 
+  /// Opens the preview and waits for it to finish.
+  ///
+  /// The dialog dispatches the removal itself and stays on screen while it
+  /// runs, so by the time this resolves the work is done — all that is left is
+  /// to drop what went from the selection. The result toast comes from the
+  /// outcome listener, which fires for removals started anywhere.
   Future<void> _confirmUninstall(
     BuildContext context,
     List<MacApp> apps,
   ) async {
-    final bloc = context.read<AppsBloc>();
     final plan = await app_widgets.UninstallConfirmDialog.show(context, apps);
     if (plan == null || !mounted) return;
 
-    bloc.add(
-      UninstallAppsEvent(
-        apps: plan.apps,
-        paths: plan.paths,
-        toTrash: plan.toTrash,
-        expectedBytes: plan.totalBytes,
-      ),
-    );
     setState(() => _selectedPaths.removeAll(plan.apps.map((app) => app.path)));
   }
 
@@ -448,90 +502,73 @@ class _ApplicationsPageState extends State<ApplicationsPage>
     _confirmUninstall(context, selected);
   }
 
+  /// The result of a removal, as a toast rather than a page state.
+  ///
+  /// A finished uninstall is news, not a decision — nothing here needs
+  /// acknowledging, so nothing here blocks. The one case with more to say than
+  /// fits on a toast hands off to an alert behind a "Details" button.
   void _showOutcome(BuildContext context, RemovalOutcome outcome) {
-    final messenger = ScaffoldMessenger.of(context);
-    final colors = context.colors;
-
     // "Moved to Trash" rather than "freed": nothing is actually reclaimed until
     // the Trash is emptied, and claiming otherwise is a lie the disk will
     // contradict a moment later.
-    final destination = outcome.movedToTrash ? 'moved to Trash' : 'deleted';
-    final message =
-        outcome.hasFailures
-            ? '${formatBytes(outcome.freedBytes)} $destination · '
-                '${outcome.failures.length} item(s) stayed put'
-            : '${formatBytes(outcome.freedBytes)} $destination';
+    final freed = formatBytes(outcome.freedBytes);
+    final removed = _count(outcome.removedCount, 'item');
 
-    messenger.hideCurrentSnackBar();
-    messenger.showSnackBar(
-      SnackBar(
-        backgroundColor:
-            outcome.hasFailures ? colors.review : colors.surfaceRaised,
-        content: Text(
-          message,
-          style: context.text.bodyL.copyWith(
-            color: outcome.hasFailures ? colors.canvas : colors.textPrimary,
-          ),
+    if (outcome.hasFailures) {
+      final stuck = _count(outcome.failures.length, 'item');
+      context.showToast(
+        tone: FeedbackTone.warning,
+        title:
+            outcome.movedToTrash ? '$freed moved to Trash' : '$freed deleted',
+        message:
+            '$stuck stayed put — usually because it needs administrator '
+            'rights or Full Disk Access.',
+        action: ToastAction(
+          label: 'See what stayed',
+          onPressed: () => _showFailureDetails(context, outcome),
         ),
-        action:
-            outcome.hasFailures
-                ? SnackBarAction(
-                  label: 'Details',
-                  textColor: colors.canvas,
-                  onPressed: () => _showFailureDetails(context, outcome),
-                )
-                : null,
-      ),
+      );
+      return;
+    }
+
+    context.toastSuccess(
+      outcome.movedToTrash
+          ? 'Your disk will not show the space as free until you empty the '
+              'Trash.'
+          : 'Removed for good — there is nothing left to put back.',
+      title:
+          outcome.movedToTrash
+              ? '$removed moved to Trash · $freed'
+              : '$removed deleted · $freed',
     );
   }
 
   void _showFailureDetails(BuildContext context, RemovalOutcome outcome) {
-    showDialog<void>(
-      context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: Text('${outcome.failures.length} item(s) stayed put'),
-            content: SizedBox(
-              width: 520,
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'These usually need administrator rights or Full Disk Access.',
-                      style: ctx.text.bodyM,
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    for (final failure in outcome.failures)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(failure.path, style: ctx.text.mono),
-                            Text(
-                              failure.error,
-                              style: ctx.text.caption.copyWith(
-                                color: ctx.colors.review,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(),
-                child: const Text('Close'),
-              ),
-            ],
+    TidyAlert.notify(
+      context,
+      tone: FeedbackTone.warning,
+      icon: AppIcons.locked,
+      title: '${_count(outcome.failures.length, 'item')} stayed put',
+      message:
+          'These were left exactly as they were. Most of the time that means '
+          'the file belongs to the system and needs administrator rights, or '
+          'that Tidy has not been given Full Disk Access to the folder it '
+          'lives in.',
+      details: [
+        for (final failure in outcome.failures)
+          AlertDetail(
+            title: failure.path,
+            detail: failure.error,
+            tone: FeedbackTone.warning,
           ),
+      ],
     );
   }
+
+  /// "1 item" / "4 items". Pluralising inline is how a UI ends up saying
+  /// "1 items" on exactly the removal the user is looking closely at.
+  static String _count(int n, String noun) =>
+      n == 1 ? '1 $noun' : '$n ${noun}s';
 }
 
 /// A headline figure with a label. Replaces `SummaryCard`, which returned an

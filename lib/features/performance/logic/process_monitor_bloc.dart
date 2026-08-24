@@ -111,8 +111,15 @@ class ProcessMonitorState extends Equatable {
   }
 
   @override
-  List<Object?> get props =>
-      [snapshot, sort, busyPids, running, sampled, notice, icons.length];
+  List<Object?> get props => [
+    snapshot,
+    sort,
+    busyPids,
+    running,
+    sampled,
+    notice,
+    icons.length,
+  ];
 }
 
 // ─── Bloc ───────────────────────────────────────────────────────────────────
@@ -124,14 +131,19 @@ class ProcessMonitorState extends Equatable {
 /// worth of work every couple of seconds, and it has to stop the moment the
 /// section is no longer on screen. An app that keeps sampling every process on
 /// the Mac while minimised is the kind of thing people uninstall.
-class ProcessMonitorBloc extends Bloc<ProcessMonitorEvent, ProcessMonitorState> {
+class ProcessMonitorBloc
+    extends Bloc<ProcessMonitorEvent, ProcessMonitorState> {
   ProcessMonitorBloc(this._service) : super(const ProcessMonitorState()) {
     on<MonitorStarted>(_onStart);
     on<MonitorStopped>(_onStop);
     on<MonitorTicked>(_onTick);
-    on<ProcessSortChanged>((event, emit) => emit(state.copyWith(sort: event.sort)));
+    on<ProcessSortChanged>(
+      (event, emit) => emit(state.copyWith(sort: event.sort)),
+    );
     on<ProcessQuitRequested>(_onQuit);
-    on<MonitorNoticeDismissed>((_, emit) => emit(state.copyWith(clearNotice: true)));
+    on<MonitorNoticeDismissed>(
+      (_, emit) => emit(state.copyWith(clearNotice: true)),
+    );
   }
 
   /// Slow enough to be cheap, fast enough that quitting something shows up
@@ -149,7 +161,10 @@ class ProcessMonitorBloc extends Bloc<ProcessMonitorEvent, ProcessMonitorState> 
     return super.close();
   }
 
-  Future<void> _onStart(MonitorStarted event, Emitter<ProcessMonitorState> emit) async {
+  Future<void> _onStart(
+    MonitorStarted event,
+    Emitter<ProcessMonitorState> emit,
+  ) async {
     if (state.running) return;
 
     // CPU is a delta between two samples. Clearing the native history means the
@@ -170,7 +185,10 @@ class ProcessMonitorBloc extends Bloc<ProcessMonitorEvent, ProcessMonitorState> 
     emit(state.copyWith(running: false));
   }
 
-  Future<void> _onTick(MonitorTicked event, Emitter<ProcessMonitorState> emit) async {
+  Future<void> _onTick(
+    MonitorTicked event,
+    Emitter<ProcessMonitorState> emit,
+  ) async {
     // A tick that arrives while the previous one is still out is dropped rather
     // than queued: falling behind should mean sampling less often, not building
     // a backlog of stale readings.
@@ -179,7 +197,13 @@ class ProcessMonitorBloc extends Bloc<ProcessMonitorEvent, ProcessMonitorState> 
     try {
       final snapshot = await _service.sample();
       if (isClosed) return;
-      emit(state.copyWith(snapshot: snapshot, icons: _service.icons, sampled: true));
+      emit(
+        state.copyWith(
+          snapshot: snapshot,
+          icons: _service.icons,
+          sampled: true,
+        ),
+      );
     } finally {
       _sampling = false;
     }
@@ -210,12 +234,13 @@ class ProcessMonitorBloc extends Bloc<ProcessMonitorEvent, ProcessMonitorState> 
       state.copyWith(
         busyPids: {...state.busyPids}..remove(event.pid),
         notice: PerformanceNotice(
-          message: outcome.ok
-              ? (event.force
-                    ? '${name ?? 'That process'} was forced to quit.'
-                    : 'Asked ${name ?? 'that process'} to quit. If it has unsaved '
-                        'work it will ask you first.')
-              : (outcome.message ?? 'That process could not be quit.'),
+          message:
+              outcome.ok
+                  ? (event.force
+                      ? '${name ?? 'That process'} was forced to quit.'
+                      : 'Asked ${name ?? 'that process'} to quit. If it has unsaved '
+                          'work it will ask you first.')
+                  : (outcome.message ?? 'That process could not be quit.'),
           ok: outcome.ok,
         ),
       ),

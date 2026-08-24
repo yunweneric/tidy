@@ -4,11 +4,11 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mac_uninstaller/core/design/design.dart';
+import 'package:mac_uninstaller/core/feedback/feedback.dart';
 import 'package:mac_uninstaller/core/utils/byte_format.dart';
 import 'package:mac_uninstaller/core/widgets/widgets.dart';
 import 'package:mac_uninstaller/features/performance/data/models/process_sample.dart';
 import 'package:mac_uninstaller/features/performance/logic/process_monitor_bloc.dart';
-import 'package:mac_uninstaller/features/performance/presentation/widgets/notice_bar.dart';
 
 /// Column geometry, declared once and used by the header and every row — a
 /// header that declares its own flex values is how a table ends up with labels
@@ -42,13 +42,6 @@ class HeavyConsumersSection extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _Summary(snapshot: state.snapshot),
-            if (state.notice != null) ...[
-              const SizedBox(height: AppSpacing.md),
-              NoticeBar(
-                notice: state.notice!,
-                onDismiss: () => bloc.add(const MonitorNoticeDismissed()),
-              ),
-            ],
             const SizedBox(height: AppSpacing.lg),
             Expanded(
               child: TidyCard(
@@ -62,55 +55,70 @@ class HeavyConsumersSection extends StatelessWidget {
                         TableColumn(
                           'Process',
                           flex: _Columns.name,
-                          sort: state.sort == ProcessSort.name
-                              ? SortDirection.ascending
-                              : SortDirection.none,
-                          onTap: () =>
-                              bloc.add(const ProcessSortChanged(ProcessSort.name)),
+                          sort:
+                              state.sort == ProcessSort.name
+                                  ? SortDirection.ascending
+                                  : SortDirection.none,
+                          onTap:
+                              () => bloc.add(
+                                const ProcessSortChanged(ProcessSort.name),
+                              ),
                         ),
                         TableColumn(
                           'CPU',
                           width: _Columns.cpu,
                           align: TextAlign.right,
-                          sort: state.sort == ProcessSort.cpu
-                              ? SortDirection.descending
-                              : SortDirection.none,
-                          onTap: () =>
-                              bloc.add(const ProcessSortChanged(ProcessSort.cpu)),
+                          sort:
+                              state.sort == ProcessSort.cpu
+                                  ? SortDirection.descending
+                                  : SortDirection.none,
+                          onTap:
+                              () => bloc.add(
+                                const ProcessSortChanged(ProcessSort.cpu),
+                              ),
                         ),
                         TableColumn(
                           'Memory',
                           width: _Columns.memory,
                           align: TextAlign.right,
-                          sort: state.sort == ProcessSort.memory
-                              ? SortDirection.descending
-                              : SortDirection.none,
-                          onTap: () =>
-                              bloc.add(const ProcessSortChanged(ProcessSort.memory)),
+                          sort:
+                              state.sort == ProcessSort.memory
+                                  ? SortDirection.descending
+                                  : SortDirection.none,
+                          onTap:
+                              () => bloc.add(
+                                const ProcessSortChanged(ProcessSort.memory),
+                              ),
                         ),
                       ],
                     ),
                     Expanded(
-                      child: processes.isEmpty
-                          ? const EmptyState(
-                              icon: AppIcons.nothingFound,
-                              title: 'Nothing of yours is running',
-                              message:
-                                  'Which is unusual — try refreshing, or check '
-                                  'that Tidy can see your processes.',
-                            )
-                          : ListView.builder(
-                              padding: EdgeInsets.zero,
-                              itemCount: processes.length,
-                              itemBuilder: (context, index) => _ProcessRow(
-                                process: processes[index],
-                                icon: processes[index].bundlePath == null
-                                    ? null
-                                    : state.icons[processes[index].bundlePath],
-                                busy: state.busyPids.contains(processes[index].pid),
-                                isLast: index == processes.length - 1,
+                      child:
+                          processes.isEmpty
+                              ? const EmptyState(
+                                icon: AppIcons.nothingFound,
+                                title: 'Nothing of yours is running',
+                                message:
+                                    'Which is unusual — try refreshing, or check '
+                                    'that Tidy can see your processes.',
+                              )
+                              : ListView.builder(
+                                padding: EdgeInsets.zero,
+                                itemCount: processes.length,
+                                itemBuilder:
+                                    (context, index) => _ProcessRow(
+                                      process: processes[index],
+                                      icon:
+                                          processes[index].bundlePath == null
+                                              ? null
+                                              : state.icons[processes[index]
+                                                  .bundlePath],
+                                      busy: state.busyPids.contains(
+                                        processes[index].pid,
+                                      ),
+                                      isLast: index == processes.length - 1,
+                                    ),
                               ),
-                            ),
                     ),
                   ],
                 ),
@@ -148,9 +156,10 @@ class _Summary extends StatelessWidget {
             // macOS counts a fully busy core as 100%, so this can and should
             // exceed 100 on a multi-core machine — Activity Monitor's %CPU
             // column works the same way. Saying so beats looking broken.
-            hint: cpu == null
-                ? 'Measuring…'
-                : '100% is one core busy — this Mac has ${Platform.numberOfProcessors}',
+            hint:
+                cpu == null
+                    ? 'Measuring…'
+                    : '100% is one core busy — this Mac has ${Platform.numberOfProcessors}',
           ),
         ),
         const SizedBox(width: AppSpacing.md),
@@ -224,7 +233,11 @@ class _Stat extends StatelessWidget {
                     color: muted ? colors.textSecondary : colors.textPrimary,
                   ),
                 ),
-                Text(hint, style: context.text.caption, overflow: TextOverflow.ellipsis),
+                Text(
+                  hint,
+                  style: context.text.caption,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ],
             ),
           ),
@@ -262,11 +275,12 @@ class _ProcessRowState extends State<_ProcessRow> {
 
     // Loud only when it is genuinely loud: a red number on anything above zero
     // would flag every idle app on the Mac.
-    final cpuColor = cpu == null
-        ? colors.textMuted
-        : (cpu >= 60
-              ? colors.risky
-              : (cpu >= 20 ? colors.review : colors.textPrimary));
+    final cpuColor =
+        cpu == null
+            ? colors.textMuted
+            : (cpu >= 60
+                ? colors.risky
+                : (cpu >= 20 ? colors.review : colors.textPrimary));
 
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
@@ -280,9 +294,10 @@ class _ProcessRowState extends State<_ProcessRow> {
         ),
         decoration: BoxDecoration(
           color: _hovered ? colors.surfaceHover : Colors.transparent,
-          border: widget.isLast
-              ? null
-              : Border(bottom: BorderSide(color: colors.border)),
+          border:
+              widget.isLast
+                  ? null
+                  : Border(bottom: BorderSide(color: colors.border)),
         ),
         child: Row(
           children: [
@@ -293,9 +308,10 @@ class _ProcessRowState extends State<_ProcessRow> {
                   BundleIcon(
                     bytes: widget.icon,
                     size: 26,
-                    fallback: process.isApp
-                        ? AppIcons.appPlaceholder
-                        : AppIcons.backgroundItems,
+                    fallback:
+                        process.isApp
+                            ? AppIcons.appPlaceholder
+                            : AppIcons.backgroundItems,
                   ),
                   const SizedBox(width: AppSpacing.md),
                   Expanded(
@@ -337,6 +353,45 @@ class _ProcessRowState extends State<_ProcessRow> {
     );
   }
 
+  /// Quitting is not deleting, but it is the fastest way this app can lose
+  /// somebody's work — one hover and one click on a row that is mostly numbers.
+  /// So it asks, and it says what "quit" actually does rather than assuming
+  /// the user knows the difference between asking an app to stop and killing
+  /// a background process macOS will simply start again.
+  Future<void> _confirmQuit(BuildContext context) async {
+    final bloc = context.read<ProcessMonitorBloc>();
+    final process = widget.process;
+
+    final confirmed = await TidyAlert.confirm(
+      context,
+      tone: FeedbackTone.warning,
+      icon: AppIcons.quit,
+      title: 'Quit ${process.name}?',
+      message:
+          process.isApp
+              ? 'Tidy asks the app to quit, the same as choosing Quit from its '
+                  'own menu. If it has unsaved work it will ask you what to do '
+                  'with that first.'
+              : 'Tidy asks this process to stop. Background processes are '
+                  'usually started again by macOS or by the app they belong to, '
+                  'so this may buy back a moment rather than fix anything.',
+      details: [
+        AlertDetail(
+          title: process.name,
+          detail:
+              'pid ${process.pid} · '
+              '${process.cpuPercent == null ? 'CPU unknown' : '${process.cpuPercent!.toStringAsFixed(1)}% CPU'} · '
+              '${formatBytes(process.memoryBytes)} memory',
+          monospace: false,
+        ),
+      ],
+      confirmLabel: 'Quit',
+      destructive: true,
+    );
+
+    if (confirmed) bloc.add(ProcessQuitRequested(process.pid));
+  }
+
   Widget _action(BuildContext context) {
     final colors = context.colors;
     final process = widget.process;
@@ -366,11 +421,7 @@ class _ProcessRowState extends State<_ProcessRow> {
       child: Align(
         alignment: Alignment.centerRight,
         child: TextButton.icon(
-          onPressed: _hovered
-              ? () => context.read<ProcessMonitorBloc>().add(
-                  ProcessQuitRequested(process.pid),
-                )
-              : null,
+          onPressed: _hovered ? () => _confirmQuit(context) : null,
           icon: Icon(AppIcons.quit, size: 14, color: colors.risky),
           label: Text(
             'Quit',

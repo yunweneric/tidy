@@ -40,7 +40,8 @@ class LaunchItemsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final broken = items.where((item) => item.health == LaunchItemHealth.broken).toList();
+    final broken =
+        items.where((item) => item.health == LaunchItemHealth.broken).toList();
 
     return ListView(
       padding: EdgeInsets.zero,
@@ -65,21 +66,22 @@ class LaunchItemsSection extends StatelessWidget {
                 for (var i = 0; i < items.length; i++)
                   LaunchItemRow(
                     item: items[i],
-                    icon: items[i].appPath == null ? null : state.icons[items[i].appPath],
+                    icon:
+                        items[i].appPath == null
+                            ? null
+                            : state.icons[items[i].appPath],
                     busy: state.isBusy(items[i].path),
                     isLast: i == items.length - 1,
-                    onToggle: (enabled) => context.read<PerformanceBloc>().add(
-                      SetLaunchItemEnabled(items[i], enabled: enabled),
-                    ),
+                    onToggle:
+                        (enabled) => context.read<PerformanceBloc>().add(
+                          SetLaunchItemEnabled(items[i], enabled: enabled),
+                        ),
                     onRemove: () => _confirmRemove(context, items[i]),
                   ),
               ],
             ),
           ),
-        if (footer != null) ...[
-          const SizedBox(height: AppSpacing.lg),
-          footer!,
-        ],
+        if (footer != null) ...[const SizedBox(height: AppSpacing.lg), footer!],
         const SizedBox(height: AppSpacing.xl),
       ],
     );
@@ -131,9 +133,9 @@ class _BrokenSummary extends StatelessWidget {
             child: Text(
               count == 1
                   ? 'One item cannot start anything — the program it points at is '
-                        'gone, or the file is empty. It is safe to remove.'
+                      'gone, or the file is empty. It is safe to remove.'
                   : '$count items cannot start anything — the programs they point '
-                        'at are gone, or the files are empty. They are safe to remove.',
+                      'at are gone, or the files are empty. They are safe to remove.',
               style: context.text.bodyM,
             ),
           ),

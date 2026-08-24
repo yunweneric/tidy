@@ -70,39 +70,71 @@ which matters inside `const` constructors.
 Named by role, never by hue — `colors.risky`, not `colors.red`. A token whose
 name describes its appearance stops being reusable the moment the palette moves.
 
+### Backdrop
+
+**The module's colour is the window.** It is not a tint over a neutral canvas —
+Cleanup *is* green, Protection *is* magenta, edge to edge, sidebar included.
+`AmbientBackground` paints it: a base-to-lift ramp, a pool of the module's own
+light high and slightly left, a weaker one bottom-right, two oversized ring
+outlines and a dot grid.
+
+| Token | Use |
+|---|---|
+| `canvas` | Flat fallback. Only where a gradient cannot go (`scaffoldBackgroundColor`) |
+| `canvasGradient` | The backdrop where no module owns the view |
+| `modulePalettes` | Every module's `base` + `lift`. Read via `colors.modulePalette(tone)` |
+| `glowStrength` | How hard the light pools. Light mode uses a fraction of dark's |
+| `pattern` | Ink for the ring outlines and the dot grid |
+
+`ModulePalette.ramp` is the gradient a primary action wears inside that module.
+`ModuleTint.of(context)` hands it to any widget below `AmbientBackground`, which
+is how `GradientButton` and `GaugeRing` come out the right colour without a
+single page passing one down by hand.
+
+The light and the pattern are near-invisible on purpose. The light is depth,
+the shapes are scale, the dots are texture — if a pattern is legible enough to
+count, it is too strong.
+
 ### Surfaces
 
-Every in-window surface is **translucent**. The backdrop is one continuous
-thing that runs under the sidebar, the cards and the tables alike, and it is
-what makes the window read as a single surface instead of a set of panels
-pasted onto a picture. Exactly one token is solid, and it is for the things
-that float *over* the window.
+**Surfaces are neutral veils, not colours.** A card is white at 8% in dark and
+white at 72% in light. It has no hue of its own, so it takes whatever module is
+behind it and blends into it — which is the whole reason a green module and a
+magenta one can share one set of components. Nothing in the window is opaque
+except the things that float over it.
 
 | Token | Use |
 |---|---|
-| `canvas` | Flat fallback behind everything. Only where a gradient cannot go |
-| `canvasGradient` | The backdrop wash, painted by `AmbientBackground` |
-| `sidebar` / `sidebarGradient` | The left rail's veil — sheer, so the backdrop carries through |
-| `surface` | Default card / tile / table background. **Sheer** |
-| `surfaceGradient` | The card sheen. What `TidyCard` and the table frames fill with |
-| `surfaceOpaque` | The one solid surface: dialogs, popup menus, tooltips, snackbars, the menu-bar popover |
+| `sidebar` / `sidebarGradient` | Darkens (dark) or lightens (light) the rail against the module colour |
+| `surface` | Default card / tile / table background |
+| `surfaceGradient` | The card veil. What `TidyCard` and the table frames fill with |
+| `surfaceOpaque` | The neutral solid surface: popup menus, tooltips, the menu-bar popover |
+| `floatingSurface(palette)` | The solid surface for a dialog or toast — `surfaceOpaque` remade in the module's own colour |
 | `surfaceRaised` | Sits on top of `surface` — inputs, nested rows, segmented track |
-| `surfaceHover` | Hover and pressed wash |
+| `surfaceHover` | Hover and pressed wash, and the selected sidebar row |
 | `overlay` | Scrim behind dialogs |
 
-If a surface hides what is behind it, it needs `surfaceOpaque` — a sheer dialog
-sitting on a table of file paths is unreadable. Everything else stays sheer.
+If a surface has to hide what is behind it, it needs `surfaceOpaque` — a sheer
+dialog over a table of file paths is unreadable. Everything else stays sheer.
 
-### Ambient light
-| Token | Use |
-|---|---|
-| `glowPrimary` | The violet pool in the top-left of the window |
-| `glowSecondary` | The teal counterweight, bottom-right |
-| `pattern` | Ink for the backdrop's ring outlines and dot grid |
+**Never give a surface a hue.** The moment a card carries its own colour it
+stops blending and starts fighting whichever module it lands on. Two
+exceptions, both narrow:
 
-All three carry their own alpha and are composited over `canvasGradient`. None
-of them is ever a fill. They are near-invisible on purpose: if a pattern is
-legible enough to count, it is too strong.
+- `TidyCard(tint:)` layers a semantic colour *onto* the veil rather than
+  replacing it, and only where the colour is the information.
+- `floatingSurface(palette)` — dialogs and toasts. Everything sheer blends by
+  being sheer; these cannot, because they have to hide what is behind them. So
+  they blend by being *made of* the module instead: its `base` warmed toward
+  its `lift` and veiled in dark, its `lift` under a heavy white veil in light.
+  A solid neutral panel dropped on an amber window reads as a screenshot from
+  a different app.
+
+Dialogs and toasts sit in the **root overlay**, above `AmbientBackground`, so
+they cannot look the palette up for themselves — `showTidyDialog` and
+`TidyToaster.show` capture it with `ModuleTint.read(context)` at the call site
+and re-provide it. That is also what makes a dialog's primary `GradientButton`
+wear the module's ramp instead of falling back to the brand one.
 
 ### Lines
 | Token | Use |
@@ -113,59 +145,60 @@ legible enough to count, it is too strong.
 ### Text
 `textPrimary` · `textSecondary` · `textMuted` · `textOnAccent`
 
-`textOnAccent` is for text sitting on `accent` or a status fill. Never use
-`Colors.white` for that — it is wrong in light mode the moment the accent moves.
+Text sits on module colour as often as on a card, so `textSecondary` and
+`textMuted` are `textPrimary` at reduced alpha rather than their own grey. A
+cool grey turns muddy the moment the backdrop behind it is green or amber.
+
+`textOnAccent` is for text sitting on a status fill. Never use `Colors.white`
+for that — it is wrong in light mode the moment the fill moves.
 
 ### Brand
 | Token | Use |
 |---|---|
-| `accent` | The single signature colour |
-| `accentMuted` | Low-opacity wash — selected nav item, icon tile |
-| `accentGradient` | `List<Color>`. Brand mark, scan ring, and every primary CTA |
+| `accent` | The signature colour, for brand moments and links |
+| `accentMuted` | Low-opacity accent wash. Brand moments only |
+| `accentGradient` | The brand ramp — mark, onboarding panel, and CTAs outside any module |
 
-The rule is not "no gradients" — it is that a gradient means one of two things
-and nothing else:
+The rule is not "no gradients" — a gradient means one of two things and nothing
+else:
 
-- **Backdrop.** `canvasGradient` plus the glows and shapes, behind everything.
-- **Press this / watch this.** `accentGradient`, on the brand mark, the scan
-  ring and `GradientButton`.
+- **Backdrop.** The module's ramp, behind everything.
+- **Press this / watch this.** `ModulePalette.ramp` on `GradientButton` and
+  `GaugeRing`, falling back to `accentGradient` outside a module.
 
-Card fills use `surfaceGradient`, which is two neighbouring tints of the same
-colour — a surface catching light, not a decoration. `TidyCard(tint:)` washes a
-tile in a semantic colour when **the colour is the information** (amber for
-apps gone unopened, green for a clean result). Never on a row in a list: a
-table where every row is tinted is a table with no signal left.
+Everything else is a neutral veil. Ordinary buttons are `surfaceHover` with
+`textPrimary` — a translucent white pill — so the one action wearing a colour
+is unmistakably the one that matters. One `GradientButton` per screen.
 
-One `GradientButton` per screen. A page where everything glows has told the
-user nothing about what to press.
+**Accent is not a substitute for the module colour.** A selected sidebar row
+uses `surfaceHover`, not `accentMuted`: a blue wash on a green page is a
+mistake with extra steps.
 
 ### Module tones
 
 Each of the six modules owns a colour of light, so the window tells you where
 you are before you have read the page title:
 
-| Module | Tone |
-|---|---|
-| Smart Care | brand violet |
-| Cleanup | blue |
-| Protection | pink |
-| Performance | amber |
-| Applications | cyan-blue |
-| My Clutter | teal |
-| Space Lens | deep violet |
+| Module | Tone | | Module | Tone |
+|---|---|---|---|---|
+| Smart Care | violet | | Applications | indigo-blue |
+| Cleanup | green | | My Clutter | teal |
+| Protection | magenta | | Space Lens | purple |
+| Performance | amber | | | |
 
-`AppDestination.tone` names the tone; `colors.moduleTint(tone)` resolves it.
-`AmbientBackground` swaps it in for `glowPrimary` and washes a few percent into
-the canvas, cross-fading over `motion.slow` when you change module.
+`AppDestination.tone` names the tone; `colors.modulePalette(tone)` resolves it.
+`AmbientBackground` paints the window with it and cross-fades the whole palette
+over `motion.slow` when you change module — base and lift move together, so the
+window never passes through a hue neither module owns.
 
 Supporting views (All Tools, Activity, Assistant, Settings) keep the brand
 tone. A hue per module means something while there are six of them; it stops
 meaning anything at eleven.
 
-**The tone is light, not paint.** It never restyles the content — buttons stay
-brand-accented, status colours stay `safe`/`review`/`risky`, and a tinted card
-still uses its own semantic colour. Anything else and "amber" stops reading as
-"you are in Performance" and starts reading as "something needs attention".
+Status colours stay `safe`/`review`/`risky` on every module — those mean what
+they mean regardless of what colour the window is. Amber has to keep reading as
+"look at this" and not as "you are in Performance", which is exactly why the
+module colour lives in the backdrop and the CTA, and nowhere else.
 
 ### Status
 | Token | Meaning |
@@ -303,6 +336,71 @@ Reach for these before building anything.
 | `FadeThrough` | Fades content back in when a trigger changes |
 | `AmbientBackground` | The window backdrop — wash, glows, shapes, dot grid. Wraps the whole window |
 | `GradientButton` | The primary call to action, wearing `accentGradient` |
+| `TidyToast` | Transient result in the corner of the window — `context.toastSuccess('…')` |
+| `TidyDialog` | The modal frame: medallion, title, scrolling body, footer |
+| `TidyAlert` | A question (`.confirm`) or a report (`.notify`), built on `TidyDialog` |
+
+
+### Telling the user what happened
+
+Lives in `lib/core/feedback/` — `import 'package:mac_uninstaller/core/feedback/feedback.dart';`
+
+**If the user has to do something about it, it is an alert. If they only have
+to know, it is a toast.** A finished uninstall is news; a permanent delete is a
+question. Nothing in the app builds either by hand, and `SnackBar`,
+`AlertDialog` and `showDialog` are not used directly any more.
+
+Both pick a `FeedbackTone` — `success` · `warning` · `danger` · `info` ·
+`neutral` — and the tokens resolve the colour, the glyph, and how long a toast
+stays up. A call site never pairs a message with a colour, which is what stops
+"amber" drifting from meaning *look at this* to meaning *Performance*.
+
+```dart
+context.toastSuccess('1.2 GB moved to Trash', title: '3 items removed');
+
+final ok = await TidyAlert.confirm(
+  context,
+  title: 'Delete permanently?',
+  message: 'Nothing here can be recovered afterwards.',
+  confirmLabel: 'Delete permanently',
+  destructive: true,
+);
+```
+
+**Toasts.** Bottom-right, stacked newest-nearest-the-corner, three at a time —
+beyond that the oldest retires early, because a column of six is a log and
+nobody reads a log that is dismissing itself. They live in the **root overlay**
+rather than the page, so a result that arrives while the user is navigating
+away is still seen, and a rebuilding module does not take its own confirmation
+down with it. The tone shows as a 3px left rail and a tinted icon tile and
+nowhere else: the one button on a toast is a neutral `surfaceRaised` pill, so
+the colour is saying one thing rather than two. Hovering freezes the lifetime
+hairline — a toast that vanishes mid-sentence is worse than no toast.
+
+At most one action, and it opens something rather than deciding something. A
+toast with a real choice on it is an alert that has not admitted it yet.
+
+**Nothing destructive happens without both.** Every action that removes,
+trashes or quits something asks first with a `TidyAlert.confirm` and reports
+afterwards with a toast. The confirm says what actually goes and what "gone"
+means here — trashed things come back, deleted things do not, and a quit
+background process is usually restarted by macOS a second later. The one
+exception is the Cleanup/Smart Care sweep, whose report is a whole screen
+(`RemovalSummary`) rather than a toast, because it has a byte counter and a
+failure list in it.
+
+**Alerts.** `showTidyDialog` rather than `showDialog`, so the scrim is
+`colors.overlay` and the transition honours Reduce Motion. The frame is
+`surfaceOpaque` at `AppRadii.xl`; the body scrolls inside `maxContentHeight`
+so the footer never leaves the screen at 1100×720. `AlertDetail` renders the
+per-item explanation block — a path in `mono`, the reason under it in the
+tone's colour.
+
+Footer buttons are `TidyDialogAction`, which is where the one-gradient-button
+rule is kept for modals: `quiet` for the way out, exactly one `primary`
+(module ramp), or `destructive` (solid `risky`) when the action removes
+something. A gradient makes a delete button look inviting, so a delete button
+never gets one.
 
 ### Cards
 Sheer two-stop fill (`surfaceGradient`), 1px border, no Material elevation.
@@ -366,5 +464,7 @@ take one, so a card can glow in its own semantic colour without a new token.
 - [ ] Animation controllers honour `context.motion.reduced`
 - [ ] Viewed in **both** light and dark
 - [ ] Anything that floats over the window uses `surfaceOpaque`, not `surface`
-- [ ] At most one `GradientButton` on the screen
+- [ ] At most one `GradientButton` on the screen — a dialog counts as its own
+- [ ] No `SnackBar`, `AlertDialog` or bare `showDialog` — toast or `TidyAlert`
+- [ ] No surface carries a hue of its own — checked on a green module *and* a magenta one
 - [ ] Nothing breaks at the 1100×720 minimum window size

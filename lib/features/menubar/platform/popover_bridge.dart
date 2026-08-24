@@ -4,10 +4,13 @@ import 'package:flutter/services.dart';
 /// Talks to `macos/Runner/MenuBarController.swift`, which owns the status item
 /// and the popover this engine is rendered into.
 class PopoverBridge {
-  PopoverBridge({VoidCallback? onPopoverOpened}) {
+  PopoverBridge({VoidCallback? onPopoverOpened, VoidCallback? onPopoverClosed}) {
     _channel.setMethodCallHandler((call) async {
-      if (call.method == 'popoverDidOpen') {
-        onPopoverOpened?.call();
+      switch (call.method) {
+        case 'popoverDidOpen':
+          onPopoverOpened?.call();
+        case 'popoverDidClose':
+          onPopoverClosed?.call();
       }
       return null;
     });

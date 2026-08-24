@@ -1,8 +1,8 @@
 import Cocoa
 import FlutterMacOS
 
-/// The Performance module's native surface: launchd items, running processes
-/// and maintenance tasks.
+/// The Performance module's native surface: launchd items, running processes,
+/// machine-wide vitals and maintenance tasks.
 ///
 /// Separate from `SystemChannel` because the two have different shapes.
 /// `SystemChannel` is about files — sizing, removing, revealing. Nothing here
@@ -50,6 +50,16 @@ enum PerformanceChannel {
         result(outcome(error))
       }
 
+    case "removeLaunchItemElevated":
+      let path = arguments["path"] as? String ?? ""
+      let label = arguments["label"] as? String ?? ""
+      let kind = arguments["kind"] as? String ?? "agent"
+      background {
+        LaunchItems.removeElevated(path: path, label: label, kind: kind)
+      } deliver: { error in
+        result(outcome(error))
+      }
+
     // MARK: Processes
 
     case "processSamples":
@@ -64,6 +74,17 @@ enum PerformanceChannel {
       let force = arguments["force"] as? Bool ?? false
       // Termination is fast and `NSRunningApplication` wants the main thread.
       result(outcome(ProcessMonitor.terminate(pid: pid, force: force)))
+
+    // MARK: System vitals
+
+    case "systemVitals":
+      // Takes its own short CPU baseline when it has no history, so it is not
+      // instant and has no business on the main thread.
+      background { SystemVitals.read() } deliver: { result($0) }
+
+    case "resetSystemVitals":
+      SystemVitals.reset()
+      result(nil)
 
     // MARK: Maintenance
 

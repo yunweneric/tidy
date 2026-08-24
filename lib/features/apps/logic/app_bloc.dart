@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mac_uninstaller/core/platform/system_bridge.dart';
 import 'package:mac_uninstaller/features/apps/data/models/mac_app_model.dart';
+import 'package:mac_uninstaller/features/apps/data/models/removal_progress.dart';
 import 'package:mac_uninstaller/features/apps/data/services/apps_service.dart';
 import 'package:mac_uninstaller/features/apps/data/services/junk_scanner.dart';
 import 'package:mac_uninstaller/features/apps/data/services/scan_cache.dart';
@@ -62,13 +63,15 @@ class AppsBloc extends Bloc<AppsEvent, AppsState> {
 
   /// Drops apps whose bundle is gone, e.g. uninstalled from the popover while
   /// this window was in the background.
-  Future<void> _onReconcile(ReconcileApps event, Emitter<AppsState> emit) async {
+  Future<void> _onReconcile(
+    ReconcileApps event,
+    Emitter<AppsState> emit,
+  ) async {
     final current = state;
     if (current is! AppsLoaded || current.apps.isEmpty) return;
 
-    final surviving = current.apps
-        .where((app) => Directory(app.path).existsSync())
-        .toList();
+    final surviving =
+        current.apps.where((app) => Directory(app.path).existsSync()).toList();
 
     if (surviving.length == current.apps.length) return;
 
@@ -177,18 +180,55 @@ class AppsBloc extends Bloc<AppsEvent, AppsState> {
     final current = state;
     if (current is! AppsLoaded) return;
 
-    emit(current.copyWith(isRefreshing: true, clearOutcome: true));
+    // The outcome is cleared before anything runs: the confirm dialog closes
+    // itself the moment one appears, and a leftover from the previous removal
+    // would slam it shut before this one had started.
+    emit(
+      current.copyWith(
+        isRefreshing: true,
+        clearOutcome: true,
+        removal: RemovalProgress(
+          completed: 0,
+          total: event.paths.length,
+          movedToTrash: event.toTrash,
+        ),
+      ),
+    );
 
-    final result = await service.remove(event.paths, toTrash: event.toTrash);
+    final result = await service.remove(
+      event.paths,
+      toTrash: event.toTrash,
+      // Emitting from the callback is legal while the handler is still
+      // awaiting, and it is what puts a moving bar in front of the user during
+      // the seconds a large bundle takes to trash.
+      onProgress: (completed, total, currentPath) {
+        final live = state;
+        if (emit.isDone || live is! AppsLoaded) return;
+        emit(
+          live.copyWith(
+            removal: RemovalProgress(
+              completed: completed,
+              total: total,
+              movedToTrash: event.toTrash,
+              currentLabel: currentPath == null ? null : _basename(currentPath),
+            ),
+          ),
+        );
+      },
+    );
 
     final removedPaths = result.removed.toSet();
-    final removedApps = event.apps
-        .where((app) => removedPaths.contains(app.path))
-        .toList();
+    final removedApps =
+        event.apps.where((app) => removedPaths.contains(app.path)).toList();
 
-    final remaining = current.apps
-        .where((app) => !removedApps.contains(app))
-        .toList();
+    // `current` is the pre-removal snapshot and the progress emits have since
+    // replaced the live state. Build on the live one so nothing that landed
+    // mid-removal is thrown away.
+    final live = state;
+    final base = live is AppsLoaded ? live : current;
+
+    final remaining =
+        base.apps.where((app) => !removedApps.contains(app)).toList();
 
     if (removedApps.isNotEmpty) {
       await cache.removeApps(removedApps.map((app) => app.path));
@@ -201,10 +241,11 @@ class AppsBloc extends Bloc<AppsEvent, AppsState> {
     );
 
     emit(
-      current.copyWith(
+      base.copyWith(
         apps: remaining,
         disk: await SystemBridge.diskUsage(),
         isRefreshing: false,
+        clearRemoval: true,
         lastOutcome: RemovalOutcome(
           removedCount: removedApps.length,
           freedBytes: freed,
@@ -215,7 +256,17 @@ class AppsBloc extends Bloc<AppsEvent, AppsState> {
     );
   }
 
-  Future<void> _onClearJunk(ClearJunkEvent event, Emitter<AppsState> emit) async {
+  /// `~/Library/Caches/com.acme.Widget` → `com.acme.Widget`. Enough to say what
+  /// is going without a path the dialog has no room for.
+  static String _basename(String path) {
+    final cut = path.lastIndexOf('/');
+    return cut < 0 || cut == path.length - 1 ? path : path.substring(cut + 1);
+  }
+
+  Future<void> _onClearJunk(
+    ClearJunkEvent event,
+    Emitter<AppsState> emit,
+  ) async {
     final current = state;
     if (current is! AppsLoaded) return;
 

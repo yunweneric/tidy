@@ -104,10 +104,49 @@ class AppManagerService {
     }
   }
 
+  /// Removal batches, when the caller wants progress. Capped so a big
+  /// selection never turns into hundreds of channel round trips.
+  static const int _removalBatches = 24;
+
   /// Moves [paths] to the Trash, or deletes them outright when [toTrash] is
   /// false. Always driven from a preview the user has confirmed.
-  Future<RemovalResult> remove(List<String> paths, {required bool toTrash}) {
-    return toTrash ? SystemBridge.trashItems(paths) : SystemBridge.deleteItems(paths);
+  ///
+  /// Pass [onProgress] to be told as it goes. Doing so splits the work into at
+  /// most [_removalBatches] calls rather than one — the native side already
+  /// loops off the main thread, so a single call is marginally cheaper, but it
+  /// can report nothing until every last path is done. Without the callback the
+  /// original one-shot path is used unchanged.
+  Future<RemovalResult> remove(
+    List<String> paths, {
+    required bool toTrash,
+    void Function(int completed, int total, String? current)? onProgress,
+  }) async {
+    if (paths.isEmpty) return RemovalResult.empty;
+
+    Future<RemovalResult> removeBatch(List<String> batch) =>
+        toTrash ? SystemBridge.trashItems(batch) : SystemBridge.deleteItems(batch);
+
+    if (onProgress == null) return removeBatch(paths);
+
+    final batchSize = (paths.length / _removalBatches).ceil().clamp(1, paths.length);
+    final removed = <String>[];
+    final failures = <RemovalFailure>[];
+
+    for (var start = 0; start < paths.length; start += batchSize) {
+      final end = (start + batchSize).clamp(0, paths.length);
+      final batch = paths.sublist(start, end);
+
+      // Announced before the work, not after: the label has to name what is
+      // happening now, and a bundle can take seconds.
+      onProgress(start, paths.length, batch.first);
+
+      final result = await removeBatch(batch);
+      removed.addAll(result.removed);
+      failures.addAll(result.failures);
+    }
+
+    onProgress(paths.length, paths.length, null);
+    return RemovalResult(removed: removed, failures: failures);
   }
 
   // ---------------------------------------------------------------- discovery
@@ -266,8 +305,10 @@ class AppManagerService {
     final utc = DateTime.tryParse('${match[1]}T${match[2]}Z');
     if (utc == null) return null;
 
-    final offset =
-        Duration(hours: int.parse(match[4]!), minutes: int.parse(match[5]!));
+    final offset = Duration(
+      hours: int.parse(match[4]!),
+      minutes: int.parse(match[5]!),
+    );
     final adjusted = match[3] == '+' ? utc.subtract(offset) : utc.add(offset);
     return adjusted.toLocal();
   }
@@ -294,11 +335,12 @@ class AppManagerService {
 
   static String _firstNonEmpty(List<String?> candidates) {
     for (final candidate in candidates) {
-      if (candidate != null && candidate.trim().isNotEmpty) return candidate.trim();
+      if (candidate != null && candidate.trim().isNotEmpty) {
+        return candidate.trim();
+      }
     }
     return '';
   }
-
 }
 
 class _BundleRef {

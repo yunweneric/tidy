@@ -15,9 +15,12 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
   private let engine: FlutterEngine
   private var channel: FlutterMethodChannel?
 
-  private let panelWidth: CGFloat = 380
-  private let minPanelHeight: CGFloat = 220
-  private let maxPanelHeight: CGFloat = 620
+  // The panel is a dashboard now, not a menu: three vitals tiles across the
+  // top and a live process table below them need room to be read at a glance,
+  // which a menu-width strip does not have.
+  private let panelWidth: CGFloat = 460
+  private let minPanelHeight: CGFloat = 320
+  private let maxPanelHeight: CGFloat = 760
 
   override init() {
     statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
@@ -97,7 +100,12 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
 
     let controller = FlutterViewController(engine: engine, nibName: nil, bundle: nil)
     RegisterGeneratedPlugins(registry: controller)
+    // The popover reads the machine's vitals and what is running, so it needs
+    // the Performance channel as well as the file one. Without this the panel
+    // renders and every native call quietly returns nothing.
     SystemChannel.register(with: engine.binaryMessenger)
+    PerformanceChannel.register(with: engine.binaryMessenger)
+    RecycleBinChannel.register(with: engine.binaryMessenger)
 
     channel = FlutterMethodChannel(
       name: Self.channelName,
@@ -108,7 +116,7 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     }
 
     popover.contentViewController = controller
-    popover.contentSize = NSSize(width: panelWidth, height: 460)
+    popover.contentSize = NSSize(width: panelWidth, height: 520)
     popover.behavior = .transient
     popover.animates = true
     popover.delegate = self
@@ -127,6 +135,13 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
     NSApp.activate(ignoringOtherApps: true)
     channel?.invokeMethod("popoverDidOpen", arguments: nil)
+  }
+
+  /// The panel samples CPU and running processes on a timer while it is on
+  /// screen. Nobody is reading it once it closes, and a cleaner that samples
+  /// every two seconds forever is the kind of thing this app exists to find.
+  func popoverDidClose(_ notification: Notification) {
+    channel?.invokeMethod("popoverDidClose", arguments: nil)
   }
 
   private func handle(call: FlutterMethodCall, result: @escaping FlutterResult) {

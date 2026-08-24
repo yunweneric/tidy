@@ -105,14 +105,16 @@ class UnusedAppsModule implements ScanModule {
     return ScanNode(
       id: 'unusedApps:${app.path}',
       title: app.name,
-      subtitle: app.lastUsedLabel == 'Never'
-          ? 'Never opened'
-          : 'Last opened ${app.lastUsedLabel.toLowerCase()}',
-      detail: leftovers.isEmpty
-          ? 'The app bundle. No leftovers found elsewhere on the system.'
-          : 'The app plus ${leftovers.length} support '
-                '${leftovers.length == 1 ? 'file' : 'files'} it left around the '
-                'system.',
+      subtitle:
+          app.lastUsedLabel == 'Never'
+              ? 'Never opened'
+              : 'Last opened ${app.lastUsedLabel.toLowerCase()}',
+      detail:
+          leftovers.isEmpty
+              ? 'The app bundle. No leftovers found elsewhere on the system.'
+              : 'The app plus ${leftovers.length} support '
+                  '${leftovers.length == 1 ? 'file' : 'files'} it left around the '
+                  'system.',
       // The bundle and every leftover go together: an uninstall that leaves the
       // app in place is not an uninstall.
       paths: [app.path, ...leftovers.map((item) => item.path)],
@@ -126,7 +128,8 @@ class UnusedAppsModule implements ScanModule {
   ScanNode _group(List<ScanNode> apps) => ScanNode(
     id: 'unusedApps',
     title: ModuleId.unusedApps.label,
-    detail: 'Apps you have not opened in ${unusedAfter.inDays ~/ 30} months. '
+    detail:
+        'Apps you have not opened in ${unusedAfter.inDays ~/ 30} months. '
         'Nothing here is ticked for you — have a look before removing any of it.',
     safety: SafetyLevel.review,
     children: apps,

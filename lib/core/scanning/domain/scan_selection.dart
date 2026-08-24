@@ -20,7 +20,9 @@ class ScanSelection {
     return ScanSelection({
       for (final root in roots)
         for (final leaf in root.leaves)
-          if (leaf.safety.preselected && leaf.isRemovable && !leaf.sharesStorage)
+          if (leaf.safety.preselected &&
+              leaf.isRemovable &&
+              !leaf.sharesStorage)
             leaf.id,
     });
   }
@@ -74,9 +76,8 @@ class ScanSelection {
         if (_selected.contains(leaf.id)) leaf,
   ];
 
-  int selectedBytes(Iterable<ScanNode> roots) => selectedLeaves(
-    roots,
-  ).fold<int>(0, (sum, leaf) => sum + leaf.sizeBytes);
+  int selectedBytes(Iterable<ScanNode> roots) =>
+      selectedLeaves(roots).fold<int>(0, (sum, leaf) => sum + leaf.sizeBytes);
 
   /// Deduplicated, because a leaf can legitimately list a path that a sibling
   /// also lists (an app bundle and one of its helpers, say).

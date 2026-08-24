@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mac_uninstaller/core/design/design.dart';
 import 'package:mac_uninstaller/core/utils/byte_format.dart';
+import 'package:mac_uninstaller/core/widgets/ambient_background.dart';
 import 'package:mac_uninstaller/core/widgets/animated_bytes.dart';
 import 'package:mac_uninstaller/core/widgets/gauge_ring.dart';
 import 'package:mac_uninstaller/core/widgets/gradient_button.dart';
@@ -50,6 +51,10 @@ class ScanHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    // The hero is the module's centrepiece, so it takes the module's colour
+    // rather than the brand's — a violet ring on a green page belongs to a
+    // different app.
+    final lift = ModuleTint.of(context)?.lift ?? colors.accent;
 
     return Center(
       child: ConstrainedBox(
@@ -72,8 +77,8 @@ class ScanHero extends StatelessWidget {
                       shape: BoxShape.circle,
                       gradient: RadialGradient(
                         colors: [
-                          colors.accent.withValues(alpha: 0.18),
-                          colors.accent.withValues(alpha: 0),
+                          lift.withValues(alpha: 0.34),
+                          lift.withValues(alpha: 0),
                         ],
                       ),
                     ),
@@ -161,10 +166,10 @@ class ScanHero extends StatelessWidget {
   }
 }
 
-/// A path shortened for the rolling status line.
-String shortenPath(String path, {String? home}) {
+/// A path shortened for a status line, keeping the tail — the informative end
+/// of a long path is the last component, not the first.
+String shortenPath(String path, {String? home, int limit = 52}) {
   final collapsed = collapseHome(path, home);
-  const limit = 52;
   if (collapsed.length <= limit) return collapsed;
   return '…${collapsed.substring(collapsed.length - limit)}';
 }

@@ -83,9 +83,10 @@ class ScanNode {
   bool get isRemovable => paths.isNotEmpty && !requiresAdmin;
 
   /// Allocated bytes for this node and everything under it.
-  int get totalBytes => isLeaf
-      ? sizeBytes
-      : children.fold<int>(0, (sum, child) => sum + child.totalBytes);
+  int get totalBytes =>
+      isLeaf
+          ? sizeBytes
+          : children.fold<int>(0, (sum, child) => sum + child.totalBytes);
 
   /// Bytes that would actually be reclaimed — excludes cloned/hardlinked data
   /// and anything we can't remove yet.
@@ -96,7 +97,9 @@ class ScanNode {
 
   int get leafCount =>
       itemCount ??
-      (isLeaf ? 1 : children.fold<int>(0, (sum, child) => sum + child.leafCount));
+      (isLeaf
+          ? 1
+          : children.fold<int>(0, (sum, child) => sum + child.leafCount));
 
   /// Every leaf under this node, depth first.
   Iterable<ScanNode> get leaves sync* {
@@ -164,8 +167,9 @@ class ScanNode {
   /// Sorted largest first, all the way down — the order every result list wants.
   ScanNode sortedBySize() {
     if (isLeaf) return this;
-    final sorted = children.map((c) => c.sortedBySize()).toList()
-      ..sort((a, b) => b.totalBytes.compareTo(a.totalBytes));
+    final sorted =
+        children.map((c) => c.sortedBySize()).toList()
+          ..sort((a, b) => b.totalBytes.compareTo(a.totalBytes));
     return copyWith(children: sorted);
   }
 
@@ -176,5 +180,6 @@ class ScanNode {
   int get hashCode => id.hashCode;
 
   @override
-  String toString() => 'ScanNode($id, $totalBytes bytes, ${children.length} children)';
+  String toString() =>
+      'ScanNode($id, $totalBytes bytes, ${children.length} children)';
 }

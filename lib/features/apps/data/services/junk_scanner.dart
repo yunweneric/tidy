@@ -15,7 +15,10 @@ enum JunkKind {
   savedState('Saved App State', 'Window and document restore data.'),
 
   /// Support/preference folders whose owning app is no longer installed.
-  orphaned('Orphaned Leftovers', 'Files left behind by apps you no longer have.');
+  orphaned(
+    'Orphaned Leftovers',
+    'Files left behind by apps you no longer have.',
+  );
 
   const JunkKind(this.label, this.description);
 
@@ -59,7 +62,8 @@ class JunkReport {
 
   static const JunkReport empty = JunkReport(groups: []);
 
-  int get totalBytes => groups.fold<int>(0, (sum, group) => sum + group.sizeBytes);
+  int get totalBytes =>
+      groups.fold<int>(0, (sum, group) => sum + group.sizeBytes);
 
   /// Bytes that can be cleared without judgement calls — everything except
   /// orphaned leftovers.
@@ -164,8 +168,10 @@ class JunkScanner {
     return switch (kind) {
       JunkKind.caches => _scanDirectory('$home/Library/Caches', kind),
       JunkKind.logs => _scanDirectory('$home/Library/Logs', kind),
-      JunkKind.savedState =>
-        _scanDirectory('$home/Library/Saved Application State', kind),
+      JunkKind.savedState => _scanDirectory(
+        '$home/Library/Saved Application State',
+        kind,
+      ),
       JunkKind.orphaned => _scanOrphans(installedBundleIds),
     };
   }
@@ -178,9 +184,10 @@ class JunkScanner {
   /// Every immediate child of [root] counts as clearable junk, except those
   /// owned by macOS itself.
   Future<JunkGroup> _scanDirectory(String root, JunkKind kind) async {
-    final entries = _childrenOf(
-      root,
-    ).where((path) => !_isProtectedEntry(path.split('/').last)).toList();
+    final entries =
+        _childrenOf(
+          root,
+        ).where((path) => !_isProtectedEntry(path.split('/').last)).toList();
     final sizes = await pathSizes(entries);
 
     final items = <JunkItem>[

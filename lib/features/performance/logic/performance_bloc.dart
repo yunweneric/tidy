@@ -27,7 +27,10 @@ class PerformanceBloc extends Bloc<PerformanceEvent, PerformanceState> {
   final LaunchItemsService _launchItems;
   final MaintenanceService _maintenance;
 
-  Future<void> _onLoad(LoadPerformance event, Emitter<PerformanceState> emit) async {
+  Future<void> _onLoad(
+    LoadPerformance event,
+    Emitter<PerformanceState> emit,
+  ) async {
     if (!event.silent) {
       emit(state.copyWith(status: PerformanceStatus.loading, clearError: true));
     }
@@ -66,7 +69,10 @@ class PerformanceBloc extends Bloc<PerformanceEvent, PerformanceState> {
   ) async {
     emit(_busy(event.item.path, true).copyWith(clearNotice: true));
 
-    final outcome = await _launchItems.setEnabled(event.item, enabled: event.enabled);
+    final outcome = await _launchItems.setEnabled(
+      event.item,
+      enabled: event.enabled,
+    );
 
     if (!outcome.ok) {
       emit(
@@ -85,7 +91,10 @@ class PerformanceBloc extends Bloc<PerformanceEvent, PerformanceState> {
     // disorienting. The next explicit refresh puts it in its new place.
     final updated = [
       for (final item in state.items)
-        if (item.path == event.item.path) item.copyWith(enabled: event.enabled) else item,
+        if (item.path == event.item.path)
+          item.copyWith(enabled: event.enabled)
+        else
+          item,
     ];
 
     emit(
@@ -93,16 +102,20 @@ class PerformanceBloc extends Bloc<PerformanceEvent, PerformanceState> {
         items: updated,
         busyIds: {...state.busyIds}..remove(event.item.path),
         notice: PerformanceNotice(
-          message: event.enabled
-              ? '${event.item.name} will start again at your next login.'
-              : '${event.item.name} is off. It stays off until you turn it back on.',
+          message:
+              event.enabled
+                  ? '${event.item.name} will start again at your next login.'
+                  : '${event.item.name} is off. It stays off until you turn it back on.',
           ok: true,
         ),
       ),
     );
   }
 
-  Future<void> _onRemove(RemoveLaunchItem event, Emitter<PerformanceState> emit) async {
+  Future<void> _onRemove(
+    RemoveLaunchItem event,
+    Emitter<PerformanceState> emit,
+  ) async {
     emit(_busy(event.item.path, true).copyWith(clearNotice: true));
 
     final outcome = await _launchItems.remove(event.item);
@@ -121,12 +134,14 @@ class PerformanceBloc extends Bloc<PerformanceEvent, PerformanceState> {
 
     emit(
       state.copyWith(
-        items: state.items.where((item) => item.path != event.item.path).toList(),
+        items:
+            state.items.where((item) => item.path != event.item.path).toList(),
         busyIds: {...state.busyIds}..remove(event.item.path),
         notice: PerformanceNotice(
           // Trashing frees nothing until the Trash is emptied, and the copy has
           // to say the recoverable thing rather than the reassuring one.
-          message: '${event.item.name} moved to the Trash. Put it back from '
+          message:
+              '${event.item.name} moved to the Trash. Put it back from '
               'there if you need it.',
           ok: true,
         ),
@@ -134,7 +149,10 @@ class PerformanceBloc extends Bloc<PerformanceEvent, PerformanceState> {
     );
   }
 
-  Future<void> _onRunTask(RunMaintenanceTask event, Emitter<PerformanceState> emit) async {
+  Future<void> _onRunTask(
+    RunMaintenanceTask event,
+    Emitter<PerformanceState> emit,
+  ) async {
     emit(_busy(event.task.id, true).copyWith(clearNotice: true));
 
     final result = await _maintenance.run(event.task);

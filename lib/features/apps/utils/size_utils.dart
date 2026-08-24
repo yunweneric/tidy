@@ -8,4 +8,5 @@ int totalBytes(Iterable<MacApp> apps) =>
     apps.fold<int>(0, (sum, app) => sum + app.sizeBytes);
 
 /// Formatted total size of [apps].
-String formatAppsTotalSize(Iterable<MacApp> apps) => formatBytes(totalBytes(apps));
+String formatAppsTotalSize(Iterable<MacApp> apps) =>
+    formatBytes(totalBytes(apps));

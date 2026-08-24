@@ -1,18 +1,26 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'package:mac_uninstaller/core/platform/system_bridge.dart';
 import 'package:mac_uninstaller/core/design/design.dart';
 import 'package:mac_uninstaller/core/di/service_locator.dart';
-import 'package:mac_uninstaller/features/apps/data/models/mac_app_model.dart';
-import 'package:mac_uninstaller/features/apps/data/services/apps_service.dart';
+import 'package:mac_uninstaller/core/platform/system_bridge.dart';
+import 'package:mac_uninstaller/core/utils/byte_format.dart';
 import 'package:mac_uninstaller/features/apps/data/services/junk_scanner.dart';
-import 'package:mac_uninstaller/features/apps/data/services/leftover_scanner.dart';
 import 'package:mac_uninstaller/features/apps/data/services/scan_cache.dart';
-import 'package:mac_uninstaller/features/apps/utils/size_utils.dart';
+import 'package:mac_uninstaller/features/menubar/domain/menu_bar_insight.dart';
 import 'package:mac_uninstaller/features/menubar/platform/popover_bridge.dart';
 import 'package:mac_uninstaller/features/menubar/presentation/widgets/measure_size.dart';
-import 'package:mac_uninstaller/features/menubar/presentation/widgets/menu_bar_app_row.dart';
-import 'package:mac_uninstaller/features/menubar/presentation/widgets/menu_bar_disk_bar.dart';
+import 'package:mac_uninstaller/features/menubar/presentation/widgets/menu_bar_button.dart';
+import 'package:mac_uninstaller/features/menubar/presentation/widgets/menu_bar_insight_card.dart';
+import 'package:mac_uninstaller/features/menubar/presentation/widgets/menu_bar_process_row.dart';
+import 'package:mac_uninstaller/features/menubar/presentation/widgets/menu_bar_reclaim_row.dart';
 import 'package:mac_uninstaller/features/menubar/presentation/widgets/menu_bar_section.dart';
+import 'package:mac_uninstaller/features/menubar/presentation/widgets/menu_bar_vitals.dart';
+import 'package:mac_uninstaller/features/performance/data/models/process_sample.dart';
+import 'package:mac_uninstaller/features/performance/data/models/system_vitals.dart';
+import 'package:mac_uninstaller/features/performance/data/services/performance_bridge.dart';
+import 'package:mac_uninstaller/features/performance/data/services/process_monitor_service.dart';
+import 'package:mac_uninstaller/features/recycle_bin/data/services/recycle_bin_service.dart';
 
 /// Root of the menu bar popover engine.
 class MenuBarPanelApp extends StatelessWidget {
@@ -33,8 +41,14 @@ class MenuBarPanelApp extends StatelessWidget {
   }
 }
 
-/// Compact panel shown from the menu bar: what is eating disk space, and a way
-/// to remove it without opening the main window.
+/// The panel behind the status item: how the machine is doing right now, the
+/// one thing worth acting on, what is using it, and what can be handed back.
+///
+/// This deliberately does *not* list apps to uninstall. Uninstalling is a
+/// considered decision about software you chose to install — it belongs in the
+/// main window, next to leftovers, sizes and last-used dates. What a menu bar
+/// is good at is the opposite: numbers that change while you work, and the one
+/// action that answers them.
 class MenuBarPanel extends StatefulWidget {
   const MenuBarPanel({super.key});
 
@@ -43,156 +57,124 @@ class MenuBarPanel extends StatefulWidget {
 }
 
 class _MenuBarPanelState extends State<MenuBarPanel> {
-  /// How many space consumers the panel lists.
-  static const int _topAppCount = 8;
+  /// How many live processes the panel lists. Enough to spot the culprit,
+  /// short enough that the panel stays a glance rather than a table.
+  static const int _consumerCount = 5;
 
-  late final PopoverBridge _bridge = PopoverBridge(onPopoverOpened: _onPopoverOpened);
-  final AppManagerService _service = locator<AppManagerService>();
+  /// Matches the Performance page's cadence. Faster reads as noise, slower
+  /// stops feeling live.
+  static const Duration _tick = Duration(seconds: 2);
+
+  late final PopoverBridge _bridge = PopoverBridge(
+    onPopoverOpened: _onPopoverOpened,
+    onPopoverClosed: _onPopoverClosed,
+  );
+
   final ScanCache _cache = locator<ScanCache>();
   final JunkScanner _junkScanner = locator<JunkScanner>();
-  final LeftoverScanner _leftoverScanner = locator<LeftoverScanner>();
+  final ProcessMonitorService _monitor = locator<ProcessMonitorService>();
+  final RecycleBinService _recycleBin = locator<RecycleBinService>();
 
-  List<MacApp> _apps = const [];
+  SystemVitals _vitals = SystemVitals.empty;
   DiskUsage _disk = DiskUsage.empty;
+  ProcessSnapshot _snapshot = ProcessSnapshot.empty;
   JunkReport _junk = JunkReport.empty;
+  int _trashBytes = 0;
 
-  bool _loading = true;
+  ProcessSort _sort = ProcessSort.cpu;
+  Timer? _ticker;
+
+  /// The space scan — junk and Trash — is the slow half and runs on its own.
+  bool _scanningSpace = true;
+  bool _sampled = false;
   bool _busy = false;
   String? _status;
+  DateTime? _updatedAt;
 
-  /// Path of the app whose inline confirmation is showing.
-  String? _confirmingPath;
-  _PendingRemoval? _pending;
+  /// The process whose inline quit confirmation is showing.
+  int? _confirmingPid;
+  final Set<int> _busyPids = {};
 
   @override
   void initState() {
     super.initState();
-    _load();
+    // Sample once at launch so the first open is already populated, then let
+    // the open/close callbacks own the timer.
+    _monitor.start();
+    _sample();
+    _scanSpace();
   }
 
-  /// Cached data paints immediately; the fresh scan lands a moment later.
-  Future<void> _load() async {
+  @override
+  void dispose() {
+    _ticker?.cancel();
+    super.dispose();
+  }
+
+  // ------------------------------------------------------------------ sampling
+
+  /// One reading of everything that changes while you work.
+  Future<void> _sample() async {
+    final results = await Future.wait([
+      PerformanceBridge.systemVitals(),
+      _monitor.sample(),
+      SystemBridge.diskUsage(),
+    ]);
+    if (!mounted) return;
+
+    setState(() {
+      _vitals = results[0] as SystemVitals;
+      _snapshot = results[1] as ProcessSnapshot;
+      _disk = results[2] as DiskUsage;
+      _sampled = true;
+      _updatedAt = DateTime.now();
+    });
+  }
+
+  /// The expensive half: sizing every cache folder and every item in the
+  /// Trash. Runs at launch and on an explicit refresh, never on the timer —
+  /// a panel that walks the filesystem every two seconds is the problem, not
+  /// the cleaner.
+  Future<void> _scanSpace() async {
     final cached = await _cache.read();
-    if (cached != null && cached.apps.isNotEmpty && mounted) {
-      setState(() {
-        _apps = cached.apps;
-        _loading = false;
-      });
-    }
+    final apps = cached?.apps ?? const [];
 
-    final disk = await SystemBridge.diskUsage();
-    if (mounted) setState(() => _disk = disk);
+    final junk = await _junkScanner.scan(installedApps: apps);
+    if (mounted) setState(() => _junk = junk);
 
-    var apps = await _service.scanApps();
+    final bin = await _recycleBin.load();
     if (!mounted) return;
     setState(() {
-      _apps = apps;
-      _loading = false;
+      _trashBytes = bin.totalBytes;
+      _scanningSpace = false;
     });
-
-    // "Largest apps" is meaningless until sizes land, and sizes are the slow
-    // part — but the cached list above is already on screen, so this refines
-    // rather than blocks.
-    await for (final withSizes in _service.attachSizes(apps)) {
-      apps = withSizes;
-      if (!mounted) return;
-      setState(() => _apps = apps);
-    }
-
-    // Icons only matter for the handful of rows on screen here.
-    final top = _topApps(apps);
-    final icons = await SystemBridge.iconsForPaths(
-      top.map((app) => app.path).toList(),
-      size: 32,
-    );
-    if (icons.isNotEmpty && mounted) {
-      setState(() {
-        _apps = [
-          for (final app in _apps)
-            icons[app.path] == null
-                ? app
-                : app.copyWith(iconBytes: icons[app.path]),
-        ];
-      });
-    }
-    await _cache.write(_apps);
-
-    final junk = await _junkScanner.scan(installedApps: _apps);
-    if (mounted) setState(() => _junk = junk);
   }
 
   void _onPopoverOpened() {
-    // Re-read cheaply on every open so removals made in the main window show up.
-    _cache.read().then((cached) {
-      if (cached != null && mounted) setState(() => _apps = cached.apps);
-    });
-    SystemBridge.diskUsage().then((disk) {
-      if (mounted) setState(() => _disk = disk);
-    });
+    _sample();
+    _ticker?.cancel();
+    _ticker = Timer.periodic(_tick, (_) => _sample());
   }
 
-  List<MacApp> _topApps(List<MacApp> apps) {
-    final removable = apps.where((app) => !app.isSystem).toList()
-      ..sort((a, b) => b.sizeBytes.compareTo(a.sizeBytes));
-    return removable.take(_topAppCount).toList();
+  void _onPopoverClosed() {
+    _ticker?.cancel();
+    _ticker = null;
+    // Whatever was half-confirmed when the panel vanished is not still
+    // confirmed the next time it opens.
+    if (mounted && _confirmingPid != null) {
+      setState(() => _confirmingPid = null);
+    }
+  }
+
+  Future<void> _refresh() async {
+    setState(() {
+      _scanningSpace = true;
+      _status = null;
+    });
+    await Future.wait([_sample(), _scanSpace()]);
   }
 
   // ------------------------------------------------------------------- actions
-
-  /// Step 1 of removal: scan leftovers so the confirmation can say exactly what
-  /// goes and how much it frees.
-  Future<void> _startRemoval(MacApp app) async {
-    setState(() {
-      _confirmingPath = app.path;
-      _pending = null;
-    });
-
-    final leftovers = await _leftoverScanner.scan(app);
-    if (!mounted || _confirmingPath != app.path) return;
-
-    setState(() {
-      _pending = _PendingRemoval(
-        app: app,
-        paths: [app.path, ...leftovers.map((item) => item.path)],
-        totalBytes:
-            app.sizeBytes +
-            leftovers.fold<int>(0, (sum, item) => sum + item.sizeBytes),
-        leftoverCount: leftovers.length,
-      );
-    });
-  }
-
-  /// Step 2: actually move everything to the Trash.
-  Future<void> _confirmRemoval() async {
-    final pending = _pending;
-    if (pending == null) return;
-
-    setState(() {
-      _busy = true;
-      _confirmingPath = null;
-      _pending = null;
-    });
-
-    final result = await SystemBridge.trashItems(pending.paths);
-    if (!mounted) return;
-
-    final removed = result.removed.toSet();
-    if (removed.contains(pending.app.path)) {
-      _apps = _apps.where((app) => app.path != pending.app.path).toList();
-      await _cache.removeApps([pending.app.path]);
-    }
-
-    final disk = await SystemBridge.diskUsage();
-    if (!mounted) return;
-
-    setState(() {
-      _disk = disk;
-      _busy = false;
-      _status = result.isCompleteSuccess
-          ? '${formatBytes(pending.totalBytes)} moved to Trash'
-          : '${result.failures.length} item(s) could not be removed';
-    });
-  }
 
   Future<void> _clearJunk() async {
     final paths = _junk.pathsFor(
@@ -204,21 +186,79 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
     setState(() => _busy = true);
 
     final result = await SystemBridge.trashItems(paths);
-    final junk = await _junkScanner.scan(installedApps: _apps);
+    final cached = await _cache.read();
+    final junk = await _junkScanner.scan(
+      installedApps: cached?.apps ?? const [],
+    );
     final disk = await SystemBridge.diskUsage();
+    final bin = await _recycleBin.load();
     if (!mounted) return;
 
     setState(() {
       _junk = junk;
       _disk = disk;
+      _trashBytes = bin.totalBytes;
       _busy = false;
       _status = result.isCompleteSuccess
-          ? '${formatBytes(expected)} of junk moved to Trash'
+          ? '${formatBytes(expected)} moved to Trash'
           : '${result.failures.length} item(s) could not be removed';
     });
   }
 
+  Future<void> _quit(ProcessSample process) async {
+    setState(() {
+      _confirmingPid = null;
+      _busyPids.add(process.pid);
+    });
+
+    final outcome = await _monitor.quit(process.pid);
+    if (!mounted) return;
+
+    setState(() {
+      _busyPids.remove(process.pid);
+      _status = outcome.ok
+          ? 'Asked ${process.name} to quit'
+          : outcome.message ?? 'That process would not quit';
+    });
+
+    await _sample();
+  }
+
+  void _runInsightAction(MenuBarInsightAction action) {
+    switch (action) {
+      case MenuBarInsightAction.cleanJunk:
+        _clearJunk();
+      case MenuBarInsightAction.openApp:
+        _bridge.openMainWindow();
+    }
+  }
+
   // --------------------------------------------------------------------- build
+
+  List<ProcessSample> get _consumers => ProcessMonitorService.sorted(
+    _snapshot.processes,
+    _sort,
+  ).take(_consumerCount).toList();
+
+  MenuBarInsight get _insight {
+    final byCpu = ProcessMonitorService.sorted(
+      _snapshot.processes,
+      ProcessSort.cpu,
+    );
+    final byMemory = ProcessMonitorService.sorted(
+      _snapshot.processes,
+      ProcessSort.memory,
+    );
+
+    return MenuBarInsight.of(
+      vitals: _vitals,
+      disk: _disk,
+      junkBytes: _junk.safeBytes,
+      trashBytes: _trashBytes,
+      topCpu: byCpu.isEmpty ? null : byCpu.first,
+      topMemory: byMemory.isEmpty ? null : byMemory.first,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -239,40 +279,53 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
               _buildHeader(),
               const Divider(height: 1),
               Padding(
-                padding: const EdgeInsets.fromLTRB(14, 12, 14, 4),
-                child: MenuBarDiskBar(disk: _disk, reclaimable: _junk.safeBytes),
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.md + 2,
+                  AppSpacing.md,
+                  AppSpacing.md + 2,
+                  0,
+                ),
+                child: MenuBarVitals(vitals: _vitals, disk: _disk),
               ),
-              _buildJunkRow(),
-              const SizedBox(height: 4),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.md + 2,
+                  AppSpacing.sm + 2,
+                  AppSpacing.md + 2,
+                  0,
+                ),
+                child: MenuBarInsightCard(
+                  insight: _insight,
+                  enabled: !_busy,
+                  onAction: _runInsightAction,
+                ),
+              ),
+              _buildConsumers(),
+              const Divider(height: 1),
               MenuBarSection(
-                title: 'Largest apps',
-                trailing: _loading ? 'scanning…' : '${_apps.length} installed',
+                title: 'Reclaimable',
+                trailing: _scanningSpace
+                    ? 'scanning…'
+                    : formatBytes(_junk.safeBytes + _trashBytes),
               ),
-              if (_loading && _apps.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 28),
-                  child: Center(
-                    child: SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                  ),
-                )
-              else
-                for (final app in _topApps(_apps))
-                  MenuBarAppRow(
-                    app: app,
-                    confirming: _confirmingPath == app.path,
-                    pendingLabel: _pendingLabelFor(app),
-                    enabled: !_busy,
-                    onRemovePressed: () => _startRemoval(app),
-                    onCancel: () => setState(() {
-                      _confirmingPath = null;
-                      _pending = null;
-                    }),
-                    onConfirm: _pending == null ? null : _confirmRemoval,
-                  ),
+              MenuBarReclaimRow(
+                icon: AppIcons.cleanup,
+                title: 'Caches, logs & saved state',
+                subtitle: 'Rebuilt automatically the next time an app runs',
+                bytes: _junk.safeBytes,
+                scanning: _scanningSpace && _junk.safeBytes == 0,
+                actionLabel: 'Clean',
+                onAction: _junk.safeBytes == 0 || _busy ? null : _clearJunk,
+              ),
+              MenuBarReclaimRow(
+                icon: AppIcons.recycleBin,
+                title: 'Trash',
+                subtitle: 'Still taking up space until it is emptied',
+                bytes: _trashBytes,
+                scanning: _scanningSpace,
+                actionLabel: 'Review',
+                onAction: _bridge.openMainWindow,
+              ),
               const Divider(height: 1),
               _buildFooter(),
             ],
@@ -282,50 +335,41 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
     );
   }
 
-  String? _pendingLabelFor(MacApp app) {
-    if (_confirmingPath != app.path) return null;
-    final pending = _pending;
-    if (pending == null) return 'Checking for leftovers…';
-    return pending.leftoverCount == 0
-        ? 'Frees ${formatBytes(pending.totalBytes)}'
-        : 'App + ${pending.leftoverCount} leftover${pending.leftoverCount == 1 ? '' : 's'} · '
-              'frees ${formatBytes(pending.totalBytes)}';
-  }
-
   Widget _buildHeader() {
+    final insight = _insight;
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.md + 2,
+        AppSpacing.md,
+        AppSpacing.sm,
+        AppSpacing.md,
+      ),
       child: Row(
         children: [
           Icon(Brand.mark, size: 15, color: context.colors.accent),
           const SizedBox(width: AppSpacing.sm),
           Text(Brand.name, style: context.text.titleS),
+          const SizedBox(width: AppSpacing.sm),
+          _StatusDot(level: insight.level),
           const Spacer(),
           if (_busy)
             const Padding(
-              padding: EdgeInsets.only(right: 8),
+              padding: EdgeInsets.only(right: AppSpacing.sm),
               child: SizedBox(
                 width: 14,
                 height: 14,
                 child: CircularProgressIndicator(strokeWidth: 2),
               ),
             ),
-          _IconAction(
+          MenuBarIconButton(
             icon: AppIcons.refresh,
             tooltip: 'Rescan',
-            onPressed: _busy
-                ? null
-                : () {
-                    setState(() {
-                      _loading = true;
-                      _status = null;
-                    });
-                    _load();
-                  },
+            onPressed: _busy ? null : _refresh,
           ),
-          _IconAction(
+          MenuBarIconButton(
             icon: AppIcons.openExternal,
-            tooltip: 'Open full app',
+            tooltip: 'Open ${Brand.name}',
             onPressed: _bridge.openMainWindow,
           ),
         ],
@@ -333,102 +377,176 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
     );
   }
 
-  Widget _buildJunkRow() {
-    final reclaimable = _junk.safeBytes;
+  Widget _buildConsumers() {
+    final consumers = _consumers;
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
-      child: Row(
-        children: [
-          Icon(
-            AppIcons.cleanup,
-            size: 15,
-            color: context.colors.review,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        MenuBarSection(
+          title: 'Using the most',
+          action: _SortToggle(
+            sort: _sort,
+            onChanged: (sort) => setState(() => _sort = sort),
           ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              reclaimable == 0
-                  ? 'No cache or log junk found'
-                  : '${formatBytes(reclaimable)} in caches, logs & saved state',
-              style: context.text.bodyM,
-              overflow: TextOverflow.ellipsis,
+        ),
+        if (!_sampled)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: AppSpacing.xxl),
+            child: Center(
+              child: SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
             ),
-          ),
-          TextButton(
-            onPressed: reclaimable == 0 || _busy ? null : _clearJunk,
-            style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              minimumSize: const Size(0, 28),
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          )
+        else
+          for (final process in consumers)
+            MenuBarProcessRow(
+              process: process,
+              icon: process.bundlePath == null
+                  ? null
+                  : _monitor.icons[process.bundlePath],
+              sort: _sort,
+              confirming: _confirmingPid == process.pid,
+              busy: _busyPids.contains(process.pid),
+              enabled: !_busy,
+              onQuitPressed: () =>
+                  setState(() => _confirmingPid = process.pid),
+              onCancel: () => setState(() => _confirmingPid = null),
+              onConfirm: () => _quit(process),
             ),
-            child: const Text('Clean'),
-          ),
-        ],
-      ),
+      ],
     );
   }
 
   Widget _buildFooter() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 8, 8, 8),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.md + 2,
+        AppSpacing.sm,
+        AppSpacing.sm,
+        AppSpacing.sm,
+      ),
       child: Row(
         children: [
           Expanded(
             child: Text(
-              _status ?? '${formatBytes(_disk.freeBytes)} free',
+              _status ?? _footerLabel(),
               style: context.text.caption,
+              maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          TextButton(
-            onPressed: _bridge.quitApp,
-            style: TextButton.styleFrom(
-              foregroundColor: context.colors.textSecondary,
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm + 2),
-              minimumSize: const Size(0, 28),
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-            child: const Text('Quit'),
-          ),
+          MenuBarButton(label: 'Quit', onPressed: _bridge.quitApp),
         ],
+      ),
+    );
+  }
+
+  String _footerLabel() {
+    final parts = <String>[
+      if (_vitals.isKnown) 'Up ${_vitals.uptimeLabel}',
+      if (_snapshot.processes.isNotEmpty)
+        '${_snapshot.processes.length} processes',
+      if (_updatedAt != null) 'updated ${_clock(_updatedAt!)}',
+    ];
+    return parts.isEmpty ? 'Reading your Mac…' : parts.join(' · ');
+  }
+
+  static String _clock(DateTime at) {
+    final hour = at.hour.toString().padLeft(2, '0');
+    final minute = at.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
+  }
+}
+
+/// A coloured dot next to the app name, so the panel's verdict is legible
+/// before any of it has been read.
+class _StatusDot extends StatelessWidget {
+  const _StatusDot({required this.level});
+
+  final VitalLevel level;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = colorForLevel(context, level);
+
+    return Tooltip(
+      message: switch (level) {
+        VitalLevel.good => 'Nothing needs attention',
+        VitalLevel.watch => 'Worth a look',
+        VitalLevel.urgent => 'Needs attention',
+      },
+      child: Container(
+        width: 7,
+        height: 7,
+        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
       ),
     );
   }
 }
 
-/// A removal the user has been shown but not yet confirmed.
-class _PendingRemoval {
-  const _PendingRemoval({
-    required this.app,
-    required this.paths,
-    required this.totalBytes,
-    required this.leftoverCount,
-  });
+/// CPU or memory, for the live list. Two options, so a pair of text buttons
+/// rather than the app's full segmented control.
+class _SortToggle extends StatelessWidget {
+  const _SortToggle({required this.sort, required this.onChanged});
 
-  final MacApp app;
-  final List<String> paths;
-  final int totalBytes;
-  final int leftoverCount;
-}
-
-class _IconAction extends StatelessWidget {
-  const _IconAction({required this.icon, required this.tooltip, this.onPressed});
-
-  final IconData icon;
-  final String tooltip;
-  final VoidCallback? onPressed;
+  final ProcessSort sort;
+  final ValueChanged<ProcessSort> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    return IconButton(
-      icon: Icon(icon, size: 16),
-      color: context.colors.textSecondary,
-      tooltip: tooltip,
-      visualDensity: VisualDensity.compact,
-      constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
-      padding: EdgeInsets.zero,
-      onPressed: onPressed,
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (final option in const [ProcessSort.cpu, ProcessSort.memory])
+          _Option(
+            label: option.label,
+            selected: sort == option,
+            onTap: () => onChanged(option),
+          ),
+      ],
+    );
+  }
+}
+
+class _Option extends StatelessWidget {
+  const _Option({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(left: AppSpacing.xs),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.sm,
+          vertical: AppSpacing.xxs + 1,
+        ),
+        decoration: BoxDecoration(
+          color: selected ? colors.surfaceRaised : Colors.transparent,
+          borderRadius: AppRadii.smAll,
+        ),
+        child: Text(
+          label,
+          style: context.text.caption.copyWith(
+            color: selected ? colors.textPrimary : colors.textMuted,
+            fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+          ),
+        ),
+      ),
     );
   }
 }

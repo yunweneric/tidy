@@ -26,6 +26,7 @@ class AppIcons {
   static const IconData activity = HugeIcons.strokeRoundedClock01;
   static const IconData assistant = HugeIcons.strokeRoundedActivity01;
   static const IconData settings = HugeIcons.strokeRoundedSettings01;
+  static const IconData recycleBin = HugeIcons.strokeRoundedDelete03;
 
   // ─── Modules ─────────────────────────────────────────────────────────────
   static const IconData developerJunk = HugeIcons.strokeRoundedCpu;
@@ -46,6 +47,17 @@ class AppIcons {
   static const IconData storage = HugeIcons.strokeRoundedHardDrive;
   static const IconData analytics = HugeIcons.strokeRoundedPieChart;
 
+  // ─── File kinds ──────────────────────────────────────────────────────────
+  // Coarse on purpose: enough to tell a folder from a film at a glance, in a
+  // table where the name is doing the real work.
+  static const IconData folder = HugeIcons.strokeRoundedFolder01;
+  static const IconData image = HugeIcons.strokeRoundedImage01;
+  static const IconData video = HugeIcons.strokeRoundedFileVideo;
+  static const IconData audio = HugeIcons.strokeRoundedFileMusic;
+  static const IconData archive = HugeIcons.strokeRoundedFileZip;
+  static const IconData document = HugeIcons.strokeRoundedFile01;
+  static const IconData externalDrive = HugeIcons.strokeRoundedExternalDrive;
+
   // ─── Actions ─────────────────────────────────────────────────────────────
   static const IconData search = HugeIcons.strokeRoundedSearch01;
   static const IconData refresh = HugeIcons.strokeRoundedRefresh;
@@ -55,6 +67,9 @@ class AppIcons {
   static const IconData delete = HugeIcons.strokeRoundedDelete02;
   static const IconData revealInFinder = HugeIcons.strokeRoundedFolderOpen;
   static const IconData restore = HugeIcons.strokeRoundedRecycle01;
+
+  /// Back to exactly where it came from, as opposed to [restore], which asks.
+  static const IconData putBack = HugeIcons.strokeRoundedDeletePutBack;
   static const IconData openExternal = HugeIcons.strokeRoundedLinkSquare01;
   static const IconData back = HugeIcons.strokeRoundedArrowLeft01;
   static const IconData forward = HugeIcons.strokeRoundedArrowRight01;

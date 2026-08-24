@@ -49,7 +49,12 @@ class CleanOutcome extends Equatable {
   bool get hasFailures => failures.isNotEmpty;
 
   @override
-  List<Object?> get props => [requestedBytes, removedCount, failures.length, movedToTrash];
+  List<Object?> get props => [
+    requestedBytes,
+    removedCount,
+    failures.length,
+    movedToTrash,
+  ];
 }
 
 class ScanState extends Equatable {
@@ -59,6 +64,8 @@ class ScanState extends Equatable {
     this.selection = const ScanSelection.empty(),
     this.fraction,
     this.currentPath,
+    this.recentPaths = const [],
+    this.visitedCount = 0,
     this.permissionLimited = false,
     this.outcome,
     this.error,
@@ -78,6 +85,24 @@ class ScanState extends Equatable {
   /// The path being examined right now, for the rolling status line.
   final String? currentPath;
 
+  /// The last handful of places the scanner looked, newest first.
+  ///
+  /// A single current path tells you the app is alive but not that it is
+  /// getting anywhere — the line changes too fast to read. A short history
+  /// does: you can see it walking through Caches, then Logs, then Containers.
+  final List<String> recentPaths;
+
+  /// How many distinct places have been looked at this run.
+  ///
+  /// The honest progress number for a filesystem walk. Most scans cannot know
+  /// their total until they have already finished walking everything, so a
+  /// percentage would be a guess; a count that keeps climbing is true, and
+  /// still answers "is this stuck?".
+  final int visitedCount;
+
+  /// How many entries [recentPaths] keeps.
+  static const int recentPathLimit = 6;
+
   /// At least one root was unreadable — almost always Full Disk Access.
   final bool permissionLimited;
 
@@ -89,7 +114,8 @@ class ScanState extends Equatable {
 
   bool get isBusy => phase == ScanPhase.scanning || phase == ScanPhase.cleaning;
 
-  int get totalBytes => roots.fold<int>(0, (sum, node) => sum + node.totalBytes);
+  int get totalBytes =>
+      roots.fold<int>(0, (sum, node) => sum + node.totalBytes);
 
   int get selectedBytes => selection.selectedBytes(roots);
 
@@ -110,6 +136,8 @@ class ScanState extends Equatable {
     ScanSelection? selection,
     double? fraction,
     String? currentPath,
+    List<String>? recentPaths,
+    int? visitedCount,
     bool? permissionLimited,
     CleanOutcome? outcome,
     String? error,
@@ -124,6 +152,8 @@ class ScanState extends Equatable {
       selection: selection ?? this.selection,
       fraction: fraction ?? this.fraction,
       currentPath: currentPath ?? this.currentPath,
+      recentPaths: recentPaths ?? this.recentPaths,
+      visitedCount: visitedCount ?? this.visitedCount,
       permissionLimited: permissionLimited ?? this.permissionLimited,
       outcome: clearOutcome ? null : (outcome ?? this.outcome),
       error: clearError ? null : (error ?? this.error),
@@ -138,6 +168,8 @@ class ScanState extends Equatable {
     selection.ids,
     fraction,
     currentPath,
+    recentPaths,
+    visitedCount,
     permissionLimited,
     outcome,
     error,

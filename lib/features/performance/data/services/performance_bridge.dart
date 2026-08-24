@@ -1,28 +1,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:mac_uninstaller/core/platform/action_outcome.dart';
+import 'package:mac_uninstaller/features/performance/data/models/system_vitals.dart';
 
-/// The result of a native action that either worked or has something to say.
-@immutable
-class ActionOutcome {
-  const ActionOutcome({required this.ok, this.message});
-
-  static const ActionOutcome success = ActionOutcome(ok: true);
-
-  factory ActionOutcome.fromMap(Map<String, dynamic>? map) {
-    if (map == null) {
-      return const ActionOutcome(ok: false, message: 'No answer from macOS.');
-    }
-    return ActionOutcome(
-      ok: map['ok'] as bool? ?? false,
-      message: map['message'] as String?,
-    );
-  }
-
-  final bool ok;
-
-  /// A sentence to show the user. Null when it simply worked.
-  final String? message;
-}
+// Moved to core/ when Clipboard needed it too; re-exported so the services that
+// already speak in outcomes keep their single import.
+export 'package:mac_uninstaller/core/platform/action_outcome.dart';
 
 /// Thin wrapper over `macos/Runner/PerformanceChannel.swift`.
 ///
@@ -71,11 +54,27 @@ class PerformanceBridge {
     required String scope,
   }) => _act('unloadLaunchItem', {'label': label, 'scope': scope});
 
+  /// Removes a machine-wide item behind macOS's own authorization prompt.
+  ///
+  /// The prompt is shown by the system, not by us, and cancelling it is a
+  /// normal outcome that leaves everything where it was.
+  static Future<ActionOutcome> removeLaunchItemElevated({
+    required String path,
+    required String label,
+    required String kind,
+  }) => _act('removeLaunchItemElevated', {
+    'path': path,
+    'label': label,
+    'kind': kind,
+  });
+
   // ─── Processes ────────────────────────────────────────────────────────────
 
   static Future<Map<String, dynamic>> processSamples() async {
     try {
-      final result = await _channel.invokeMapMethod<String, dynamic>('processSamples');
+      final result = await _channel.invokeMapMethod<String, dynamic>(
+        'processSamples',
+      );
       return result ?? const {};
     } catch (e) {
       debugPrint('processSamples failed: $e');
@@ -99,11 +98,37 @@ class PerformanceBridge {
     bool force = false,
   }) => _act('terminateProcess', {'pid': pid, 'force': force});
 
+  // ─── System vitals ────────────────────────────────────────────────────────
+
+  /// One machine-wide reading: CPU, memory, swap, uptime, thermal state.
+  static Future<SystemVitals> systemVitals() async {
+    try {
+      final result = await _channel.invokeMapMethod<String, dynamic>(
+        'systemVitals',
+      );
+      return result == null ? SystemVitals.empty : SystemVitals.fromMap(result);
+    } catch (e) {
+      debugPrint('systemVitals failed: $e');
+      return SystemVitals.empty;
+    }
+  }
+
+  /// Drops the CPU baseline so the next reading measures from now.
+  static Future<void> resetSystemVitals() async {
+    try {
+      await _channel.invokeMethod<void>('resetSystemVitals');
+    } catch (e) {
+      debugPrint('resetSystemVitals failed: $e');
+    }
+  }
+
   // ─── Maintenance ──────────────────────────────────────────────────────────
 
   static Future<List<Map<String, dynamic>>> maintenanceTasks() async {
     try {
-      final result = await _channel.invokeListMethod<dynamic>('maintenanceTasks');
+      final result = await _channel.invokeListMethod<dynamic>(
+        'maintenanceTasks',
+      );
       if (result == null) return const [];
       return result.map((raw) => (raw as Map).cast<String, dynamic>()).toList();
     } catch (e) {
@@ -140,12 +165,19 @@ class PerformanceBridge {
     }
   }
 
-  static Future<ActionOutcome> _act(String method, Map<String, dynamic> arguments) async {
+  static Future<ActionOutcome> _act(
+    String method,
+    Map<String, dynamic> arguments,
+  ) async {
     try {
-      final result = await _channel.invokeMapMethod<String, dynamic>(method, arguments);
+      final result = await _channel.invokeMapMethod<String, dynamic>(
+        method,
+        arguments,
+      );
       return ActionOutcome.fromMap(result);
     } catch (e) {
-      final message = e is PlatformException ? (e.message ?? e.code) : e.toString();
+      final message =
+          e is PlatformException ? (e.message ?? e.code) : e.toString();
       return ActionOutcome(ok: false, message: message);
     }
   }

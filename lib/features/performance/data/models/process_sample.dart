@@ -53,7 +53,10 @@ class ProcessSample extends Equatable {
 
 /// One tick of the monitor.
 class ProcessSnapshot extends Equatable {
-  const ProcessSnapshot({required this.processes, required this.restrictedCount});
+  const ProcessSnapshot({
+    required this.processes,
+    required this.restrictedCount,
+  });
 
   static const ProcessSnapshot empty = ProcessSnapshot(
     processes: [],

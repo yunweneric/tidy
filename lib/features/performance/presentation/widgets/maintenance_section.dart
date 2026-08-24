@@ -160,20 +160,22 @@ class _TaskCard extends StatelessWidget {
             width: 110,
             child: Align(
               alignment: Alignment.centerRight,
-              child: busy
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : OutlinedButton(
-                      onPressed: enabled
-                          ? () => context.read<PerformanceBloc>().add(
-                              RunMaintenanceTask(task),
-                            )
-                          : null,
-                      child: Text(task.actionLabel),
-                    ),
+              child:
+                  busy
+                      ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                      : OutlinedButton(
+                        onPressed:
+                            enabled
+                                ? () => context.read<PerformanceBloc>().add(
+                                  RunMaintenanceTask(task),
+                                )
+                                : null,
+                        child: Text(task.actionLabel),
+                      ),
             ),
           ),
         ],

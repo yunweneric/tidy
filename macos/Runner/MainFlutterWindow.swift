@@ -38,6 +38,14 @@ class MainFlutterWindow: NSWindow {
     // Only the main window: the menu-bar popover shows metrics, not launchd
     // items, so its engine has no use for this channel.
     PerformanceChannel.register(with: flutterViewController.engine.binaryMessenger)
+    // Same reasoning: the popover shows metrics, not the Trash.
+    RecycleBinChannel.register(with: flutterViewController.engine.binaryMessenger)
+    // This one goes on both engines. The store is a single native singleton, so
+    // two channels onto it is two windows onto one list, not two copies of it.
+    ClipboardChannel.register(with: flutterViewController.engine.binaryMessenger)
+    // Reverse direction only, for "open Tidy at the clipboard" from the
+    // popover. The popover's own engine has the other half of this channel.
+    PopoverChannel.registerMainWindow(with: flutterViewController.engine.binaryMessenger)
 
     super.awakeFromNib()
   }

@@ -36,29 +36,15 @@ class _SidebarNavItemState extends State<SidebarNavItem> {
     final colors = context.colors;
 
     final foreground =
-        widget.active
-            ? colors.accent
-            : (_hovered ? colors.textPrimary : colors.textSecondary);
+        widget.active || _hovered ? colors.textPrimary : colors.textSecondary;
 
-    // The active row fades its wash out to the right rather than filling the
-    // pill evenly: the eye lands on the glyph and label, which is where the
-    // information is, instead of on a solid block of accent.
+    // Neutral, never accent-coloured. The rail sits on whatever colour the
+    // module is, and a blue wash on a green page is a mistake with extra
+    // steps — the selected row is a lighter patch of the module's own colour.
     final background =
         widget.active
-            ? null
-            : (_hovered ? colors.surfaceHover : Colors.transparent);
-
-    final backgroundGradient =
-        widget.active
-            ? LinearGradient(
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-              colors: [
-                colors.accentMuted,
-                colors.accentMuted.withValues(alpha: 0),
-              ],
-            )
-            : null;
+            ? colors.surfaceHover
+            : (_hovered ? colors.surface : Colors.transparent);
 
     return Padding(
       padding: const EdgeInsets.symmetric(
@@ -80,7 +66,6 @@ class _SidebarNavItemState extends State<SidebarNavItem> {
             ),
             decoration: BoxDecoration(
               color: background,
-              gradient: backgroundGradient,
               borderRadius: AppRadii.mdAll,
             ),
             child: Row(

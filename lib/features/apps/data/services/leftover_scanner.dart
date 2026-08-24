@@ -27,26 +27,49 @@ class LeftoverScanner {
     final home = _home;
     return [
       if (home != null) ...[
-        _SearchRoot('$home/Library/Application Support', LeftoverCategory.applicationSupport),
+        _SearchRoot(
+          '$home/Library/Application Support',
+          LeftoverCategory.applicationSupport,
+        ),
         _SearchRoot('$home/Library/Caches', LeftoverCategory.caches),
         _SearchRoot('$home/Library/Preferences', LeftoverCategory.preferences),
         _SearchRoot('$home/Library/Logs', LeftoverCategory.logs),
         _SearchRoot('$home/Library/Containers', LeftoverCategory.containers),
-        _SearchRoot('$home/Library/Group Containers', LeftoverCategory.containers),
-        _SearchRoot('$home/Library/Application Scripts', LeftoverCategory.containers),
+        _SearchRoot(
+          '$home/Library/Group Containers',
+          LeftoverCategory.containers,
+        ),
+        _SearchRoot(
+          '$home/Library/Application Scripts',
+          LeftoverCategory.containers,
+        ),
         _SearchRoot('$home/Library/HTTPStorages', LeftoverCategory.caches),
         _SearchRoot('$home/Library/WebKit', LeftoverCategory.caches),
         _SearchRoot('$home/Library/Cookies', LeftoverCategory.caches),
-        _SearchRoot('$home/Library/Saved Application State', LeftoverCategory.savedState),
-        _SearchRoot('$home/Library/LaunchAgents', LeftoverCategory.launchAgents),
+        _SearchRoot(
+          '$home/Library/Saved Application State',
+          LeftoverCategory.savedState,
+        ),
+        _SearchRoot(
+          '$home/Library/LaunchAgents',
+          LeftoverCategory.launchAgents,
+        ),
       ],
       const _SearchRoot(
         '/Library/Application Support',
         LeftoverCategory.applicationSupport,
         requiresAdmin: true,
       ),
-      const _SearchRoot('/Library/Caches', LeftoverCategory.caches, requiresAdmin: true),
-      const _SearchRoot('/Library/Logs', LeftoverCategory.logs, requiresAdmin: true),
+      const _SearchRoot(
+        '/Library/Caches',
+        LeftoverCategory.caches,
+        requiresAdmin: true,
+      ),
+      const _SearchRoot(
+        '/Library/Logs',
+        LeftoverCategory.logs,
+        requiresAdmin: true,
+      ),
       const _SearchRoot(
         '/Library/LaunchAgents',
         LeftoverCategory.launchAgents,
@@ -98,7 +121,9 @@ class LeftoverScanner {
         for (final path in entry.value) MapEntry(entry.key, path),
     ];
 
-    final sizes = await pathSizes(flattened.map((entry) => entry.value).toList());
+    final sizes = await pathSizes(
+      flattened.map((entry) => entry.value).toList(),
+    );
 
     final items = <LeftoverItem>[
       for (final entry in flattened)

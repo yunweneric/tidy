@@ -88,5 +88,13 @@ class PerformanceState extends Equatable {
   }
 
   @override
-  List<Object?> get props => [status, items, tasks, busyIds, notice, error, icons.length];
+  List<Object?> get props => [
+    status,
+    items,
+    tasks,
+    busyIds,
+    notice,
+    error,
+    icons.length,
+  ];
 }

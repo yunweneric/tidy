@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mac_uninstaller/core/design/design.dart';
+import 'package:mac_uninstaller/core/feedback/feedback.dart';
+import 'package:mac_uninstaller/core/scanning/domain/scan_node.dart';
 import 'package:mac_uninstaller/core/scanning/logic/scan_bloc.dart';
 import 'package:mac_uninstaller/core/scanning/logic/scan_event.dart';
 import 'package:mac_uninstaller/core/scanning/logic/scan_state.dart';
@@ -8,6 +10,7 @@ import 'package:mac_uninstaller/core/scanning/presentation/removal_summary.dart'
 import 'package:mac_uninstaller/core/scanning/presentation/result_tiles.dart';
 import 'package:mac_uninstaller/core/scanning/presentation/result_tree_view.dart';
 import 'package:mac_uninstaller/core/scanning/presentation/scan_hero.dart';
+import 'package:mac_uninstaller/core/scanning/presentation/scan_progress_panel.dart';
 import 'package:mac_uninstaller/core/utils/byte_format.dart';
 import 'package:mac_uninstaller/core/widgets/empty_state.dart';
 import 'package:mac_uninstaller/core/widgets/gradient_button.dart';
@@ -106,22 +109,31 @@ class ScanView extends StatelessWidget {
         );
 
       case ScanPhase.scanning:
-        return ScanHero(
-          headline: 'Looking through your Mac…',
-          message:
-              state.totalBytes > 0
-                  ? 'Found so far — keep going, this gets more accurate as it runs.'
-                  : 'This takes a moment the first time.',
-          bytes: state.totalBytes > 0 ? state.totalBytes : null,
-          icon: bloc.module.icon,
-          fraction: state.fraction,
-          scanning: true,
-          statusLine:
-              state.currentPath == null
-                  ? null
-                  : shortenPath(state.currentPath!),
-          actionLabel: 'Stop',
-          onAction: () => bloc.add(const CancelScan()),
+        // The panel below owns the rolling path now, so the hero does not also
+        // carry a status line — two views of the same thing, one of them
+        // changing too fast to read, is worse than one.
+        return Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                child: ScanHero(
+                  headline: 'Looking through your Mac…',
+                  message:
+                      state.totalBytes > 0
+                          ? 'Found so far — this gets more accurate as it runs.'
+                          : 'This takes a moment the first time.',
+                  bytes: state.totalBytes > 0 ? state.totalBytes : null,
+                  icon: bloc.module.icon,
+                  fraction: state.fraction,
+                  scanning: true,
+                  actionLabel: 'Stop',
+                  onAction: () => bloc.add(const CancelScan()),
+                ),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            ScanProgressPanel(state: state),
+          ],
         );
 
       case ScanPhase.clean:
@@ -261,13 +273,85 @@ class _CleanBar extends StatelessWidget {
           const SizedBox(width: AppSpacing.lg),
           GradientButton(
             label: 'Move to Trash',
-            onPressed:
-                nothingPicked ? null : () => bloc.add(const CleanSelected()),
+            onPressed: nothingPicked ? null : () => _confirmClean(context),
           ),
         ],
       ),
     );
   }
+
+  /// The last stop before anything moves.
+  ///
+  /// Every module reaches removal through this one button, so this is the only
+  /// place a confirmation has to exist — and it has to exist. A scan that
+  /// pre-ticks a few hundred files and then deletes them on a single click is
+  /// asking the user to trust a list they were never made to read.
+  ///
+  /// The breakdown is by category rather than by file: nobody audits four
+  /// hundred paths in a dialog, but "Caches · 182 items · 2.1 GB" is a claim
+  /// somebody can actually disagree with.
+  Future<void> _confirmClean(BuildContext context) async {
+    final selected = state.selection.ids;
+    final rows = <AlertDetail>[];
+    var needsReview = false;
+
+    for (final root in state.roots) {
+      var count = 0;
+      var bytes = 0;
+      var worst = SafetyLevel.safe;
+
+      for (final leaf in root.leaves) {
+        if (!selected.contains(leaf.id)) continue;
+        count++;
+        bytes += leaf.sizeBytes;
+        if (leaf.safety.index > worst.index) worst = leaf.safety;
+      }
+      if (count == 0) continue;
+
+      final risky = worst != SafetyLevel.safe;
+      needsReview |= risky;
+
+      rows.add(
+        AlertDetail(
+          title: '${root.title} · ${_items(count)}',
+          detail:
+              risky
+                  ? '${formatBytes(bytes)} — includes items worth a look '
+                      'before they go'
+                  : formatBytes(bytes),
+          tone: risky ? FeedbackTone.warning : null,
+          monospace: false,
+        ),
+      );
+    }
+
+    final confirmed = await TidyAlert.confirm(
+      context,
+      // Amber rather than red. This is reversible — everything lands in the
+      // Trash — and a red dialog for a recoverable action spends alarm the app
+      // will want later, when something genuinely cannot be undone.
+      tone: FeedbackTone.warning,
+      icon: AppIcons.trash,
+      width: 520,
+      title: 'Move ${_items(state.selectedCount)} to the Trash?',
+      message:
+          needsReview
+              ? 'Some of this is worth a look first — it is flagged below. '
+                  'Everything goes to the Trash, so you can put any of it back, '
+                  'and your disk will not show ${formatBytes(state.selectedBytes)} '
+                  'as free until you empty it.'
+              : 'Everything goes to the Trash, so you can put any of it back. '
+                  'Your disk will not show ${formatBytes(state.selectedBytes)} as '
+                  'free until you empty it.',
+      details: rows,
+      confirmLabel: 'Move to Trash',
+      destructive: true,
+    );
+
+    if (confirmed) bloc.add(const CleanSelected());
+  }
+
+  static String _items(int n) => n == 1 ? '1 item' : '$n items';
 
   bool? get _allSelected {
     var anySelected = false;
