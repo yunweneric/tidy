@@ -1,11 +1,11 @@
 {
-    "name": "tidy",
-    "short_name": "tidy",
+    "name": "Tidy",
+    "short_name": "Tidy",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#15112E",
+    "theme_color": "#5B45E0",
+    "description": "Clean, tune and reclaim your Mac.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:tidy/core/design/design.dart';
 import 'package:tidy/core/platform/system_bridge.dart';
+import 'package:tidy/core/widgets/brand_mark.dart';
 import 'package:tidy/core/widgets/permission_banner.dart';
 import 'package:tidy/features/shell/domain/app_destination.dart';
 import 'package:tidy/features/shell/presentation/widgets/sidebar_nav_item.dart';
@@ -126,8 +127,6 @@ class _BrandBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.colors;
-
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.xl,
@@ -137,26 +136,11 @@ class _BrandBlock extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Container(
-            width: 30,
-            height: 30,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: colors.accentGradient,
-              ),
-              borderRadius: AppRadii.mdAll,
-              boxShadow: [
-                BoxShadow(
-                  color: colors.accentGradient.last.withValues(alpha: 0.30),
-                  blurRadius: 14,
-                  offset: const Offset(0, 3),
-                ),
-              ],
-            ),
-            child: Icon(Brand.mark, size: 17, color: colors.textOnAccent),
-          ),
+          // The app icon itself, not a stand-in for it. This used to be a
+          // sparkles glyph on the accent ramp, which was a different drawing
+          // from the one in the Dock — the rail now shows the same mark the
+          // user clicked to get here.
+          const BrandMark(size: 30),
           const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Column(

@@ -14,6 +14,30 @@ struct _MyApplication {
 
 G_DEFINE_TYPE(MyApplication, my_application, GTK_TYPE_APPLICATION)
 
+// Sets the window icon from the PNG installed beside the executable.
+//
+// GTK's usual route is gtk_window_set_icon_name(), which resolves against the
+// system icon theme — that only works once the app has been installed by a
+// distro package, so a bundle run straight out of build/ would show the generic
+// placeholder. Reading the file relative to the binary works in both cases.
+static void set_window_icon(GtkWindow* window) {
+  g_autofree gchar* exe = g_file_read_link("/proc/self/exe", nullptr);
+  if (exe == nullptr) return;
+
+  g_autofree gchar* dir = g_path_get_dirname(exe);
+  g_autofree gchar* path = g_build_filename(dir, "data", "app_icon.png", nullptr);
+
+  g_autoptr(GError) error = nullptr;
+  g_autoptr(GdkPixbuf) icon = gdk_pixbuf_new_from_file(path, &error);
+  if (icon == nullptr) {
+    // Not fatal: the window just keeps the default icon.
+    g_warning("Failed to load window icon: %s", error->message);
+    return;
+  }
+
+  gtk_window_set_icon(window, icon);
+}
+
 // Implements GApplication::activate.
 static void my_application_activate(GApplication* application) {
   MyApplication* self = MY_APPLICATION(application);
@@ -47,6 +71,7 @@ static void my_application_activate(GApplication* application) {
     gtk_window_set_title(window, "tidy");
   }
 
+  set_window_icon(window);
   gtk_window_set_default_size(window, 1280, 720);
   gtk_widget_show(GTK_WIDGET(window));
 

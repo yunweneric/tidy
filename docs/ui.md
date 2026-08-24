@@ -314,6 +314,38 @@ Icon(AppIcons.delete, size: 17, color: colors.risky)
 - Adding a glyph: add a named constant to `app_icons.dart`. Do not import the
   package at a call site.
 
+### The app icon
+
+The product mark — a Mac screen with a four-point spark in it, on the brand
+violet ramp — is *not* an `AppIcons` glyph. It is one drawing that has to appear
+in five places, so it exists twice, on purpose:
+
+| Where | What draws it |
+| --- | --- |
+| Sidebar, splash, anywhere in Dart | `BrandMark` — a `CustomPaint`, no asset |
+| Dock, Finder, taskbar, favicon | `assets/icon/*.png` via `flutter_launcher_icons` |
+| macOS menu bar | `macos/.../MenuBarIcon.imageset`, a template image |
+| Android / iOS / web launch screen | `flutter_native_splash` |
+| Linux window | `linux/runner/resources/app_icon.png`, set in `my_application.cc` |
+
+Everything under `assets/icon/` is generated. The one source of truth is
+`scripts/generate_icons.py`, which writes the SVGs *and* rasterises them:
+
+```sh
+python3 scripts/generate_icons.py          # redraw the sources
+dart run flutter_launcher_icons            # fan out to the platforms
+dart run flutter_native_splash:create      # and the launch screens
+```
+
+`BrandMark` repeats the geometry in Dart rather than loading a PNG because it is
+asked for at 30pt in the rail and 108pt on the splash: an asset would need a
+variant per size and would still be soft on a scaled display. If the mark
+changes, both the script and `brand_mark.dart` have to change — that is the
+cost of it being crisp at every size, and it is four paths.
+
+The tile ramp is a fixed constant, not a colour token. An icon that follows the
+OS appearance is not an identity.
+
 ---
 
 ## 8. Components
