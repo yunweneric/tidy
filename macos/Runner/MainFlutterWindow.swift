@@ -25,6 +25,9 @@ class MainFlutterWindow: NSWindow {
 
     RegisterGeneratedPlugins(registry: flutterViewController)
     SystemChannel.register(with: flutterViewController.engine.binaryMessenger)
+    // Only the main window: the menu-bar popover shows metrics, not launchd
+    // items, so its engine has no use for this channel.
+    PerformanceChannel.register(with: flutterViewController.engine.binaryMessenger)
 
     super.awakeFromNib()
   }

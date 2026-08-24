@@ -5,7 +5,12 @@ import 'package:mac_uninstaller/features/apps/data/services/apps_service.dart';
 import 'package:mac_uninstaller/features/apps/data/services/junk_scanner.dart';
 import 'package:mac_uninstaller/features/apps/data/services/leftover_scanner.dart';
 import 'package:mac_uninstaller/features/apps/data/services/scan_cache.dart';
+import 'package:mac_uninstaller/features/apps/data/services/unused_apps_module.dart';
 import 'package:mac_uninstaller/features/cleanup/data/cleanup_scan_module.dart';
+import 'package:mac_uninstaller/features/performance/data/services/launch_items_service.dart';
+import 'package:mac_uninstaller/features/performance/data/services/maintenance_service.dart';
+import 'package:mac_uninstaller/features/performance/data/services/process_monitor_service.dart';
+import 'package:mac_uninstaller/features/smart_care/data/smart_care_module.dart';
 
 final GetIt locator = GetIt.instance;
 
@@ -35,6 +40,29 @@ Future<void> setUpLocator({required bool includeUi}) async {
       cache: locator<ScanCache>(),
     ),
   );
+
+  locator.registerLazySingleton<UnusedAppsModule>(
+    () => UnusedAppsModule(
+      apps: locator<AppManagerService>(),
+      leftovers: locator<LeftoverScanner>(),
+      cache: locator<ScanCache>(),
+    ),
+  );
+
+  // Composite: owns no scanning of its own, just fans out to the others.
+  locator.registerLazySingleton<SmartCareModule>(
+    () => SmartCareModule(
+      cleanup: locator<CleanupScanModule>(),
+      unusedApps: locator<UnusedAppsModule>(),
+    ),
+  );
+
+  // ─── Performance ─────────────────────────────────────────────────────────
+  // Singletons rather than per-page instances: each holds an icon cache, and
+  // rebuilding that every time the user switches tabs is visible.
+  locator.registerLazySingleton<LaunchItemsService>(LaunchItemsService.new);
+  locator.registerLazySingleton<MaintenanceService>(MaintenanceService.new);
+  locator.registerLazySingleton<ProcessMonitorService>(ProcessMonitorService.new);
 
   // The popover has no settings UI and no theme switcher, so it skips the
   // file read entirely.

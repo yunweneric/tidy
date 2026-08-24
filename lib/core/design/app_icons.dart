@@ -39,6 +39,10 @@ class AppIcons {
   static const IconData downloads = HugeIcons.strokeRoundedDownload01;
   static const IconData loginItems = HugeIcons.strokeRoundedRocket01;
   static const IconData privacy = HugeIcons.strokeRoundedEye;
+  static const IconData backgroundItems = HugeIcons.strokeRoundedLayers02;
+  static const IconData maintenance = HugeIcons.strokeRoundedWrench01;
+  static const IconData cpu = HugeIcons.strokeRoundedCpu;
+  static const IconData memory = HugeIcons.strokeRoundedDatabase02;
   static const IconData storage = HugeIcons.strokeRoundedHardDrive;
   static const IconData analytics = HugeIcons.strokeRoundedPieChart;
 
@@ -57,6 +61,8 @@ class AppIcons {
   static const IconData expand = HugeIcons.strokeRoundedArrowDown01;
   static const IconData collapse = HugeIcons.strokeRoundedArrowRight01;
   static const IconData close = HugeIcons.strokeRoundedCancel01;
+  static const IconData quit = HugeIcons.strokeRoundedLogout01;
+  static const IconData run = HugeIcons.strokeRoundedPlay;
 
   // ─── Status ──────────────────────────────────────────────────────────────
   static const IconData safe = HugeIcons.strokeRoundedCheckmarkCircle02;

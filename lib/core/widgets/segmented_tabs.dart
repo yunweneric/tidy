@@ -12,15 +12,17 @@ class SegmentedTabs extends StatelessWidget {
     required this.labels,
     required this.selectedIndex,
     required this.onChanged,
-    this.counts = const [],
+    this.counts = const <int?>[],
   });
 
   final List<String> labels;
   final int selectedIndex;
   final ValueChanged<int> onChanged;
 
-  /// Optional per-segment count, shown after the label.
-  final List<int> counts;
+  /// Optional per-segment count, shown after the label. A null entry means
+  /// that segment has no meaningful count — a "0" there reads as "none found",
+  /// which is a different and usually wrong statement.
+  final List<int?> counts;
 
   @override
   Widget build(BuildContext context) {

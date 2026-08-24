@@ -1,3 +1,15 @@
+> **Status: original brief, kept for context.** This describes the app as an
+> uninstaller, which is what it was. It is now **Tidy**, a full cleaner and file
+> manager — see `~/.claude/plans/right-now-this-acts-memoized-zephyr.md` for the
+> current roadmap, [feature.md](feature.md) for how features are built, and
+> [ui.md](ui.md) for theming.
+>
+> Two details below are now wrong: the native layer does **not** shell out to
+> `rm`, `du` or `find` (sizing walks with `fts(3)` in
+> `macos/Runner/DirectorySizer.swift`, removal goes through `FileManager` so
+> "move to Trash" is genuinely recoverable), and the Swift layer is no longer
+> "optional… later" — it is how scanning works today.
+
 
 # 🧩 App Overview — Mac App Uninstaller (Flutter)
 

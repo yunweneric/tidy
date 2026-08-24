@@ -6,6 +6,8 @@ import 'package:mac_uninstaller/core/scanning/domain/scan_node.dart';
 /// One enum rather than per-feature constants so the sidebar, the Smart Care
 /// composite and the All Tools catalog can all be driven from the same list.
 enum ModuleId {
+  smartCare('Smart Care', 'Every check that is built, in one pass.'),
+  unusedApps('Unused Apps', 'Apps you have not opened in months, and their leftovers.'),
   systemJunk('System Junk', 'Caches, logs and temporary files macOS rebuilds on demand.'),
   developerJunk('Developer Junk', 'Build artefacts and package caches from your dev tools.'),
   trashBins('Trash Bins', 'Every trash on every volume, not just the Finder one.'),

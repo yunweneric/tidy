@@ -28,6 +28,7 @@ class ScanView extends StatelessWidget {
     this.actionLabel = 'Scan',
     this.onGrantAccess,
     this.headerActions = const [],
+    this.banner,
   });
 
   final String title;
@@ -40,6 +41,10 @@ class ScanView extends StatelessWidget {
   final VoidCallback? onGrantAccess;
   final List<Widget> headerActions;
 
+  /// Shown under the header. Use it to say something the results cannot — what
+  /// a composite scan does and does not cover, for instance.
+  final Widget? banner;
+
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<ScanBloc, ScanState>(
@@ -51,9 +56,7 @@ class ScanView extends StatelessWidget {
           title: focused?.title ?? title,
           subtitle: focused?.detail ?? subtitle,
           scrollable: false,
-          banner: state.permissionLimited && onGrantAccess != null
-              ? PermissionBanner(onOpenSettings: onGrantAccess!)
-              : null,
+          banner: _banner(context, state),
           actions: [
             if (focused != null)
               TextButton.icon(
@@ -71,6 +74,25 @@ class ScanView extends StatelessWidget {
           child: _body(context, state, bloc),
         );
       },
+    );
+  }
+
+  /// Both banners can matter at once — a partial scan that is also only
+  /// covering half the modules — so they stack rather than compete.
+  Widget? _banner(BuildContext context, ScanState state) {
+    final permission = state.permissionLimited && onGrantAccess != null
+        ? PermissionBanner(onOpenSettings: onGrantAccess!)
+        : null;
+
+    if (permission == null) return banner;
+    if (banner == null) return permission;
+
+    return Column(
+      children: [
+        permission,
+        const SizedBox(height: AppSpacing.md),
+        banner!,
+      ],
     );
   }
 

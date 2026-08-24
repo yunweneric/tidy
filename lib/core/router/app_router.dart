@@ -7,9 +7,11 @@ import 'package:mac_uninstaller/core/widgets/fade_through.dart';
 import 'package:mac_uninstaller/features/apps/presentation/screens/applications_page.dart';
 import 'package:mac_uninstaller/features/cleanup/presentation/cleanup_page.dart';
 import 'package:mac_uninstaller/features/onboarding/presentation/onboarding_screen.dart';
+import 'package:mac_uninstaller/features/performance/presentation/performance_page.dart';
 import 'package:mac_uninstaller/features/settings/presentation/settings_page.dart';
 import 'package:mac_uninstaller/features/shell/domain/app_destination.dart';
 import 'package:mac_uninstaller/features/shell/presentation/shell_scaffold.dart';
+import 'package:mac_uninstaller/features/smart_care/presentation/smart_care_page.dart';
 import 'package:mac_uninstaller/features/shell/presentation/widgets/coming_soon_page.dart';
 
 /// Routes that live outside the shell.
@@ -42,25 +44,25 @@ GoRouter buildRouter({required AppSettings settings}) {
     routes: [
       GoRoute(
         path: Routes.onboarding,
-        pageBuilder: (context, state) => FadePage(
-          key: state.pageKey,
-          child: OnboardingScreen(
-            settings: settings,
-            fullDiskAccess: locator<FullDiskAccessService>(),
-            // Completing onboarding updates settings, which notifies the
-            // router's refreshListenable and the redirect takes it from there.
-            onFinished: () => context.go(AppDestination.initial.path),
-          ),
-        ),
+        pageBuilder:
+            (context, state) => FadePage(
+              key: state.pageKey,
+              child: OnboardingScreen(
+                settings: settings,
+                fullDiskAccess: locator<FullDiskAccessService>(),
+                // Completing onboarding updates settings, which notifies the
+                // router's refreshListenable and the redirect takes it from there.
+                onFinished: () => context.go(AppDestination.initial.path),
+              ),
+            ),
       ),
       StatefulShellRoute.indexedStack(
-        builder: (context, state, navigationShell) =>
-            ShellScaffold(navigationShell: navigationShell),
+        builder:
+            (context, state, navigationShell) =>
+                ShellScaffold(navigationShell: navigationShell),
         // Declared in enum order so `AppDestination.branchIndex` is the branch
         // index. `_branch` asserts that rather than trusting it.
-        branches: [
-          for (final destination in AppDestination.values) _branch(destination),
-        ],
+        branches: [for (final destination in AppDestination.values) _branch(destination)],
       ),
     ],
   );
@@ -71,11 +73,12 @@ StatefulShellBranch _branch(AppDestination destination) {
     routes: [
       GoRoute(
         path: destination.path,
-        pageBuilder: (context, state) => FadePage(
-          key: state.pageKey,
-          name: destination.name,
-          child: _pageFor(destination),
-        ),
+        pageBuilder:
+            (context, state) => FadePage(
+              key: state.pageKey,
+              name: destination.name,
+              child: _pageFor(destination),
+            ),
       ),
     ],
   );
@@ -85,14 +88,7 @@ Widget _pageFor(AppDestination destination) => switch (destination) {
   AppDestination.cleanup => const CleanupPage(),
   AppDestination.applications => const ApplicationsPage(),
   AppDestination.settings => const SettingsPage(),
-  AppDestination.smartCare => const ComingSoonPage(
-    destination: AppDestination.smartCare,
-    planned: [
-      'Run Cleanup, Protection, Performance and Applications in one pass',
-      'Present everything found as one reviewable list',
-      'Apply it all with a single confirmation',
-    ],
-  ),
+  AppDestination.smartCare => const SmartCarePage(),
   AppDestination.protection => const ComingSoonPage(
     destination: AppDestination.protection,
     planned: [
@@ -102,14 +98,7 @@ Widget _pageFor(AppDestination destination) => switch (destination) {
       'Clear browsing traces, recent items and saved Wi-Fi networks',
     ],
   ),
-  AppDestination.performance => const ComingSoonPage(
-    destination: AppDestination.performance,
-    planned: [
-      'Turn login items and background agents on or off',
-      'Run macOS maintenance: flush DNS, reindex Spotlight, thin snapshots',
-      'Quit apps that are eating CPU or memory',
-    ],
-  ),
+  AppDestination.performance => const PerformancePage(),
   AppDestination.clutter => const ComingSoonPage(
     destination: AppDestination.clutter,
     planned: [
@@ -129,16 +118,11 @@ Widget _pageFor(AppDestination destination) => switch (destination) {
   ),
   AppDestination.allTools => const ComingSoonPage(
     destination: AppDestination.allTools,
-    planned: [
-      'Every scanner listed on its own, for when the modules get in the way',
-    ],
+    planned: ['Every scanner listed on its own, for when the modules get in the way'],
   ),
   AppDestination.activity => const ComingSoonPage(
     destination: AppDestination.activity,
-    planned: [
-      'A record of what was removed, and when',
-      'What is worth looking at next',
-    ],
+    planned: ['A record of what was removed, and when', 'What is worth looking at next'],
   ),
   AppDestination.assistant => const ComingSoonPage(
     destination: AppDestination.assistant,

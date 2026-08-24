@@ -14,6 +14,7 @@ import 'package:mac_uninstaller/features/apps/logic/app_bloc.dart';
 import 'package:mac_uninstaller/features/apps/logic/app_event.dart';
 import 'package:mac_uninstaller/features/cleanup/data/cleanup_scan_module.dart';
 import 'package:mac_uninstaller/features/shell/domain/app_destination.dart';
+import 'package:mac_uninstaller/features/shell/presentation/active_destination.dart';
 import 'package:mac_uninstaller/features/shell/presentation/widgets/nav_sidebar.dart';
 
 /// The window chrome: permanent sidebar, plus whichever branch is active.
@@ -119,9 +120,14 @@ class _ShellScaffoldState extends State<ShellScaffold>
                       onReclaim: () => _select(AppDestination.cleanup),
                     ),
                     Expanded(
-                      child: FadeThrough(
-                        trigger: widget.navigationShell.currentIndex,
-                        child: widget.navigationShell,
+                      // Branches stay mounted when you navigate away, so a page
+                      // that polls has no other way to know it is off screen.
+                      child: ActiveDestination(
+                        destination: current,
+                        child: FadeThrough(
+                          trigger: widget.navigationShell.currentIndex,
+                          child: widget.navigationShell,
+                        ),
                       ),
                     ),
                   ],
