@@ -126,6 +126,21 @@ enum AppDestination {
     icon: AppIcons.clipboard,
     group: NavGroup.primary,
     blurb: 'Everything you have copied, and a way back to any of it.',
+  ),
+
+  /// Appended, like the two above it, because branch indices are positional.
+  ///
+  /// Listed under MORE rather than with the working modules, and toned anyway:
+  /// it is somewhere you go to *watch*, which is what Space Lens is, and both
+  /// earn a colour for the same reason — the window says which of the two you
+  /// are looking at before the title has been read.
+  network(
+    path: '/network',
+    label: 'Network',
+    icon: AppIcons.network,
+    group: NavGroup.secondary,
+    blurb: 'What your Mac is sending and receiving, now and over time.',
+    tone: ModuleTone.network,
   );
 
   const AppDestination({

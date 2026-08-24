@@ -15,10 +15,15 @@ import 'package:tidy/features/menubar/presentation/widgets/measure_size.dart';
 import 'package:tidy/features/menubar/presentation/widgets/menu_bar_button.dart';
 import 'package:tidy/features/menubar/presentation/widgets/menu_bar_clip_row.dart';
 import 'package:tidy/features/menubar/presentation/widgets/menu_bar_insight_card.dart';
+import 'package:tidy/features/menubar/presentation/widgets/menu_bar_network.dart';
 import 'package:tidy/features/menubar/presentation/widgets/menu_bar_process_row.dart';
 import 'package:tidy/features/menubar/presentation/widgets/menu_bar_reclaim_row.dart';
 import 'package:tidy/features/menubar/presentation/widgets/menu_bar_section.dart';
 import 'package:tidy/features/menubar/presentation/widgets/menu_bar_vitals.dart';
+import 'package:tidy/features/network/data/models/network_sample.dart';
+import 'package:tidy/features/network/data/models/network_series.dart';
+import 'package:tidy/features/network/data/models/network_units.dart';
+import 'package:tidy/features/network/data/services/network_service.dart';
 import 'package:tidy/features/performance/data/models/process_sample.dart';
 import 'package:tidy/features/performance/data/models/system_vitals.dart';
 import 'package:tidy/features/performance/data/services/performance_bridge.dart';
@@ -82,7 +87,7 @@ class _MenuBarPanelAppState extends State<MenuBarPanelApp> {
 /// One Flutter view, two panels. The icons mean different things and the panel
 /// shows what its icon promised — a clipboard icon that opened a disk report
 /// would be a worse lie than having no clipboard icon at all.
-enum MenuBarMode { dashboard, clipboard }
+enum MenuBarMode { dashboard, clipboard, network }
 
 /// The panel behind the status item: how the machine is doing right now, the
 /// one thing worth acting on, what is using it, and what can be handed back.
@@ -125,6 +130,7 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
   final ProcessMonitorService _monitor = locator<ProcessMonitorService>();
   final RecycleBinService _recycleBin = locator<RecycleBinService>();
   final ClipboardService _clipboard = locator<ClipboardService>();
+  final NetworkService _network = locator<NetworkService>();
 
   SystemVitals _vitals = SystemVitals.empty;
   DiskUsage _disk = DiskUsage.empty;
@@ -144,6 +150,13 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
 
   List<ClipboardEntry> _clips = const [];
   StreamSubscription<void>? _clipSubscription;
+
+  /// The network readings arrive pushed rather than polled, so they get their
+  /// own subscription instead of riding the two-second ticker.
+  NetworkSample _traffic = NetworkSample.unknown;
+  List<NetworkTick> _trafficTicks = const [];
+  NetworkHeadline _trafficTotals = NetworkHeadline.empty;
+  StreamSubscription<NetworkSample>? _trafficSubscription;
 
   /// The space scan — junk and Trash — is the slow half and runs on its own.
   bool _scanningSpace = true;
@@ -177,6 +190,8 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
   void dispose() {
     _ticker?.cancel();
     _clipSubscription?.cancel();
+    _trafficSubscription?.cancel();
+    _network.stopLive();
     _bridge.onPopoverOpened = null;
     _bridge.onPopoverClosed = null;
     super.dispose();
@@ -268,8 +283,11 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
   /// The clipboard icon and ⌘⇧V both open the panel asking for "clipboard";
   /// the vitals icon asks for nothing. Both get a whole panel of their own.
   void _onPopoverOpened(String? section) {
-    final mode =
-        section == 'clipboard' ? MenuBarMode.clipboard : MenuBarMode.dashboard;
+    final mode = switch (section) {
+      'clipboard' => MenuBarMode.clipboard,
+      'network' => MenuBarMode.network,
+      _ => MenuBarMode.dashboard,
+    };
     setState(() => _mode = mode);
     _loadClips();
 
@@ -281,12 +299,60 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
       _sample();
       _ticker = Timer.periodic(_tick, (_) => _sample());
     }
+
+    // The dashboard carries a one-line traffic row and the network panel is
+    // made of it, so both want the readings; the clipboard panel does not.
+    _setTrafficLive(mode != MenuBarMode.clipboard);
+    if (mode == MenuBarMode.network) _loadTrafficTotals();
+  }
+
+  /// Opens or closes the native tap.
+  ///
+  /// The sampler runs regardless — it feeds the menu bar readout and the
+  /// history — so this costs nothing but the push into this isolate, which is
+  /// the part worth switching off behind a closed popover.
+  Future<void> _setTrafficLive(bool live) async {
+    if (live == (_trafficSubscription != null)) return;
+
+    if (!live) {
+      await _trafficSubscription?.cancel();
+      _trafficSubscription = null;
+      await _network.stopLive();
+      return;
+    }
+
+    _trafficSubscription = _network.onSample.listen(_onTraffic);
+    final sample = await _network.startLive();
+    if (sample.isKnown) _onTraffic(sample);
+  }
+
+  void _onTraffic(NetworkSample sample) {
+    if (!mounted) return;
+    // The first payload of a subscription carries the sampler's whole ring, so
+    // the chart is populated before the next tick arrives.
+    final ticks =
+        sample.recent.isNotEmpty
+            ? List<NetworkTick>.from(sample.recent)
+            : <NetworkTick>[..._trafficTicks, sample.tick];
+    if (ticks.length > 300) ticks.removeRange(0, ticks.length - 300);
+
+    setState(() {
+      _traffic = sample;
+      _trafficTicks = ticks;
+    });
+  }
+
+  Future<void> _loadTrafficTotals() async {
+    final totals = await _network.headline();
+    if (!mounted) return;
+    setState(() => _trafficTotals = totals);
   }
 
   void _onPopoverClosed() {
     _bridge.hideClipPreview();
     _ticker?.cancel();
     _ticker = null;
+    _setTrafficLive(false);
     // Whatever was half-confirmed when the panel vanished is not still
     // confirmed the next time it opens.
     if (mounted && _confirmingPid != null) {
@@ -417,6 +483,7 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
               ...switch (_mode) {
                 MenuBarMode.dashboard => _dashboardBody(),
                 MenuBarMode.clipboard => _clipboardBody(),
+                MenuBarMode.network => _networkBody(),
               },
               const Divider(height: 1),
               _buildFooter(),
@@ -453,6 +520,7 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
           onAction: _runInsightAction,
         ),
       ),
+      _buildTraffic(),
       _buildConsumers(),
       _buildClips(),
       const Divider(height: 1),
@@ -487,6 +555,67 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
             _trashReadable
                 ? _bridge.openMainWindow
                 : SystemBridge.openFullDiskAccessSettings,
+      ),
+    ];
+  }
+
+  /// Everything the network readout promises: what is moving now, over which
+  /// link, and how much has gone this day and this month.
+  ///
+  /// No history charts here. A month of daily bars needs an axis and room to
+  /// read it, which a 320pt popover does not have — that is what the page is
+  /// for, and the button at the bottom goes straight to it.
+  List<Widget> _networkBody() {
+    // The units ride along with the reading: this engine is started with
+    // `includeUi: false` and has no `AppSettings` to read them from.
+    final units = _traffic.units;
+
+    return [
+      MenuBarNetworkNow(
+        sample: _traffic,
+        ticks: _trafficTicks,
+        units: units,
+      ),
+      const SizedBox(height: AppSpacing.sm),
+      const Divider(height: 1),
+      const MenuBarSection(title: 'Recorded'),
+      MenuBarNetworkTotal(
+        label: 'Today',
+        headline: _trafficTotals,
+        month: false,
+      ),
+      MenuBarNetworkTotal(
+        label: 'This month',
+        headline: _trafficTotals,
+        month: true,
+      ),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.md + 2,
+          AppSpacing.sm,
+          AppSpacing.md + 2,
+          AppSpacing.sm,
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                _trafficTotals.startedAt == null
+                    ? 'Recorded while ${Brand.name} is running'
+                    : 'While ${Brand.name} has been running',
+                style: context.text.caption,
+              ),
+            ),
+            MenuBarButton(
+              label: 'Open Network',
+              tone: MenuBarButtonTone.filled,
+              onPressed:
+                  () => _bridge.openMainWindow(
+                    route: AppDestination.network.path,
+                  ),
+            ),
+          ],
+        ),
       ),
     ];
   }
@@ -557,6 +686,79 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
     ];
   }
 
+  /// One line of traffic on the dashboard, so the main panel answers "is
+  /// something uploading right now" without switching icons.
+  ///
+  /// A line rather than the network panel's chart: the dashboard is already
+  /// three vitals tiles, an insight, a process table and two reclaim rows, and
+  /// a second chart in it would push the thing the user actually opened it for
+  /// below the fold.
+  Widget _buildTraffic() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Divider(height: 1),
+        MenuBarSection(
+          title: 'Network',
+          action: MenuBarButton(
+            label: 'Open',
+            onPressed:
+                () => _bridge.openMainWindow(route: AppDestination.network.path),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md + 2,
+            0,
+            AppSpacing.md + 2,
+            AppSpacing.sm,
+          ),
+          child: Row(
+            children: [
+              Icon(
+                AppIcons.downstream,
+                size: 13,
+                color: context.colors.downstream,
+              ),
+              const SizedBox(width: AppSpacing.xs),
+              Text(
+                _traffic.isKnown
+                    ? formatRate(
+                      _traffic.downBytesPerSecond,
+                      units: _traffic.units,
+                    )
+                    : '—',
+                style: context.text.label,
+              ),
+              const SizedBox(width: AppSpacing.lg),
+              Icon(
+                AppIcons.upstream,
+                size: 13,
+                color: context.colors.upstream,
+              ),
+              const SizedBox(width: AppSpacing.xs),
+              Text(
+                _traffic.isKnown
+                    ? formatRate(
+                      _traffic.upBytesPerSecond,
+                      units: _traffic.units,
+                    )
+                    : '—',
+                style: context.text.label,
+              ),
+              const Spacer(),
+              Text(
+                _traffic.busiest?.label ?? 'idle',
+                style: context.text.caption,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   /// Recent clips.
   ///
   /// Absent rather than empty when there is nothing: the recorder is off until
@@ -606,7 +808,11 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
           Icon(Brand.mark, size: 15, color: context.colors.accent),
           const SizedBox(width: AppSpacing.sm),
           Text(
-            _mode == MenuBarMode.clipboard ? 'Clipboard' : Brand.name,
+            switch (_mode) {
+              MenuBarMode.clipboard => 'Clipboard',
+              MenuBarMode.network => 'Network',
+              MenuBarMode.dashboard => Brand.name,
+            },
             style: context.text.titleS,
           ),
           const SizedBox(width: AppSpacing.sm),
@@ -625,13 +831,16 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
             ),
           MenuBarIconButton(
             icon: AppIcons.refresh,
-            tooltip: _mode == MenuBarMode.clipboard ? 'Reload' : 'Rescan',
+            tooltip:
+                _mode == MenuBarMode.dashboard ? 'Rescan' : 'Reload',
             onPressed:
                 _busy
                     ? null
-                    : _mode == MenuBarMode.clipboard
-                    ? _loadClips
-                    : _refresh,
+                    : switch (_mode) {
+                      MenuBarMode.clipboard => _loadClips,
+                      MenuBarMode.network => _loadTrafficTotals,
+                      MenuBarMode.dashboard => _refresh,
+                    },
           ),
           MenuBarIconButton(
             icon: AppIcons.openExternal,
@@ -715,6 +924,12 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
     if (_mode == MenuBarMode.clipboard) {
       if (_clips.isEmpty) return 'Clipboard history is empty';
       return '${_clips.length} recent ${_clips.length == 1 ? 'clip' : 'clips'}';
+    }
+
+    if (_mode == MenuBarMode.network) {
+      final busiest = _traffic.busiest;
+      if (busiest == null) return 'Nothing moving right now';
+      return 'Live over ${busiest.label}';
     }
 
     final parts = <String>[

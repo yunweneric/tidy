@@ -24,6 +24,11 @@ class AppDelegate: FlutterAppDelegate {
       // recording when the window closed would be a history with holes in it.
       ClipboardMonitor.shared.start()
 
+      // Native and owned here for the same reason, and one more: the menu bar
+      // readout has to be live before any window exists, and a history that only
+      // recorded while the window was open would be a history full of holes.
+      NetworkMonitor.shared.start()
+
       HotKey.shared.register { controller.showPopover(section: "clipboard") }
     }
   }
@@ -34,6 +39,10 @@ class AppDelegate: FlutterAppDelegate {
     HotKey.shared.unregister()
     ClipboardMonitor.shared.stop()
     ClipboardStore.shared.clearOnQuitIfAsked()
+    // The history is written on a debounce too, so quitting between ticks would
+    // otherwise lose up to a minute of it.
+    NetworkMonitor.shared.stop()
+    NetworkStore.shared.flush()
     super.applicationWillTerminate(notification)
   }
 

@@ -9,6 +9,7 @@ import 'package:tidy/features/cleanup/presentation/cleanup_page.dart';
 import 'package:tidy/features/onboarding/presentation/onboarding_screen.dart';
 import 'package:tidy/features/performance/presentation/performance_page.dart';
 import 'package:tidy/features/clipboard/presentation/clipboard_page.dart';
+import 'package:tidy/features/network/presentation/network_page.dart';
 import 'package:tidy/features/recycle_bin/presentation/recycle_bin_page.dart';
 import 'package:tidy/features/settings/presentation/settings_page.dart';
 import 'package:tidy/features/shell/domain/app_destination.dart';
@@ -103,6 +104,7 @@ Widget _pageFor(AppDestination destination) => switch (destination) {
   AppDestination.performance => const PerformancePage(),
   AppDestination.recycleBin => const RecycleBinPage(),
   AppDestination.clipboard => const ClipboardPage(),
+  AppDestination.network => const NetworkPage(),
   AppDestination.clutter => const ComingSoonPage(
     destination: AppDestination.clutter,
     planned: [

@@ -28,6 +28,7 @@ class AppIcons {
   static const IconData settings = HugeIcons.strokeRoundedSettings01;
   static const IconData recycleBin = HugeIcons.strokeRoundedDelete03;
   static const IconData clipboard = HugeIcons.strokeRoundedClipboard;
+  static const IconData network = HugeIcons.strokeRoundedWifi01;
 
   // ─── Modules ─────────────────────────────────────────────────────────────
   static const IconData developerJunk = HugeIcons.strokeRoundedCpu;
@@ -47,6 +48,13 @@ class AppIcons {
   static const IconData memory = HugeIcons.strokeRoundedDatabase02;
   static const IconData storage = HugeIcons.strokeRoundedHardDrive;
   static const IconData analytics = HugeIcons.strokeRoundedPieChart;
+
+  // ─── Traffic ─────────────────────────────────────────────────────────────
+  // Direction, not a file transfer: these label the two series on the network
+  // charts, so they read as "coming in" and "going out" rather than as actions.
+  static const IconData downstream = HugeIcons.strokeRoundedArrowDown01;
+  static const IconData upstream = HugeIcons.strokeRoundedArrowUp01;
+  static const IconData ethernet = HugeIcons.strokeRoundedRouter01;
 
   // ─── Clipboard kinds ─────────────────────────────────────────────────────
   static const IconData plainText = HugeIcons.strokeRoundedText;

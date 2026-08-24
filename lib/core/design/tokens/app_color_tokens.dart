@@ -17,6 +17,12 @@ enum ModuleTone {
   applications,
   clutter,
   spaceLens,
+
+  /// Network. Toned for the same reason Space Lens is — it is somewhere you go
+  /// to *watch*, and the window saying so before you have read the title is the
+  /// whole point of the tone. An azure kept clear of Applications' indigo and My
+  /// Clutter's teal, which are its two nearest neighbours.
+  network,
 }
 
 /// One module's two backdrop colours.
@@ -97,6 +103,8 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
     required this.review,
     required this.risky,
     required this.info,
+    required this.downstream,
+    required this.upstream,
     required this.shadow,
   });
 
@@ -196,6 +204,18 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
   final Color risky;
 
   final Color info;
+
+  // ─── Traffic ─────────────────────────────────────────────────────────────
+  /// Bytes coming in, and bytes going out.
+  ///
+  /// Their own pair rather than borrowed status colours: `safe` / `review` /
+  /// `risky` mean the same thing on every module in the app, and a green
+  /// "download" against an amber "upload" would quietly teach the user that one
+  /// direction is fine and the other needs looking at. They also cannot be the
+  /// module ramp, because a chart with two series needs two colours and a ramp
+  /// is one.
+  final Color downstream;
+  final Color upstream;
 
   final Color shadow;
 
@@ -301,6 +321,11 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
         lift: Color(0xFF7B27D6),
         accent: Color(0xFFA96BF5),
       ),
+      ModuleTone.network: ModulePalette(
+        base: Color(0xFF04243D),
+        lift: Color(0xFF0F6FA8),
+        accent: Color(0xFF35B4E8),
+      ),
     },
     glowStrength: 1,
     pattern: Color(0x1FFFFFFF),
@@ -325,6 +350,8 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
     review: Color(0xFFFFC24D),
     risky: Color(0xFFFF7A85),
     info: Color(0xFF7FD8FF),
+    downstream: Color(0xFF4FC3F7),
+    upstream: Color(0xFFB388FF),
     shadow: Color(0x66000000),
   );
 
@@ -368,6 +395,11 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
         lift: Color(0xFFBE9FF2),
         accent: Color(0xFF6D28C4),
       ),
+      ModuleTone.network: ModulePalette(
+        base: Color(0xFFD9EBF7),
+        lift: Color(0xFF8FC4E6),
+        accent: Color(0xFF0A6C9E),
+      ),
     },
     // A pale backdrop has less room before a pool of light reads as a stain,
     // so light mode uses a softer glow than dark.
@@ -401,6 +433,8 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
     review: Color(0xFFB8720A),
     risky: Color(0xFFD32F3D),
     info: Color(0xFF0B84D6),
+    downstream: Color(0xFF0277BD),
+    upstream: Color(0xFF6A3FC0),
     shadow: Color(0x1A101319),
   );
 
@@ -433,6 +467,8 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
     Color? review,
     Color? risky,
     Color? info,
+    Color? downstream,
+    Color? upstream,
     Color? shadow,
   }) {
     return AppColorTokens(
@@ -463,6 +499,8 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
       review: review ?? this.review,
       risky: risky ?? this.risky,
       info: info ?? this.info,
+      downstream: downstream ?? this.downstream,
+      upstream: upstream ?? this.upstream,
       shadow: shadow ?? this.shadow,
     );
   }
@@ -514,6 +552,8 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
       review: c(review, other.review),
       risky: c(risky, other.risky),
       info: c(info, other.info),
+      downstream: c(downstream, other.downstream),
+      upstream: c(upstream, other.upstream),
       shadow: c(shadow, other.shadow),
     );
   }

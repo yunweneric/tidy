@@ -5,6 +5,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' show ThemeMode;
 import 'package:tidy/core/design/brand.dart';
 import 'package:tidy/features/clipboard/data/models/clipboard_prefs.dart';
+import 'package:tidy/features/network/data/models/network_prefs.dart';
+import 'package:tidy/features/network/data/models/network_units.dart';
 import 'package:path/path.dart' as p;
 
 /// User preferences, persisted as JSON next to the scan cache.
@@ -33,6 +35,13 @@ class AppSettings extends ChangeNotifier {
   static const String _clipboardSensitiveKey = 'clipboardStoreSensitive';
   static const String _clipboardClearOnQuitKey = 'clipboardClearOnQuit';
   static const String _clipboardExcludedKey = 'clipboardExcludedApps';
+
+  // Network. Read directly by `NetworkStore.swift` at launch, so the menu bar
+  // readout is already in the right style — or already absent — before any
+  // Flutter engine has run. Renaming one here means renaming it there.
+  static const String _networkMenuBarKey = 'networkMenuBarEnabled';
+  static const String _networkStyleKey = 'networkMenuBarStyle';
+  static const String _networkBitsKey = 'networkUseBits';
 
   /// Bumping this shows onboarding again — for when a release adds a
   /// permission or a capability the existing copy does not cover.
@@ -200,6 +209,44 @@ class AppSettings extends ChangeNotifier {
 
   set clipboardExcludedApps(List<String> value) {
     _values[_clipboardExcludedKey] = value;
+    _persist();
+  }
+
+  // ─── Network ───────────────────────────────────────────────────────────
+
+  /// Whether the live readout appears in the menu bar.
+  ///
+  /// On by default, unlike the clipboard recorder: reading interface counters
+  /// needs no permission, records nothing about *what* was sent, and a network
+  /// monitor nobody can see is not a network monitor. The switch exists because
+  /// the readout permanently occupies menu bar width, which is the scarcest
+  /// space on the machine — not because the recording is sensitive.
+  bool get networkMenuBarEnabled =>
+      _values[_networkMenuBarKey] as bool? ?? true;
+
+  set networkMenuBarEnabled(bool value) {
+    _values[_networkMenuBarKey] = value;
+    _persist();
+  }
+
+  NetworkMenuBarStyle get networkMenuBarStyle =>
+      NetworkMenuBarStyle.fromName(_values[_networkStyleKey] as String?);
+
+  set networkMenuBarStyle(NetworkMenuBarStyle value) {
+    _values[_networkStyleKey] = value.name;
+    _persist();
+  }
+
+  /// Rates only. Cumulative totals stay in bytes whichever way this is set —
+  /// nobody measures a month's usage in gigabits, and an ISP's cap is quoted in
+  /// gigabytes.
+  NetworkUnits get networkUnits =>
+      (_values[_networkBitsKey] as bool? ?? false)
+          ? NetworkUnits.bits
+          : NetworkUnits.bytes;
+
+  set networkUnits(NetworkUnits value) {
+    _values[_networkBitsKey] = value.isBits;
     _persist();
   }
 

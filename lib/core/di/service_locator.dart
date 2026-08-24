@@ -8,6 +8,7 @@ import 'package:tidy/features/apps/data/services/scan_cache.dart';
 import 'package:tidy/features/apps/data/services/unused_apps_module.dart';
 import 'package:tidy/features/cleanup/data/cleanup_scan_module.dart';
 import 'package:tidy/features/clipboard/data/services/clipboard_service.dart';
+import 'package:tidy/features/network/data/services/network_service.dart';
 import 'package:tidy/features/performance/data/services/launch_items_service.dart';
 import 'package:tidy/features/performance/data/services/maintenance_service.dart';
 import 'package:tidy/features/performance/data/services/process_monitor_service.dart';
@@ -78,6 +79,11 @@ Future<void> setUpLocator({required bool includeUi}) async {
   // only an image cache and the settings mirror.
   locator.registerLazySingleton<ClipboardService>(ClipboardService.new);
 
+  // ─── Network ─────────────────────────────────────────────────────────────
+  // Same shape as Clipboard: the sampler and the history are native, so this
+  // holds the per-range cache and the settings mirror.
+  locator.registerLazySingleton<NetworkService>(NetworkService.new);
+
   // The popover has no settings UI and no theme switcher, so it skips the
   // file read entirely.
   if (includeUi) {
@@ -89,5 +95,6 @@ Future<void> setUpLocator({required bool includeUi}) async {
     // skips it: it has no settings UI, and the native side reads the same file
     // itself at launch.
     locator<ClipboardService>().bindTo(settings);
+    locator<NetworkService>().bindTo(settings);
   }
 }

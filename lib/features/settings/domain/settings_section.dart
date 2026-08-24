@@ -26,6 +26,11 @@ enum SettingsSection {
     icon: AppIcons.clipboard,
     blurb: 'What the clipboard history records, and how long it keeps it.',
   ),
+  network(
+    label: 'Network',
+    icon: AppIcons.network,
+    blurb: 'The menu bar readout, and what the usage history keeps.',
+  ),
   permissions(
     label: 'Permissions',
     icon: AppIcons.locked,

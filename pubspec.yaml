@@ -52,6 +52,10 @@ dev_dependencies:
   flutter_lints: ^5.0.0
   flutter_test:
     sdk: flutter
+  # Icon and splash generators. Build-time only — they write into the platform
+  # folders and ship nothing into the app.
+  flutter_launcher_icons: ^0.14.4
+  flutter_native_splash: ^2.4.6
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -89,3 +93,70 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+# ─── App icon ───────────────────────────────────────────────────────────────
+# Regenerate with: dart run flutter_launcher_icons
+#
+# The sources under `assets/icon/` are themselves generated — run
+# `python3 scripts/generate_icons.py` first if the mark changes.
+#
+# Three source images rather than one, because the platforms want genuinely
+# different things: iOS/web/Android-legacy mask the icon themselves and need it
+# edge to edge, macOS and Windows want the tile drawn inside the canvas with its
+# own margin and shadow, and Android's adaptive foreground is the glyph alone
+# inside the 66% safe zone.
+flutter_launcher_icons:
+  image_path: "assets/icon/app_icon.png"
+
+  android: true
+  adaptive_icon_background: "#5B45E0"
+  adaptive_icon_foreground: "assets/icon/app_icon_foreground.png"
+
+  ios: true
+  # The App Store rejects an icon with an alpha channel, and the full-bleed
+  # source has none — this is belt and braces.
+  remove_alpha_ios: true
+
+  macos:
+    generate: true
+    image_path: "assets/icon/app_icon_macos.png"
+
+  windows:
+    generate: true
+    image_path: "assets/icon/app_icon_macos.png"
+    icon_size: 256
+
+  web:
+    generate: true
+    image_path: "assets/icon/app_icon.png"
+    background_color: "#15112E"
+    theme_color: "#5B45E0"
+
+# ─── Splash screen ──────────────────────────────────────────────────────────
+# Regenerate with: dart run flutter_native_splash:create
+#
+# Android, iOS and web only: those embedders show a native launch screen that
+# hands over to the first Flutter frame. The desktop embedders have no
+# equivalent, so macOS/Windows/Linux are covered by `SplashGate` in Dart
+# instead — see lib/features/splash/presentation/splash_gate.dart.
+#
+# The colours are the app's own canvas tokens (`AppColorTokens.canvas`), so the
+# launch screen and the first painted frame are the same colour and the
+# handover is invisible.
+flutter_native_splash:
+  color: "#F3F1FD"
+  color_dark: "#15112E"
+  image: "assets/icon/splash_mark.png"
+
+  android: true
+  ios: true
+  web: true
+
+  # Android 12+ ignores the classic splash entirely and draws its own masked
+  # icon on a solid background, so it needs its own, larger source.
+  android_12:
+    image: "assets/icon/splash_mark_android12.png"
+    color: "#F3F1FD"
+    color_dark: "#15112E"
+    icon_background_color: "#F3F1FD"
+    icon_background_color_dark: "#15112E"

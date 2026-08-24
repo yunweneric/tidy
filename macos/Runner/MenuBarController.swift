@@ -24,6 +24,20 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
   /// The clipboard icon: what was copied recently.
   private let clipboardItem: NSStatusItem
 
+  /// The network readout: how fast bytes are moving right now.
+  ///
+  /// Unlike the other two this one carries *text*, not a glyph, and it is the
+  /// only status item the user can turn off — a live readout is the one thing
+  /// here that permanently occupies menu bar width, and menu bar width is the
+  /// scarcest real estate on the machine.
+  private var networkItem: NSStatusItem?
+  private var networkObserver: UUID?
+  private var prefsObserver: Any?
+
+  /// The widest the readout has been this session, so the item stops shuffling
+  /// its neighbours every time a digit is added or dropped.
+  private var networkItemWidth: CGFloat = 0
+
   /// Which icon the popover is currently hanging from, so a second click on
   /// the *same* icon closes it while a click on the other one moves it.
   private weak var anchor: NSStatusBarButton?
@@ -42,6 +56,10 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
   /// be a lot of empty gutter, and the hover preview shows the full content
   /// beside it anyway.
   private let clipboardPanelWidth: CGFloat = 320
+
+  /// The network panel is two big numbers and a chart. Same column width as the
+  /// clipboard for the same reason — dashboard width would be empty gutter.
+  private let networkPanelWidth: CGFloat = 320
 
   private let minPanelHeight: CGFloat = 160
   private let maxPanelHeight: CGFloat = 760
@@ -63,7 +81,9 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
 
     configureStatusItem()
     configureClipboardItem()
+    configureNetworkItem()
     configurePopover()
+    observeNetwork()
   }
 
   // MARK: - Status item
@@ -79,9 +99,20 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     button.sendAction(on: [.leftMouseUp, .rightMouseUp])
   }
 
-  /// SF Symbol availability varies by macOS version, so fall back down a list
-  /// and finally to a drawn glyph rather than shipping an invisible button.
+  /// The app's own mark, so the status item and the Dock tile are the same
+  /// thing at two sizes — a stock SF Symbol here made the menu bar look like it
+  /// belonged to some other app.
+  ///
+  /// `MenuBarIcon` is a template asset: black-on-transparent, recoloured by
+  /// AppKit to match a light or dark menu bar. The SF Symbol ladder stays as a
+  /// fallback for the case where the asset catalog fails to resolve, because an
+  /// invisible status button is worse than a generic one.
   private static func statusImage() -> NSImage? {
+    if let mark = NSImage(named: "MenuBarIcon") {
+      mark.size = NSSize(width: 18, height: 18)
+      return mark
+    }
+
     let candidates = [
       "internaldrive.badge.xmark",
       "externaldrive.badge.minus",
@@ -122,6 +153,193 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
       }
     }
     return NSImage(named: NSImage.multipleDocumentsName)
+  }
+
+  // MARK: - Network readout
+
+  /// Creates the readout, or removes it, to match the user's preference.
+  ///
+  /// Removing rather than hiding: `NSStatusItem.isVisible = false` leaves a
+  /// zero-width item that still reserves its slot in the ordering, and the
+  /// setting is meant to give the menu bar space back.
+  private func configureNetworkItem() {
+    NetworkStore.shared.load()
+
+    guard NetworkStore.shared.prefs.menuBarEnabled else {
+      if let networkItem { NSStatusBar.system.removeStatusItem(networkItem) }
+      networkItem = nil
+      networkItemWidth = 0
+      return
+    }
+
+    guard networkItem == nil else {
+      // Already there; the style may have changed under it. A compact readout
+      // must be allowed to shrink back out of a two-line item's width, so the
+      // "only ever grows" floor is dropped here and rebuilt from the new style.
+      networkItemWidth = 0
+      networkItem?.length = NSStatusItem.variableLength
+      renderNetwork(NetworkMonitor.shared.latest)
+      return
+    }
+
+    // Variable length, unlike the two glyph items: the readout is text, and how
+    // wide it needs to be depends on how fast the machine is moving bytes.
+    let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+    networkItem = item
+
+    guard let button = item.button else { return }
+    button.toolTip = "Network activity"
+    button.target = self
+    button.action = #selector(networkItemClicked(_:))
+    button.sendAction(on: [.leftMouseUp, .rightMouseUp])
+    renderNetwork(NetworkMonitor.shared.latest)
+  }
+
+  private func observeNetwork() {
+    networkObserver = NetworkMonitor.shared.addObserver { [weak self] sample in
+      self?.renderNetwork(sample)
+    }
+    prefsObserver = NotificationCenter.default.addObserver(
+      forName: NetworkChannel.prefsChanged,
+      object: nil,
+      queue: .main
+    ) { [weak self] _ in
+      self?.configureNetworkItem()
+    }
+  }
+
+  @objc private func networkItemClicked(_ sender: NSStatusBarButton) {
+    if NSApp.currentEvent?.type == .rightMouseUp {
+      showContextMenu()
+    } else {
+      togglePopover(from: sender, section: "network")
+    }
+  }
+
+  private func renderNetwork(_ sample: NetworkSample) {
+    guard let item = networkItem, let button = item.button else { return }
+
+    let prefs = NetworkStore.shared.prefs
+    let bits = prefs.useBits
+    let down = NetworkMonitor.formatRate(sample.downBytesPerSecond, bits: bits)
+    let up = NetworkMonitor.formatRate(sample.upBytesPerSecond, bits: bits)
+
+    switch prefs.menuBarStyle {
+    case .twoLine:
+      button.image = nil
+      button.imagePosition = .noImage
+      button.attributedTitle = Self.stackedTitle(down: down, up: up)
+    case .sparkline:
+      button.image = Self.sparklineImage(from: NetworkMonitor.shared.ring)
+      button.imagePosition = .imageLeading
+      button.attributedTitle = Self.stackedTitle(down: down, up: up)
+    case .compact:
+      button.image = nil
+      button.imagePosition = .noImage
+      button.attributedTitle = Self.compactTitle(down: down, up: up)
+    }
+
+    // `variableLength` re-measures on every title change, so the item — and
+    // every icon to its left — twitches sideways each time a digit appears or
+    // disappears. Pinning the length to the widest it has been stops that. It
+    // only ever grows within a session, and resets when the style changes.
+    var width = button.attributedTitle.size().width + Self.networkTitleInset
+    if button.imagePosition != .noImage, let image = button.image {
+      width += image.size.width + Self.networkImageGap
+    }
+    let rounded = (width / 4).rounded(.up) * 4
+    if rounded > networkItemWidth {
+      networkItemWidth = rounded
+      item.length = rounded
+    }
+  }
+
+  /// Padding either side of the readout, matching what AppKit gives a status
+  /// item's own content.
+  private static let networkTitleInset: CGFloat = 12
+  private static let networkImageGap: CGFloat = 3
+
+  /// Two stacked lines inside a 22pt menu bar. The font is small and its digits
+  /// are monospaced so the columns line up and the numbers do not jiggle;
+  /// `labelColor` follows the menu bar between light and dark on its own, which
+  /// a hard-coded white or black would not.
+  private static func stackedTitle(down: String, up: String) -> NSAttributedString {
+    let paragraph = NSMutableParagraphStyle()
+    paragraph.maximumLineHeight = 10
+    paragraph.minimumLineHeight = 10
+    paragraph.alignment = .right
+
+    return NSAttributedString(
+      string: "↓ \(down)\n↑ \(up)",
+      attributes: [
+        .font: NSFont.monospacedDigitSystemFont(ofSize: 9, weight: .regular),
+        .foregroundColor: NSColor.labelColor,
+        .paragraphStyle: paragraph,
+        // Nudged up so the pair sits centred rather than riding the baseline.
+        .baselineOffset: 2,
+      ]
+    )
+  }
+
+  /// One line, for people who would rather have the width back.
+  private static func compactTitle(down: String, up: String) -> NSAttributedString {
+    NSAttributedString(
+      string: "↓ \(down)  ↑ \(up)",
+      attributes: [
+        .font: NSFont.monospacedDigitSystemFont(ofSize: 11, weight: .regular),
+        .foregroundColor: NSColor.labelColor,
+      ]
+    )
+  }
+
+  /// The last minute of activity, drawn as two mirrored area charts — download
+  /// filling downward from the middle, upload filling upward.
+  ///
+  /// A template image, so AppKit tints it for the menu bar it lands on. That
+  /// costs the colour, which is fine: at this size a shape reads and a hue does
+  /// not, and a coloured menu bar icon is the wrong citizen anyway.
+  private static func sparklineImage(from ring: [NetworkSample]) -> NSImage {
+    let width: CGFloat = 34
+    let height: CGFloat = 16
+    let samples = Array(ring.suffix(60))
+
+    let image = NSImage(size: NSSize(width: width, height: height), flipped: false) { rect in
+      guard samples.count > 1 else { return true }
+
+      // Scaled to the window's own peak, not an absolute ceiling: the point is
+      // the shape of the last minute, and a fixed ceiling would leave every
+      // ordinary minute as a flat line along the bottom.
+      let peak = samples
+        .map { max($0.downBytesPerSecond, $0.upBytesPerSecond) }
+        .max() ?? 0
+      guard peak > 0 else { return true }
+
+      let middle = rect.midY
+      let half = rect.height / 2
+      let step = rect.width / CGFloat(samples.count - 1)
+
+      func draw(_ value: (NetworkSample) -> Double, upward: Bool) {
+        let path = NSBezierPath()
+        path.move(to: NSPoint(x: rect.minX, y: middle))
+        for (index, sample) in samples.enumerated() {
+          let fraction = CGFloat(value(sample) / peak)
+          let y = upward ? middle + fraction * half : middle - fraction * half
+          path.line(to: NSPoint(x: rect.minX + CGFloat(index) * step, y: y))
+        }
+        path.line(to: NSPoint(x: rect.maxX, y: middle))
+        path.close()
+        path.fill()
+      }
+
+      NSColor.black.withAlphaComponent(0.55).setFill()
+      draw({ $0.downBytesPerSecond }, upward: false)
+      NSColor.black.setFill()
+      draw({ $0.upBytesPerSecond }, upward: true)
+      return true
+    }
+
+    image.isTemplate = true
+    return image
   }
 
   @objc private func statusItemClicked(_ sender: NSStatusBarButton) {
@@ -178,6 +396,7 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     PerformanceChannel.register(with: engine.binaryMessenger)
     RecycleBinChannel.register(with: engine.binaryMessenger)
     ClipboardChannel.register(with: engine.binaryMessenger)
+    NetworkChannel.register(with: engine.binaryMessenger)
 
     channel = FlutterMethodChannel(
       name: Self.channelName,
@@ -243,7 +462,14 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
   /// "clipboard", which lands on the clipboard icon instead — a panel about
   /// clips should hang from the icon that means clips.
   func showPopover(section: String?) {
-    let preferred = section == "clipboard" ? clipboardItem.button : statusItem.button
+    let preferred: NSStatusBarButton?
+    switch section {
+    case "clipboard": preferred = clipboardItem.button
+    // Falls back to the vitals icon when the readout is switched off — the panel
+    // is still reachable, it just has no icon of its own to hang from.
+    case "network": preferred = networkItem?.button ?? statusItem.button
+    default: preferred = statusItem.button
+    }
     showPopover(section: section, from: preferred ?? statusItem.button)
   }
 
@@ -266,7 +492,11 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     if !mainWindowIsOnAnotherSpace {
       NSApp.activate(ignoringOtherApps: true)
     }
-    currentWidth = section == "clipboard" ? clipboardPanelWidth : panelWidth
+    currentWidth = switch section {
+    case "clipboard": clipboardPanelWidth
+    case "network": networkPanelWidth
+    default: panelWidth
+    }
     popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
     anchor = button
     // Width is applied *after* showing, not before. A hidden Flutter view
@@ -391,6 +621,12 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
   deinit {
     if let appearanceObserver {
       DistributedNotificationCenter.default.removeObserver(appearanceObserver)
+    }
+    if let prefsObserver {
+      NotificationCenter.default.removeObserver(prefsObserver)
+    }
+    if let networkObserver {
+      NetworkMonitor.shared.removeObserver(networkObserver)
     }
   }
 }

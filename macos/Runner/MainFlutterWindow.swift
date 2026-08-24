@@ -47,6 +47,9 @@ class MainFlutterWindow: NSWindow {
     // This one goes on both engines. The store is a single native singleton, so
     // two channels onto it is two windows onto one list, not two copies of it.
     ClipboardChannel.register(with: flutterViewController.engine.binaryMessenger)
+    // Both engines again, and for the same reason: one native sampler, one
+    // history, two windows onto it.
+    NetworkChannel.register(with: flutterViewController.engine.binaryMessenger)
     // Reverse direction only, for "open Tidy at the clipboard" from the
     // popover. The popover's own engine has the other half of this channel.
     PopoverChannel.registerMainWindow(with: flutterViewController.engine.binaryMessenger)

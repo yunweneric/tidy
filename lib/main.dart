@@ -5,6 +5,7 @@ import 'package:tidy/core/router/app_router.dart';
 import 'package:tidy/core/settings/app_settings.dart';
 import 'package:tidy/features/menubar/platform/popover_bridge.dart';
 import 'package:tidy/features/menubar/presentation/menu_bar_panel.dart';
+import 'package:tidy/features/splash/presentation/splash_gate.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -59,6 +60,10 @@ class _TidyAppState extends State<TidyApp> {
           theme: TidyTheme.light(reduceMotion: widget.settings.reduceMotion),
           darkTheme: TidyTheme.dark(reduceMotion: widget.settings.reduceMotion),
           routerConfig: _router,
+          // Over the router rather than inside it: the splash is not a route,
+          // and making it one would put it in the back stack.
+          builder:
+              (context, child) => SplashGate(child: child ?? const SizedBox.shrink()),
         );
       },
     );
