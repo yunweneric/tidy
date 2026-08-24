@@ -70,8 +70,12 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
   private lazy var preview = ClipPreviewPanel()
 
   override init() {
+    // Named on the line after each is made, before the next one exists. See
+    // `claim` for why the gap between those two lines is the whole bug.
     statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
+    Self.claim(statusItem, as: "TidyVitals")
     clipboardItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
+    Self.claim(clipboardItem, as: "TidyClipboard")
     engine = FlutterEngine(
       name: "menu_bar",
       project: FlutterDartProject(),
@@ -88,30 +92,47 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
 
   // MARK: - Status item
 
-  /// Names an item, and asks for it to be shown.
+  /// Files an item under a name of our own, on the line after it is created.
   ///
-  /// **The name.** Without an `autosaveName`, AppKit files an item under an
-  /// ordinal — `Item-0`, `Item-1`, `Item-2` — handed out in creation order.
-  /// That makes the readout's preference destructive: turn it off and the item
-  /// after it inherits its slot and its remembered position, because the
-  /// ordinals shift underneath. A stable name per item is what makes "where
-  /// this icon sits" a property of the icon rather than of how many icons
-  /// happened to exist when it was made.
+  /// Without an `autosaveName`, AppKit files a status item under an ordinal —
+  /// `Item-0`, `Item-1`, `Item-2` — handed out in creation order. That
+  /// namespace is **shared with every other app on the machine**, not private
+  /// to this one, and macOS 26 keeps menu bar visibility centrally now that
+  /// Control Center owns the bar: `com.apple.controlcenter` carries
+  /// `NSStatusItem Visible Item-0` through `Item-9`, and the switches in
+  /// System Settings › Control Center › Menu Bar write into exactly those keys.
+  /// Turning *another* app's icon off there turns off whichever of ours happens
+  /// to be holding that ordinal — which is not hypothetical: switching Cursor's
+  /// item off hid all of Tidy's, and switching it back on brought them back.
   ///
-  /// **The visibility.** `behavior` deliberately does not include
-  /// `.removalAllowed`, so there is no gesture that hides these items: a stored
-  /// `false` can only be something macOS decided, never something the user
-  /// asked for. Asking for `true` on every launch is how an item that was left
-  /// hidden comes back. It is not a guarantee of being *seen* — macOS still
-  /// chooses the slot, and on a notched Mac with a full menu bar the slot it
-  /// chooses can be underneath the notch — but it is the half we control.
+  /// It is also why adding the readout took the other two with it. Ordinals are
+  /// positional, so a third item renumbers its neighbours, and each one lands
+  /// on a different stranger's verdict.
+  ///
+  /// The ordinal is handed out by `statusItem(withLength:)` itself, so the name
+  /// has to be assigned on the very next line. Naming later still moves an item
+  /// out of the shared bucket, but only after it has already read somebody
+  /// else's answer on the way in.
   private static func claim(_ item: NSStatusItem, as name: String) {
     item.autosaveName = name
+  }
+
+  /// Asks for an item to be on the bar.
+  ///
+  /// `behavior` deliberately does not include `.removalAllowed`, so nothing in
+  /// Tidy hides these: a stored `false` is either an inherited ordinal verdict
+  /// or Control Center's, never something the user asked of *us*. Asking for
+  /// `true` is not overriding a preference, it is declining to inherit someone
+  /// else's.
+  ///
+  /// Called on every launch and again every time the readout is switched,
+  /// because switching it is the other moment the bar gets rearranged
+  /// underneath the items that are staying put.
+  private static func show(_ item: NSStatusItem) {
     item.isVisible = true
   }
 
   private func configureStatusItem() {
-    Self.claim(statusItem, as: "TidyVitals")
     guard let button = statusItem.button else { return }
 
     // Sized and centred by `menuBarGlyph`, which also marks it a template so
@@ -122,6 +143,8 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     button.target = self
     button.action = #selector(statusItemClicked(_:))
     button.sendAction(on: [.leftMouseUp, .rightMouseUp])
+
+    Self.show(statusItem)
   }
 
   /// The app's own mark, so the status item and the Dock tile are the same
@@ -150,18 +173,19 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
 
   // MARK: - Glyphs
 
-  /// The box every menu bar glyph is drawn into, and the box its content is
-  /// fitted inside it.
+  /// The canvas every glyph is drawn into, and the box its *ink* is fitted
+  /// inside it.
   ///
-  /// 18pt canvas in a 22pt menu bar leaves the 2pt of breathing room macOS
-  /// gives its own items; 16pt of content inside it is the size an SF Symbol
-  /// lands at when AppKit sizes one off the system font, so a custom asset
-  /// dropped in beside one does not read as the odd one out.
+  /// 18pt canvas in a 22pt menu bar leaves the breathing room macOS gives its
+  /// own items. 16pt of ink inside it is what the system glyphs sitting either
+  /// side of us measure — Wi-Fi, the keyboard indicator, Control Center — so a
+  /// glyph normalised to it reads as the same size as its neighbours rather
+  /// than the same size as some canvas nobody can see.
   private static let glyphCanvas = NSSize(width: 18, height: 18)
-  private static let glyphContent = NSSize(width: 16, height: 16)
+  private static let glyphInk = NSSize(width: 16, height: 16)
 
-  /// Redraws a glyph centred inside `glyphCanvas`, scaled to fit
-  /// `glyphContent`.
+  /// Redraws a glyph so its ink is centred inside `glyphCanvas` and fitted to
+  /// `glyphInk`.
   ///
   /// A status button places its image using the image's own size and alignment
   /// rect, so glyphs from different sources line up only by luck: the app mark
@@ -170,15 +194,24 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
   /// rect inset for its optical baseline. Left alone the two sit at different
   /// scales *and* on different lines.
   ///
-  /// Normalising is what makes them match. Every glyph ends up with the same
-  /// bounds and no alignment inset, so "scaled the same" and "centred the same"
-  /// both fall out of AppKit's own centring rather than being chased per icon.
+  /// **Fitted by ink, not by canvas.** Matching the canvases is not enough,
+  /// because a canvas is mostly transparency and every source pads differently:
+  /// the app mark carries 15×13 of drawing inside 22×22, an SF Symbol barely
+  /// 1pt. Scaling those canvases to a common size scales the *padding* to a
+  /// common size and leaves the mark visibly the runt of the menu bar. So the
+  /// transparent margin is measured off first and only what is drawn gets
+  /// scaled, which is also the only reading of "the same size" that matches
+  /// what the eye is comparing.
+  ///
+  /// What comes out has identical bounds and no alignment inset, so "centred
+  /// the same" falls out of AppKit's own centring rather than being chased per
+  /// icon.
   private static func menuBarGlyph(_ source: NSImage) -> NSImage {
-    let size = source.size
-    guard size.width > 0, size.height > 0 else { return source }
+    let ink = inkBounds(of: source) ?? NSRect(origin: .zero, size: source.size)
+    guard ink.width > 0, ink.height > 0 else { return source }
 
-    let scale = min(glyphContent.width / size.width, glyphContent.height / size.height)
-    let drawn = NSSize(width: size.width * scale, height: size.height * scale)
+    let scale = min(glyphInk.width / ink.width, glyphInk.height / ink.height)
+    let drawn = NSSize(width: ink.width * scale, height: ink.height * scale)
 
     let glyph = NSImage(size: glyphCanvas, flipped: false) { rect in
       source.draw(
@@ -188,7 +221,7 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
           width: drawn.width,
           height: drawn.height
         ),
-        from: .zero,
+        from: ink,
         operation: .sourceOver,
         fraction: 1
       )
@@ -198,15 +231,55 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     return glyph
   }
 
+  /// The part of a glyph that actually has something drawn in it, in the
+  /// image's own coordinates.
+  ///
+  /// Runs twice, at launch, over images of a few hundred pixels — the naive
+  /// scan is far cheaper than the machinery that would avoid it.
+  private static func inkBounds(of image: NSImage) -> NSRect? {
+    guard let tiff = image.tiffRepresentation,
+          let bitmap = NSBitmapImageRep(data: tiff),
+          bitmap.pixelsWide > 0, bitmap.pixelsHigh > 0
+    else { return nil }
+
+    var minX = bitmap.pixelsWide, maxX = -1
+    var minY = bitmap.pixelsHigh, maxY = -1
+    for y in 0..<bitmap.pixelsHigh {
+      for x in 0..<bitmap.pixelsWide {
+        // Anti-aliased edges fade to nothing, so the threshold is just above
+        // "transparent" rather than at it — otherwise the bounds creep outward
+        // by a pixel of haze that is not really part of the drawing.
+        guard let pixel = bitmap.colorAt(x: x, y: y), pixel.alphaComponent > 0.05
+        else { continue }
+        minX = min(minX, x)
+        maxX = max(maxX, x)
+        minY = min(minY, y)
+        maxY = max(maxY, y)
+      }
+    }
+    guard maxX >= minX, maxY >= minY else { return nil }
+
+    let scaleX = image.size.width / CGFloat(bitmap.pixelsWide)
+    let scaleY = image.size.height / CGFloat(bitmap.pixelsHigh)
+    // `colorAt` counts rows down from the top; an NSImage counts up from the
+    // bottom, so the row range has to be turned over on the way out.
+    return NSRect(
+      x: CGFloat(minX) * scaleX,
+      y: CGFloat(bitmap.pixelsHigh - 1 - maxY) * scaleY,
+      width: CGFloat(maxX - minX + 1) * scaleX,
+      height: CGFloat(maxY - minY + 1) * scaleY
+    )
+  }
+
   /// The first SF Symbol in `names` that this macOS version has, normalised.
   ///
   /// The ladder exists because symbol availability varies by OS version, and an
-  /// invisible status button is worse than a generic one. The point size only
-  /// sets how crisply the symbol rasterises — `menuBarGlyph` decides the final
-  /// size — but asking for one keeps it from being derived from the control
-  /// font, which differs between the symbols and the asset.
+  /// invisible status button is worse than a generic one. The point size does
+  /// not decide the final size — `menuBarGlyph` does, off the ink — it decides
+  /// how many pixels there are to measure and rescale, so it is asked for
+  /// generously rather than left to the control font.
   private static func symbolGlyph(_ names: [String], describedAs description: String) -> NSImage? {
-    let configuration = NSImage.SymbolConfiguration(pointSize: 16, weight: .regular)
+    let configuration = NSImage.SymbolConfiguration(pointSize: 32, weight: .regular)
     for name in names {
       guard let image = NSImage(systemSymbolName: name, accessibilityDescription: description)
       else { continue }
@@ -216,7 +289,6 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
   }
 
   private func configureClipboardItem() {
-    Self.claim(clipboardItem, as: "TidyClipboard")
     guard let button = clipboardItem.button else { return }
 
     button.image = Self.clipboardImage()
@@ -225,6 +297,8 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     button.target = self
     button.action = #selector(clipboardItemClicked(_:))
     button.sendAction(on: [.leftMouseUp, .rightMouseUp])
+
+    Self.show(clipboardItem)
   }
 
   /// Same fallback ladder as the vitals icon, for the same reason: SF Symbol
@@ -251,6 +325,13 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
   private func configureNetworkItem() {
     NetworkStore.shared.load()
 
+    // The two glyph items are re-asserted here as well as at launch. Adding or
+    // removing an item is exactly when macOS re-reads what belongs on the bar,
+    // and the last thing to have written an answer for them may have been
+    // Control Center, on some other app's behalf.
+    Self.show(statusItem)
+    Self.show(clipboardItem)
+
     guard NetworkStore.shared.prefs.menuBarEnabled else {
       if let networkItem { NSStatusBar.system.removeStatusItem(networkItem) }
       networkItem = nil
@@ -270,7 +351,12 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
 
     // Variable length, unlike the two glyph items: the readout is text, and how
     // wide it needs to be depends on how fast the machine is moving bytes.
+    //
+    // Named on the next line, and more sharply here than anywhere else: this is
+    // the one item that comes and goes with a preference, so an ordinal would
+    // be re-issued to somebody every time it did.
     let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+    Self.claim(item, as: "TidyNetwork")
     networkItem = item
 
     guard let button = item.button else { return }
@@ -280,17 +366,11 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     button.sendAction(on: [.leftMouseUp, .rightMouseUp])
     renderNetwork(NetworkMonitor.shared.latest)
 
-    // Claimed *after* the readout is in it, unlike the two glyph items. Those
-    // are `squareLength` and have a width from the moment they exist; this one
-    // is `variableLength`, so until the first `renderNetwork` its width is
-    // whatever its empty button draws, which is nothing. Asking to be shown
-    // while measuring zero is a question with no good answer, so it is asked
-    // once the item has a size to ask with.
-    //
-    // Named rather than positional for the same reason as the others, and more
-    // sharply here: this is the one item that comes and goes with a preference,
-    // so an ordinal would land on a different item every time it did.
-    Self.claim(item, as: "TidyNetwork")
+    // Shown once the readout is in it, unlike the two glyph items. Those are
+    // `squareLength` and have a width from the moment they exist; this one is
+    // `variableLength`, so until the first `renderNetwork` it measures nothing,
+    // and asking to be shown at zero width is a question with no good answer.
+    Self.show(item)
   }
 
   private func observeNetwork() {
@@ -322,30 +402,24 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     let down = NetworkMonitor.formatRate(sample.downBytesPerSecond, bits: bits)
     let up = NetworkMonitor.formatRate(sample.upBytesPerSecond, bits: bits)
 
-    switch prefs.menuBarStyle {
-    case .twoLine:
-      button.image = nil
-      button.imagePosition = .noImage
-      button.attributedTitle = Self.stackedTitle(down: down, up: up)
-    case .sparkline:
-      button.image = Self.sparklineImage(from: NetworkMonitor.shared.ring)
-      button.imagePosition = .imageLeading
-      button.attributedTitle = Self.stackedTitle(down: down, up: up)
-    case .compact:
-      button.image = nil
-      button.imagePosition = .noImage
-      button.attributedTitle = Self.compactTitle(down: down, up: up)
-    }
+    let readout = Self.readout(
+      down: down,
+      up: up,
+      style: prefs.menuBarStyle,
+      ring: NetworkMonitor.shared.ring
+    )
+    // The rates used to be the button's title, which is what VoiceOver read.
+    // They are ink in an image now, so the numbers have to be said out loud
+    // somewhere else.
+    readout.accessibilityDescription = "Down \(down), up \(up)"
+    button.image = readout
+    button.imagePosition = .imageOnly
 
-    // `variableLength` re-measures on every title change, so the item — and
-    // every icon to its left — twitches sideways each time a digit appears or
+    // `variableLength` re-measures on every change, so the item — and every
+    // icon to its left — twitches sideways each time a digit appears or
     // disappears. Pinning the length to the widest it has been stops that. It
     // only ever grows within a session, and resets when the style changes.
-    var width = button.attributedTitle.size().width + Self.networkTitleInset
-    if button.imagePosition != .noImage, let image = button.image {
-      width += image.size.width + Self.networkImageGap
-    }
-    let rounded = (width / 4).rounded(.up) * 4
+    let rounded = ((readout.size.width + Self.networkInset) / 4).rounded(.up) * 4
     if rounded > networkItemWidth {
       networkItemWidth = rounded
       item.length = rounded
@@ -354,13 +428,97 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
 
   /// Padding either side of the readout, matching what AppKit gives a status
   /// item's own content.
-  private static let networkTitleInset: CGFloat = 12
-  private static let networkImageGap: CGFloat = 3
+  private static let networkInset: CGFloat = 12
 
-  /// Two stacked lines inside a 22pt menu bar. The font is small and its digits
-  /// are monospaced so the columns line up and the numbers do not jiggle;
-  /// `labelColor` follows the menu bar between light and dark on its own, which
-  /// a hard-coded white or black would not.
+  /// The gap between the chart and the numbers beside it.
+  private static let networkGap: CGFloat = 4
+
+  /// The whole readout as one template image, centred on the bar's middle.
+  ///
+  /// Drawn rather than handed to `attributedTitle` because AppKit gives no way
+  /// to say where a title sits vertically. It centres the string's *typographic*
+  /// box — ascender to descender, with `stackedTitle`'s forced line height
+  /// clipping both — and for two stacked lines that box is not where the ink is,
+  /// so the pair rides low. The fix for that used to be a hand-tuned
+  /// `baselineOffset` calibrated against a 22pt bar; macOS 26's menu bar is
+  /// taller, and a nudge that centred the numbers there leaves them high here.
+  /// The chart had the same problem from the other side: `.imageLeading` centres
+  /// it against the title's box rather than the bar's.
+  ///
+  /// Composing both moves the centring from AppKit's guess to arithmetic — one
+  /// canvas exactly the bar's own thickness, every piece placed against its
+  /// middle — so the chart and the numbers share a centre line whatever height
+  /// the bar turns out to have.
+  private static func readout(
+    down: String,
+    up: String,
+    style: NetworkMenuBarStyle,
+    ring: [NetworkSample]
+  ) -> NSImage {
+    let text =
+      style == .compact
+      ? compactTitle(down: down, up: up)
+      : stackedTitle(down: down, up: up)
+
+    // `boundingRect` rather than `size()`: the stacked style is two lines, and
+    // only line-fragment layout measures the second one.
+    let measured = text.boundingRect(
+      with: NSSize(
+        width: CGFloat.greatestFiniteMagnitude,
+        height: CGFloat.greatestFiniteMagnitude
+      ),
+      options: [.usesLineFragmentOrigin]
+    )
+    let textSize = NSSize(
+      width: measured.width.rounded(.up),
+      height: measured.height.rounded(.up)
+    )
+
+    let chart = style == .sparkline ? sparklineImage(from: ring) : nil
+    let chartWidth = chart.map { $0.size.width + networkGap } ?? 0
+
+    let image = NSImage(
+      size: NSSize(
+        width: chartWidth + textSize.width,
+        height: NSStatusBar.system.thickness
+      ),
+      flipped: false
+    ) { rect in
+      if let chart {
+        chart.draw(
+          in: NSRect(
+            x: rect.minX,
+            y: rect.midY - chart.size.height / 2,
+            width: chart.size.width,
+            height: chart.size.height
+          )
+        )
+      }
+      text.draw(
+        with: NSRect(
+          x: rect.minX + chartWidth,
+          y: rect.midY - textSize.height / 2,
+          width: textSize.width,
+          height: textSize.height
+        ),
+        options: [.usesLineFragmentOrigin]
+      )
+      return true
+    }
+
+    // Template, so the menu bar tints it. That is the same `labelColor` the
+    // text used to ask for, arrived at by the route that also follows the bar
+    // between light and dark without being told.
+    image.isTemplate = true
+    return image
+  }
+
+  /// Two stacked lines. The font is small and its digits are monospaced so the
+  /// columns line up and the numbers do not jiggle.
+  ///
+  /// Drawn in black rather than `labelColor` because `readout` templates the
+  /// composited image, which keeps the alpha and throws the colour away — the
+  /// menu bar supplies the ink.
   private static func stackedTitle(down: String, up: String) -> NSAttributedString {
     let paragraph = NSMutableParagraphStyle()
     paragraph.maximumLineHeight = 10
@@ -371,21 +529,20 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
       string: "↓ \(down)\n↑ \(up)",
       attributes: [
         .font: NSFont.monospacedDigitSystemFont(ofSize: 9, weight: .regular),
-        .foregroundColor: NSColor.labelColor,
+        .foregroundColor: NSColor.black,
         .paragraphStyle: paragraph,
-        // Nudged up so the pair sits centred rather than riding the baseline.
-        .baselineOffset: 2,
       ]
     )
   }
 
-  /// One line, for people who would rather have the width back.
+  /// One line, for people who would rather have the width back. Black for the
+  /// same reason as `stackedTitle`.
   private static func compactTitle(down: String, up: String) -> NSAttributedString {
     NSAttributedString(
       string: "↓ \(down)  ↑ \(up)",
       attributes: [
         .font: NSFont.monospacedDigitSystemFont(ofSize: 11, weight: .regular),
-        .foregroundColor: NSColor.labelColor,
+        .foregroundColor: NSColor.black,
       ]
     )
   }

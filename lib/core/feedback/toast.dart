@@ -506,10 +506,7 @@ class _ToastCardState extends State<_ToastCard> with TickerProviderStateMixin {
             begin: const Offset(0, 0.25),
             end: Offset.zero,
           ).animate(curved),
-          child: Padding(
-            padding: const EdgeInsets.only(top: AppSpacing.md),
-            child: card,
-          ),
+          child: Padding(padding: const EdgeInsets.only(top: AppSpacing.md), child: card),
         ),
       ),
     );
