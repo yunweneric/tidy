@@ -9,7 +9,7 @@ import FlutterMacOS
 /// emptying the bin goes back through `deleteItems` so it passes the same
 /// `isRemovable` guard as every other deletion here.
 enum RecycleBinChannel {
-  static let channelName = "com.yunweneric.macuninstaller/recycle-bin"
+  static let channelName = "com.yunweneric.tidy/recycle-bin"
 
   static func register(with messenger: FlutterBinaryMessenger) {
     let channel = FlutterMethodChannel(name: channelName, binaryMessenger: messenger)

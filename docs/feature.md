@@ -290,7 +290,7 @@ other route silently costs the user that.
 
 - [ ] `dart analyze lib` is clean.
 - [ ] Ran with Full Disk Access **granted and revoked**
-      (`tccutil reset SystemPolicyAllFiles com.yunweneric.macuninstaller`).
+      (`tccutil reset SystemPolicyAllFiles com.yunweneric.tidy`).
       Denied must degrade to a partial result with the banner, never a crash and
       never a silent zero.
 - [ ] Sizes checked against `du -sh` **and** against a sparse file.

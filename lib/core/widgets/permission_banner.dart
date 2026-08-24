@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:mac_uninstaller/core/design/design.dart';
-import 'package:mac_uninstaller/core/widgets/tidy_card.dart';
+import 'package:tidy/core/design/design.dart';
+import 'package:tidy/core/widgets/tidy_card.dart';
 
 /// Explains why Full Disk Access is needed and links to the right settings pane.
 ///

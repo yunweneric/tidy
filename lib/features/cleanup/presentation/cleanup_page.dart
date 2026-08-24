@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:mac_uninstaller/core/di/service_locator.dart';
-import 'package:mac_uninstaller/core/platform/full_disk_access_service.dart';
-import 'package:mac_uninstaller/core/scanning/presentation/scan_view.dart';
+import 'package:tidy/core/di/service_locator.dart';
+import 'package:tidy/core/platform/full_disk_access_service.dart';
+import 'package:tidy/core/scanning/presentation/scan_view.dart';
 
 /// The Cleanup module.
 ///

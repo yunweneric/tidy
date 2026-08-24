@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:mac_uninstaller/features/clipboard/data/models/clipboard_entry.dart';
+import 'package:tidy/features/clipboard/data/models/clipboard_entry.dart';
 
 sealed class ClipboardEvent extends Equatable {
   const ClipboardEvent();

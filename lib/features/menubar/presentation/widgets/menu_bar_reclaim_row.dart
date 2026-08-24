@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:mac_uninstaller/core/design/design.dart';
-import 'package:mac_uninstaller/core/utils/byte_format.dart';
-import 'package:mac_uninstaller/features/menubar/presentation/widgets/menu_bar_button.dart';
+import 'package:tidy/core/design/design.dart';
+import 'package:tidy/core/utils/byte_format.dart';
+import 'package:tidy/features/menubar/presentation/widgets/menu_bar_button.dart';
 
 /// One pool of space that can be handed back: junk, or the Trash.
 ///

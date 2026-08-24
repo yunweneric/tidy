@@ -3,12 +3,12 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:mac_uninstaller/core/design/design.dart';
-import 'package:mac_uninstaller/core/feedback/feedback.dart';
-import 'package:mac_uninstaller/core/utils/byte_format.dart';
-import 'package:mac_uninstaller/core/widgets/widgets.dart';
-import 'package:mac_uninstaller/features/performance/data/models/process_sample.dart';
-import 'package:mac_uninstaller/features/performance/logic/process_monitor_bloc.dart';
+import 'package:tidy/core/design/design.dart';
+import 'package:tidy/core/feedback/feedback.dart';
+import 'package:tidy/core/utils/byte_format.dart';
+import 'package:tidy/core/widgets/widgets.dart';
+import 'package:tidy/features/performance/data/models/process_sample.dart';
+import 'package:tidy/features/performance/logic/process_monitor_bloc.dart';
 
 /// Column geometry, declared once and used by the header and every row — a
 /// header that declares its own flex values is how a table ends up with labels

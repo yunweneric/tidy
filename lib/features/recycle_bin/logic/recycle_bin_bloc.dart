@@ -1,10 +1,10 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:mac_uninstaller/core/feedback/feedback_tone.dart';
-import 'package:mac_uninstaller/core/utils/byte_format.dart';
-import 'package:mac_uninstaller/features/recycle_bin/data/services/recycle_bin_bridge.dart';
-import 'package:mac_uninstaller/features/recycle_bin/data/services/recycle_bin_service.dart';
-import 'package:mac_uninstaller/features/recycle_bin/logic/recycle_bin_event.dart';
-import 'package:mac_uninstaller/features/recycle_bin/logic/recycle_bin_state.dart';
+import 'package:tidy/core/feedback/feedback_tone.dart';
+import 'package:tidy/core/utils/byte_format.dart';
+import 'package:tidy/features/recycle_bin/data/services/recycle_bin_bridge.dart';
+import 'package:tidy/features/recycle_bin/data/services/recycle_bin_service.dart';
+import 'package:tidy/features/recycle_bin/logic/recycle_bin_event.dart';
+import 'package:tidy/features/recycle_bin/logic/recycle_bin_state.dart';
 
 /// Drives the Recycle Bin: what is in there, what is selected, and the two
 /// things that can be done about it.

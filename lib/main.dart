@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:mac_uninstaller/core/design/design.dart';
-import 'package:mac_uninstaller/core/di/service_locator.dart';
-import 'package:mac_uninstaller/core/router/app_router.dart';
-import 'package:mac_uninstaller/core/settings/app_settings.dart';
-import 'package:mac_uninstaller/features/menubar/platform/popover_bridge.dart';
-import 'package:mac_uninstaller/features/menubar/presentation/menu_bar_panel.dart';
+import 'package:tidy/core/design/design.dart';
+import 'package:tidy/core/di/service_locator.dart';
+import 'package:tidy/core/router/app_router.dart';
+import 'package:tidy/core/settings/app_settings.dart';
+import 'package:tidy/features/menubar/platform/popover_bridge.dart';
+import 'package:tidy/features/menubar/presentation/menu_bar_panel.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

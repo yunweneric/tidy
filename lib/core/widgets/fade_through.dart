@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mac_uninstaller/core/design/design.dart';
+import 'package:tidy/core/design/design.dart';
 
 /// Fades its child back in whenever [trigger] changes.
 ///

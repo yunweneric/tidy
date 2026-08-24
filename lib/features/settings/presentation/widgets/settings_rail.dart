@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:mac_uninstaller/core/design/design.dart';
-import 'package:mac_uninstaller/features/settings/domain/settings_section.dart';
+import 'package:tidy/core/design/design.dart';
+import 'package:tidy/features/settings/domain/settings_section.dart';
 
 /// The Settings page's own tab column.
 ///

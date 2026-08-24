@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:mac_uninstaller/core/design/design.dart';
-import 'package:mac_uninstaller/features/apps/data/models/mac_app_model.dart';
+import 'package:tidy/core/design/design.dart';
+import 'package:tidy/features/apps/data/models/mac_app_model.dart';
 
 /// App icon, falling back to a placeholder while icons stream in.
 class AppIcon extends StatelessWidget {

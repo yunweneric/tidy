@@ -1,8 +1,8 @@
 import 'dart:typed_data';
 
-import 'package:mac_uninstaller/core/platform/system_bridge.dart';
-import 'package:mac_uninstaller/features/performance/data/models/launch_item.dart';
-import 'package:mac_uninstaller/features/performance/data/services/performance_bridge.dart';
+import 'package:tidy/core/platform/system_bridge.dart';
+import 'package:tidy/features/performance/data/models/launch_item.dart';
+import 'package:tidy/features/performance/data/services/performance_bridge.dart';
 
 /// Everything on this Mac that starts itself, and the two things we can do
 /// about it: turn it off, or take it away.

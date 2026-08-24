@@ -32,7 +32,7 @@ class PopoverBridge {
   }
 
   static const MethodChannel _channel = MethodChannel(
-    'com.yunweneric.macuninstaller/popover',
+    'com.yunweneric.tidy/popover',
   );
 
   /// Set by whoever owns the panel's data — the popover is only worth sampling
@@ -133,7 +133,7 @@ class PopoverRoutes {
   const PopoverRoutes._();
 
   static const MethodChannel _channel = MethodChannel(
-    'com.yunweneric.macuninstaller/popover',
+    'com.yunweneric.tidy/popover',
   );
 
   static void listen(ValueChanged<String> onRoute) {

@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'package:mac_uninstaller/core/platform/action_outcome.dart';
-import 'package:mac_uninstaller/core/platform/trash_ledger.dart';
+import 'package:tidy/core/platform/action_outcome.dart';
+import 'package:tidy/core/platform/trash_ledger.dart';
 
 /// Free/total capacity of the boot volume.
 class DiskUsage {
@@ -71,7 +71,7 @@ class SystemBridge {
   SystemBridge._();
 
   static const MethodChannel _channel = MethodChannel(
-    'com.yunweneric.macuninstaller/system',
+    'com.yunweneric.tidy/system',
   );
 
   /// Moves [paths] to the user's Trash.

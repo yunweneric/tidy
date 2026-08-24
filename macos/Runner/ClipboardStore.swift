@@ -229,7 +229,7 @@ final class ClipboardStore {
   private var observers: [() -> Void] = []
   private var loaded = false
 
-  private let io = DispatchQueue(label: "com.yunweneric.macuninstaller.clipboard", qos: .utility)
+  private let io = DispatchQueue(label: "com.yunweneric.tidy.clipboard", qos: .utility)
   private var pendingWrite: DispatchWorkItem?
 
   // MARK: - Paths
@@ -240,10 +240,11 @@ final class ClipboardStore {
       in: .userDomainMask
     ).first else { return nil }
 
-    // Brand.supportDirectoryName on the Dart side. Still "MacUninstaller"
-    // because the bundle id is, and everything else the app writes is here.
+    // Brand.supportDirectoryName on the Dart side. AppSupport.migrate() has
+    // already moved the old "MacUninstaller" folder here by the time anything
+    // reads this.
     let dir = support
-      .appendingPathComponent("MacUninstaller", isDirectory: true)
+      .appendingPathComponent(AppSupport.directoryName, isDirectory: true)
       .appendingPathComponent("clipboard", isDirectory: true)
 
     do {
@@ -272,7 +273,7 @@ final class ClipboardStore {
       in: .userDomainMask
     ).first else { return nil }
     return support
-      .appendingPathComponent("MacUninstaller", isDirectory: true)
+      .appendingPathComponent(AppSupport.directoryName, isDirectory: true)
       .appendingPathComponent("settings.json")
   }
 
@@ -283,6 +284,7 @@ final class ClipboardStore {
   func load() {
     guard !loaded else { return }
     loaded = true
+    AppSupport.migrate()
 
     prefs = Self.readPrefsFromSettings() ?? ClipboardPrefs()
 

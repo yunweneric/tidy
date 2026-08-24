@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:mac_uninstaller/core/design/design.dart';
-import 'package:mac_uninstaller/core/feedback/feedback.dart';
-import 'package:mac_uninstaller/core/platform/system_bridge.dart';
-import 'package:mac_uninstaller/core/settings/app_settings.dart';
-import 'package:mac_uninstaller/features/settings/presentation/widgets/settings_controls.dart';
+import 'package:tidy/core/design/design.dart';
+import 'package:tidy/core/feedback/feedback.dart';
+import 'package:tidy/core/platform/system_bridge.dart';
+import 'package:tidy/core/settings/app_settings.dart';
+import 'package:tidy/features/settings/presentation/widgets/settings_controls.dart';
 
 /// What happens when the Mac starts, and when the app opens.
 ///

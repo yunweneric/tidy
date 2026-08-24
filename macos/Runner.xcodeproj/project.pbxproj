@@ -40,6 +40,7 @@
 		A1B2C3D003AA000000000002 /* Trash.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D003AA000000000001 /* Trash.swift */; };
 		A1B2C3D003AA000000000004 /* RecycleBinChannel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D003AA000000000003 /* RecycleBinChannel.swift */; };
 		A1B2C3D004AA000000000002 /* ClipboardStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D004AA000000000001 /* ClipboardStore.swift */; };
+		A1B2C3D006AA000000000002 /* AppSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D006AA000000000001 /* AppSupport.swift */; };
 		A1B2C3D004AA000000000004 /* ClipboardMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D004AA000000000003 /* ClipboardMonitor.swift */; };
 		A1B2C3D004AA000000000006 /* ClipboardChannel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D004AA000000000005 /* ClipboardChannel.swift */; };
 		A1B2C3D004AA000000000008 /* HotKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D004AA000000000007 /* HotKey.swift */; };
@@ -80,7 +81,7 @@
 		331C80D7294CF71000263BE5 /* RunnerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunnerTests.swift; sourceTree = "<group>"; };
 		333000ED22D3DE5D00554162 /* Warnings.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Warnings.xcconfig; sourceTree = "<group>"; };
 		335BBD1A22A9A15E00E9071D /* GeneratedPluginRegistrant.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GeneratedPluginRegistrant.swift; sourceTree = "<group>"; };
-		33CC10ED2044A3C60003C045 /* MacUninstaller.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "MacUninstaller.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		33CC10ED2044A3C60003C045 /* Tidy.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Tidy.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		33CC10F02044A3C60003C045 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		11EB623CC080D0A266B7331A /* DirectorySizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DirectorySizer.swift; sourceTree = "<group>"; };
 		064C93F567966D12E475C156 /* FullDiskAccess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullDiskAccess.swift; sourceTree = "<group>"; };
@@ -99,6 +100,7 @@
 		A1B2C3D003AA000000000001 /* Trash.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Trash.swift; sourceTree = "<group>"; };
 		A1B2C3D003AA000000000003 /* RecycleBinChannel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecycleBinChannel.swift; sourceTree = "<group>"; };
 		A1B2C3D004AA000000000001 /* ClipboardStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardStore.swift; sourceTree = "<group>"; };
+		A1B2C3D006AA000000000001 /* AppSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSupport.swift; sourceTree = "<group>"; };
 		A1B2C3D004AA000000000003 /* ClipboardMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardMonitor.swift; sourceTree = "<group>"; };
 		A1B2C3D004AA000000000005 /* ClipboardChannel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardChannel.swift; sourceTree = "<group>"; };
 		A1B2C3D004AA000000000007 /* HotKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotKey.swift; sourceTree = "<group>"; };
@@ -163,7 +165,7 @@
 		33CC10EE2044A3C60003C045 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				33CC10ED2044A3C60003C045 /* MacUninstaller.app */,
+				33CC10ED2044A3C60003C045 /* Tidy.app */,
 				331C80D5294CF71000263BE5 /* RunnerTests.xctest */,
 			);
 			name = Products;
@@ -209,6 +211,7 @@
 				A1B2C3D003AA000000000001 /* Trash.swift */,
 				A1B2C3D003AA000000000003 /* RecycleBinChannel.swift */,
 				A1B2C3D004AA000000000001 /* ClipboardStore.swift */,
+				A1B2C3D006AA000000000001 /* AppSupport.swift */,
 				A1B2C3D004AA000000000003 /* ClipboardMonitor.swift */,
 				A1B2C3D004AA000000000005 /* ClipboardChannel.swift */,
 				A1B2C3D004AA000000000007 /* HotKey.swift */,
@@ -265,7 +268,7 @@
 			);
 			name = Runner;
 			productName = Runner;
-			productReference = 33CC10ED2044A3C60003C045 /* MacUninstaller.app */;
+			productReference = 33CC10ED2044A3C60003C045 /* Tidy.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -404,6 +407,7 @@
 				A1B2C3D003AA000000000002 /* Trash.swift in Sources */,
 				A1B2C3D003AA000000000004 /* RecycleBinChannel.swift in Sources */,
 				A1B2C3D004AA000000000002 /* ClipboardStore.swift in Sources */,
+				A1B2C3D006AA000000000002 /* AppSupport.swift in Sources */,
 				A1B2C3D004AA000000000004 /* ClipboardMonitor.swift in Sources */,
 				A1B2C3D004AA000000000006 /* ClipboardChannel.swift in Sources */,
 				A1B2C3D004AA000000000008 /* HotKey.swift in Sources */,
@@ -452,7 +456,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.example.macUninstaller.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MacUninstaller.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/MacUninstaller";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Tidy.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Tidy";
 			};
 			name = Debug;
 		};
@@ -466,7 +470,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.example.macUninstaller.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MacUninstaller.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/MacUninstaller";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Tidy.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Tidy";
 			};
 			name = Release;
 		};
@@ -480,7 +484,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.example.macUninstaller.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MacUninstaller.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/MacUninstaller";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Tidy.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Tidy";
 			};
 			name = Profile;
 		};

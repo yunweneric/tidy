@@ -1,8 +1,8 @@
 import 'dart:typed_data';
 
-import 'package:mac_uninstaller/core/platform/system_bridge.dart';
-import 'package:mac_uninstaller/features/performance/data/models/process_sample.dart';
-import 'package:mac_uninstaller/features/performance/data/services/performance_bridge.dart';
+import 'package:tidy/core/platform/system_bridge.dart';
+import 'package:tidy/features/performance/data/models/process_sample.dart';
+import 'package:tidy/features/performance/data/services/performance_bridge.dart';
 
 /// Samples what is running, and quits it when asked.
 class ProcessMonitorService {

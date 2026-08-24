@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:mac_uninstaller/core/design/design.dart';
-import 'package:mac_uninstaller/core/settings/app_settings.dart';
-import 'package:mac_uninstaller/core/widgets/widgets.dart';
-import 'package:mac_uninstaller/features/clipboard/data/models/clipboard_prefs.dart';
+import 'package:tidy/core/design/design.dart';
+import 'package:tidy/core/settings/app_settings.dart';
+import 'package:tidy/core/widgets/widgets.dart';
+import 'package:tidy/features/clipboard/data/models/clipboard_prefs.dart';
 
 /// The two limits that govern this page, stated on it.
 ///

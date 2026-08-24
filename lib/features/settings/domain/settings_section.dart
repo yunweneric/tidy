@@ -1,5 +1,5 @@
 import 'package:flutter/widgets.dart';
-import 'package:mac_uninstaller/core/design/design.dart';
+import 'package:tidy/core/design/design.dart';
 
 /// The tabs down the left of the Settings page.
 ///

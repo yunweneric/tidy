@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:mac_uninstaller/core/design/tokens/app_color_tokens.dart';
-import 'package:mac_uninstaller/core/design/tokens/app_motion.dart';
-import 'package:mac_uninstaller/core/design/tokens/app_typography.dart';
+import 'package:tidy/core/design/tokens/app_color_tokens.dart';
+import 'package:tidy/core/design/tokens/app_motion.dart';
+import 'package:tidy/core/design/tokens/app_typography.dart';
 
 /// Token accessors. `context.colors.surface` instead of importing statics.
 extension AppThemeContext on BuildContext {

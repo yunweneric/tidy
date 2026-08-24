@@ -16,7 +16,7 @@ import FlutterMacOS
 /// engine is its own Dart isolate — the two views stay in sync through the
 /// on-disk scan cache, not through shared memory.
 final class MenuBarController: NSObject, NSPopoverDelegate {
-  private static let channelName = "com.yunweneric.macuninstaller/popover"
+  private static let channelName = "com.yunweneric.tidy/popover"
 
   /// The vitals icon: disk, memory, what is running.
   private let statusItem: NSStatusItem
@@ -402,7 +402,7 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
 /// across the isolate boundary, so `openMainWindow` carries a route and this
 /// hands it to the engine that owns one.
 enum PopoverChannel {
-  static let channelName = "com.yunweneric.macuninstaller/popover"
+  static let channelName = "com.yunweneric.tidy/popover"
 
   /// Held for the life of the app; the main window's engine outlives its
   /// window, and a channel that was let go would silently stop delivering.

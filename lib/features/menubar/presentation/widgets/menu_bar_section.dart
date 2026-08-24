@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mac_uninstaller/core/design/design.dart';
+import 'package:tidy/core/design/design.dart';
 
 /// Small section heading inside the popover, with an optional trailing note or
 /// control.

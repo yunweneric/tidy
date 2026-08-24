@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mac_uninstaller/core/design/design.dart';
+import 'package:tidy/core/design/design.dart';
 
 /// Small pill showing a version string.
 class VersionBadge extends StatelessWidget {

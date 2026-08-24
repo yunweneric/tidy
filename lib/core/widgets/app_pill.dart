@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mac_uninstaller/core/design/design.dart';
+import 'package:tidy/core/design/design.dart';
 
 /// A small pill for status or counts (e.g. "3 selected").
 class AppPill extends StatelessWidget {

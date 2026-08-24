@@ -8,7 +8,7 @@ import Foundation
 /// popover. They are separate Dart isolates, so each needs its own channel, but
 /// both reach the one native store: no cache to reconcile and no second writer.
 enum ClipboardChannel {
-  static let channelName = "com.yunweneric.macuninstaller/clipboard"
+  static let channelName = "com.yunweneric.tidy/clipboard"
 
   static func register(with messenger: FlutterBinaryMessenger) {
     let channel = FlutterMethodChannel(name: channelName, binaryMessenger: messenger)

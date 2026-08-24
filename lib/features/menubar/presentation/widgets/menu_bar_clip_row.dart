@@ -1,8 +1,8 @@
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
-import 'package:mac_uninstaller/core/design/design.dart';
-import 'package:mac_uninstaller/features/clipboard/data/models/clipboard_entry.dart';
+import 'package:tidy/core/design/design.dart';
+import 'package:tidy/features/clipboard/data/models/clipboard_entry.dart';
 
 /// One recent clip in the popover.
 ///

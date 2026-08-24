@@ -1,10 +1,10 @@
 import 'dart:typed_data';
 
-import 'package:mac_uninstaller/core/platform/action_outcome.dart';
-import 'package:mac_uninstaller/core/settings/app_settings.dart';
-import 'package:mac_uninstaller/features/clipboard/data/models/clipboard_entry.dart';
-import 'package:mac_uninstaller/features/clipboard/data/models/clipboard_prefs.dart';
-import 'package:mac_uninstaller/features/clipboard/data/services/clipboard_bridge.dart';
+import 'package:tidy/core/platform/action_outcome.dart';
+import 'package:tidy/core/settings/app_settings.dart';
+import 'package:tidy/features/clipboard/data/models/clipboard_entry.dart';
+import 'package:tidy/features/clipboard/data/models/clipboard_prefs.dart';
+import 'package:tidy/features/clipboard/data/services/clipboard_bridge.dart';
 
 /// Reads the native clipboard history and keeps the native side's settings in
 /// step with the user's.

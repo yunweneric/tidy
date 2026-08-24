@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:mac_uninstaller/core/design/design.dart';
-import 'package:mac_uninstaller/core/platform/system_bridge.dart';
-import 'package:mac_uninstaller/core/widgets/permission_banner.dart';
-import 'package:mac_uninstaller/features/shell/domain/app_destination.dart';
-import 'package:mac_uninstaller/features/shell/presentation/widgets/sidebar_nav_item.dart';
-import 'package:mac_uninstaller/features/shell/presentation/widgets/storage_summary.dart';
+import 'package:tidy/core/design/design.dart';
+import 'package:tidy/core/platform/system_bridge.dart';
+import 'package:tidy/core/widgets/permission_banner.dart';
+import 'package:tidy/features/shell/domain/app_destination.dart';
+import 'package:tidy/features/shell/presentation/widgets/sidebar_nav_item.dart';
+import 'package:tidy/features/shell/presentation/widgets/storage_summary.dart';
 
 /// The app's permanent left rail.
 class NavSidebar extends StatelessWidget {

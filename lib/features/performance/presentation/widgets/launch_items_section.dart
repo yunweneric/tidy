@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:mac_uninstaller/core/design/design.dart';
-import 'package:mac_uninstaller/core/widgets/widgets.dart';
-import 'package:mac_uninstaller/features/performance/data/models/launch_item.dart';
-import 'package:mac_uninstaller/features/performance/logic/performance_bloc.dart';
-import 'package:mac_uninstaller/features/performance/logic/performance_event.dart';
-import 'package:mac_uninstaller/features/performance/logic/performance_state.dart';
-import 'package:mac_uninstaller/features/performance/presentation/widgets/launch_item_row.dart';
-import 'package:mac_uninstaller/features/performance/presentation/widgets/remove_launch_item_dialog.dart';
+import 'package:tidy/core/design/design.dart';
+import 'package:tidy/core/widgets/widgets.dart';
+import 'package:tidy/features/performance/data/models/launch_item.dart';
+import 'package:tidy/features/performance/logic/performance_bloc.dart';
+import 'package:tidy/features/performance/logic/performance_event.dart';
+import 'package:tidy/features/performance/logic/performance_state.dart';
+import 'package:tidy/features/performance/presentation/widgets/launch_item_row.dart';
+import 'package:tidy/features/performance/presentation/widgets/remove_launch_item_dialog.dart';
 
 /// A list of launchd jobs — used for both Login Items and Background Items.
 ///

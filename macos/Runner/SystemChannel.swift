@@ -8,7 +8,7 @@ import ServiceManagement
 /// makes an uninstall recoverable, and both APIs report *which* item failed
 /// instead of collapsing everything into one shell exit code.
 enum SystemChannel {
-  static let channelName = "com.yunweneric.macuninstaller/system"
+  static let channelName = "com.yunweneric.tidy/system"
 
   static func register(with messenger: FlutterBinaryMessenger) {
     let channel = FlutterMethodChannel(name: channelName, binaryMessenger: messenger)

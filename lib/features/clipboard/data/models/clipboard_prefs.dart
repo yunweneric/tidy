@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:mac_uninstaller/core/settings/app_settings.dart';
+import 'package:tidy/core/settings/app_settings.dart';
 
 /// How long history is kept before it clears itself.
 enum ClipboardRetention {

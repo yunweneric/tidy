@@ -1,5 +1,5 @@
-import 'package:mac_uninstaller/core/design/app_icons.dart';
-import 'package:mac_uninstaller/core/design/tokens/app_color_tokens.dart';
+import 'package:tidy/core/design/app_icons.dart';
+import 'package:tidy/core/design/tokens/app_color_tokens.dart';
 import 'package:flutter/material.dart';
 
 /// Where a sidebar entry sits.

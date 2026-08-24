@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'package:mac_uninstaller/core/platform/action_outcome.dart';
-import 'package:mac_uninstaller/features/clipboard/data/models/clipboard_prefs.dart';
+import 'package:tidy/core/platform/action_outcome.dart';
+import 'package:tidy/features/clipboard/data/models/clipboard_prefs.dart';
 
 /// Thin wrapper over `macos/Runner/ClipboardChannel.swift`.
 ///
@@ -17,7 +17,7 @@ class ClipboardBridge {
   ClipboardBridge._();
 
   static const MethodChannel _channel = MethodChannel(
-    'com.yunweneric.macuninstaller/clipboard',
+    'com.yunweneric.tidy/clipboard',
   );
 
   static StreamController<void>? _changes;

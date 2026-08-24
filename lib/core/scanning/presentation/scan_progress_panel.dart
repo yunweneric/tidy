@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:mac_uninstaller/core/design/design.dart';
-import 'package:mac_uninstaller/core/scanning/logic/scan_state.dart';
-import 'package:mac_uninstaller/core/scanning/presentation/scan_hero.dart';
-import 'package:mac_uninstaller/core/utils/byte_format.dart';
-import 'package:mac_uninstaller/core/widgets/tidy_card.dart';
+import 'package:tidy/core/design/design.dart';
+import 'package:tidy/core/scanning/logic/scan_state.dart';
+import 'package:tidy/core/scanning/presentation/scan_hero.dart';
+import 'package:tidy/core/utils/byte_format.dart';
+import 'package:tidy/core/widgets/tidy_card.dart';
 
 /// What the scanner is doing right now, under the hero.
 ///

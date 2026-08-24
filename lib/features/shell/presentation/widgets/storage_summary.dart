@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:mac_uninstaller/core/design/design.dart';
-import 'package:mac_uninstaller/core/platform/system_bridge.dart';
-import 'package:mac_uninstaller/core/utils/byte_format.dart';
-import 'package:mac_uninstaller/core/widgets/gradient_button.dart';
-import 'package:mac_uninstaller/core/widgets/size_bar.dart';
+import 'package:tidy/core/design/design.dart';
+import 'package:tidy/core/platform/system_bridge.dart';
+import 'package:tidy/core/utils/byte_format.dart';
+import 'package:tidy/core/widgets/gradient_button.dart';
+import 'package:tidy/core/widgets/size_bar.dart';
 
 /// Disk usage at the foot of the sidebar, with the reclaimable figure alongside.
 ///

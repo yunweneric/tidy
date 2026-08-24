@@ -49,7 +49,7 @@ class RecycleBinBridge {
   RecycleBinBridge._();
 
   static const MethodChannel _channel = MethodChannel(
-    'com.yunweneric.macuninstaller/recycle-bin',
+    'com.yunweneric.tidy/recycle-bin',
   );
 
   /// Every trash folder and everything in them, sized. One call: a bin with two

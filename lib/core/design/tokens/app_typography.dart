@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mac_uninstaller/core/design/tokens/app_color_tokens.dart';
+import 'package:tidy/core/design/tokens/app_color_tokens.dart';
 
 /// The type ramp, already resolved against the active [AppColorTokens].
 ///

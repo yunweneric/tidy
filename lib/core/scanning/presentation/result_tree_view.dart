@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:mac_uninstaller/core/design/design.dart';
-import 'package:mac_uninstaller/core/platform/system_bridge.dart';
-import 'package:mac_uninstaller/core/scanning/domain/scan_node.dart';
-import 'package:mac_uninstaller/core/scanning/domain/scan_selection.dart';
-import 'package:mac_uninstaller/core/utils/byte_format.dart';
-import 'package:mac_uninstaller/core/widgets/size_bar.dart';
-import 'package:mac_uninstaller/core/widgets/status_chip.dart';
+import 'package:tidy/core/design/design.dart';
+import 'package:tidy/core/platform/system_bridge.dart';
+import 'package:tidy/core/scanning/domain/scan_node.dart';
+import 'package:tidy/core/scanning/domain/scan_selection.dart';
+import 'package:tidy/core/utils/byte_format.dart';
+import 'package:tidy/core/widgets/size_bar.dart';
+import 'package:tidy/core/widgets/status_chip.dart';
 
 /// The drill-down: an expandable, checkable tree over a [ScanNode].
 ///

@@ -1,12 +1,12 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:mac_uninstaller/core/design/design.dart';
-import 'package:mac_uninstaller/core/feedback/feedback.dart';
-import 'package:mac_uninstaller/core/utils/byte_format.dart';
-import 'package:mac_uninstaller/features/clipboard/data/models/clipboard_entry.dart';
-import 'package:mac_uninstaller/features/clipboard/data/services/clipboard_service.dart';
-import 'package:mac_uninstaller/features/clipboard/presentation/widgets/clipboard_row.dart';
+import 'package:tidy/core/design/design.dart';
+import 'package:tidy/core/feedback/feedback.dart';
+import 'package:tidy/core/utils/byte_format.dart';
+import 'package:tidy/features/clipboard/data/models/clipboard_entry.dart';
+import 'package:tidy/features/clipboard/data/services/clipboard_service.dart';
+import 'package:tidy/features/clipboard/presentation/widgets/clipboard_row.dart';
 
 /// The whole of one entry, for when the single preview line is not enough.
 ///

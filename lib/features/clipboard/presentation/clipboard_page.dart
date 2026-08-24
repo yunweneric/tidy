@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mac_uninstaller/core/design/design.dart';
-import 'package:mac_uninstaller/core/di/service_locator.dart';
-import 'package:mac_uninstaller/core/feedback/feedback.dart';
-import 'package:mac_uninstaller/core/settings/app_settings.dart';
-import 'package:mac_uninstaller/core/widgets/widgets.dart';
-import 'package:mac_uninstaller/features/clipboard/data/models/clipboard_entry.dart';
-import 'package:mac_uninstaller/features/clipboard/data/services/clipboard_service.dart';
-import 'package:mac_uninstaller/features/clipboard/logic/clipboard_bloc.dart';
-import 'package:mac_uninstaller/features/clipboard/presentation/widgets/widgets.dart';
-import 'package:mac_uninstaller/features/shell/domain/app_destination.dart';
+import 'package:tidy/core/design/design.dart';
+import 'package:tidy/core/di/service_locator.dart';
+import 'package:tidy/core/feedback/feedback.dart';
+import 'package:tidy/core/settings/app_settings.dart';
+import 'package:tidy/core/widgets/widgets.dart';
+import 'package:tidy/features/clipboard/data/models/clipboard_entry.dart';
+import 'package:tidy/features/clipboard/data/services/clipboard_service.dart';
+import 'package:tidy/features/clipboard/logic/clipboard_bloc.dart';
+import 'package:tidy/features/clipboard/presentation/widgets/widgets.dart';
+import 'package:tidy/features/shell/domain/app_destination.dart';
 
 /// The clipboard history.
 ///

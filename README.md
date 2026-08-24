@@ -182,11 +182,20 @@ one are not stylistic; this app deletes files.
 
 ## A note on names
 
-The Dart package is still `mac_uninstaller` and the bundle id is still
-`com.yunweneric.macuninstaller`. Both are deliberate: TCC grants — Full Disk
-Access in particular — are keyed to the bundle id, so renaming it would cost
-every existing install its permissions for no benefit. The product name lives in
+Everything is `tidy` now — the Dart package, the repository, the folder and the
+bundle id (`com.yunweneric.tidy`). The product name itself lives in
 `lib/core/design/brand.dart`.
+
+The rename was left until it was cheap. TCC grants — Full Disk Access in
+particular — are keyed to the bundle id plus signing identity, so changing it
+revokes them: anyone running the app has to grant access again. Doing it before
+release meant the only install that paid was a developer's.
+
+The Application Support folder moved from `MacUninstaller` to `Tidy` at the same
+time. `macos/Runner/AppSupport.swift` moves it on first launch, before anything
+reads it, so settings, the scan cache, the trash ledger behind Recycle Bin's
+"Put Back" and the clipboard history all survive rather than being orphaned
+beside a fresh empty folder.
 
 ## License
 

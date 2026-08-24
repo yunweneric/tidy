@@ -1,7 +1,7 @@
-import 'package:mac_uninstaller/core/platform/system_bridge.dart';
-import 'package:mac_uninstaller/core/utils/byte_format.dart';
-import 'package:mac_uninstaller/features/performance/data/models/process_sample.dart';
-import 'package:mac_uninstaller/features/performance/data/models/system_vitals.dart';
+import 'package:tidy/core/platform/system_bridge.dart';
+import 'package:tidy/core/utils/byte_format.dart';
+import 'package:tidy/features/performance/data/models/process_sample.dart';
+import 'package:tidy/features/performance/data/models/system_vitals.dart';
 
 /// How worried a reading should make you.
 enum VitalLevel { good, watch, urgent }

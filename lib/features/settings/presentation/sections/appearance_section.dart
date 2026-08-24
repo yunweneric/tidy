@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:mac_uninstaller/core/settings/app_settings.dart';
-import 'package:mac_uninstaller/features/settings/presentation/widgets/settings_controls.dart';
+import 'package:tidy/core/settings/app_settings.dart';
+import 'package:tidy/features/settings/presentation/widgets/settings_controls.dart';
 
 class AppearanceSection extends StatelessWidget {
   const AppearanceSection({super.key, required this.settings});

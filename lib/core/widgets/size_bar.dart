@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mac_uninstaller/core/design/design.dart';
+import 'package:tidy/core/design/design.dart';
 
 /// A thin proportional bar, for "this row is 40% of the category".
 ///

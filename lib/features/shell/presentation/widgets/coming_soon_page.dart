@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:mac_uninstaller/core/design/design.dart';
-import 'package:mac_uninstaller/core/widgets/module_scaffold.dart';
-import 'package:mac_uninstaller/core/widgets/tidy_card.dart';
-import 'package:mac_uninstaller/features/shell/domain/app_destination.dart';
+import 'package:tidy/core/design/design.dart';
+import 'package:tidy/core/widgets/module_scaffold.dart';
+import 'package:tidy/core/widgets/tidy_card.dart';
+import 'package:tidy/features/shell/domain/app_destination.dart';
 
 /// Placeholder for a module that isn't built yet.
 ///

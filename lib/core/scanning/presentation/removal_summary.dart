@@ -1,11 +1,11 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:mac_uninstaller/core/design/design.dart';
-import 'package:mac_uninstaller/core/scanning/logic/scan_state.dart';
-import 'package:mac_uninstaller/core/utils/byte_format.dart';
-import 'package:mac_uninstaller/core/widgets/animated_bytes.dart';
-import 'package:mac_uninstaller/core/widgets/tidy_card.dart';
+import 'package:tidy/core/design/design.dart';
+import 'package:tidy/core/scanning/logic/scan_state.dart';
+import 'package:tidy/core/utils/byte_format.dart';
+import 'package:tidy/core/widgets/animated_bytes.dart';
+import 'package:tidy/core/widgets/tidy_card.dart';
 
 /// The completion screen.
 ///

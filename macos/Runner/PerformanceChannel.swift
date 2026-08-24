@@ -9,7 +9,7 @@ import FlutterMacOS
 /// touches a file except to read a plist; the rest is launchd, libproc and a
 /// handful of Apple's own command line tools.
 enum PerformanceChannel {
-  static let channelName = "com.yunweneric.macuninstaller/performance"
+  static let channelName = "com.yunweneric.tidy/performance"
 
   static func register(with messenger: FlutterBinaryMessenger) {
     let channel = FlutterMethodChannel(name: channelName, binaryMessenger: messenger)

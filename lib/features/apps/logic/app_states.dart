@@ -1,7 +1,7 @@
-import 'package:mac_uninstaller/core/platform/system_bridge.dart';
-import 'package:mac_uninstaller/features/apps/data/models/mac_app_model.dart';
-import 'package:mac_uninstaller/features/apps/data/models/removal_progress.dart';
-import 'package:mac_uninstaller/features/apps/data/services/junk_scanner.dart';
+import 'package:tidy/core/platform/system_bridge.dart';
+import 'package:tidy/features/apps/data/models/mac_app_model.dart';
+import 'package:tidy/features/apps/data/models/removal_progress.dart';
+import 'package:tidy/features/apps/data/services/junk_scanner.dart';
 
 /// Result of a removal, surfaced once as a toast rather than replacing the
 /// list with an error screen.

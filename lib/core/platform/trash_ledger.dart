@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
-import 'package:mac_uninstaller/core/design/brand.dart';
+import 'package:tidy/core/design/brand.dart';
 import 'package:path/path.dart' as p;
 
 /// One thing Tidy moved to the Trash, and where it came from.

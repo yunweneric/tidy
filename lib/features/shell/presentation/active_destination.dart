@@ -1,5 +1,5 @@
 import 'package:flutter/widgets.dart';
-import 'package:mac_uninstaller/features/shell/domain/app_destination.dart';
+import 'package:tidy/features/shell/domain/app_destination.dart';
 
 /// Which destination the shell is currently showing.
 ///

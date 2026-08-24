@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:mac_uninstaller/core/design/design.dart';
-import 'package:mac_uninstaller/core/feedback/feedback.dart';
-import 'package:mac_uninstaller/core/scanning/domain/scan_node.dart';
-import 'package:mac_uninstaller/core/scanning/logic/scan_bloc.dart';
-import 'package:mac_uninstaller/core/scanning/logic/scan_event.dart';
-import 'package:mac_uninstaller/core/scanning/logic/scan_state.dart';
-import 'package:mac_uninstaller/core/scanning/presentation/removal_summary.dart';
-import 'package:mac_uninstaller/core/scanning/presentation/result_tiles.dart';
-import 'package:mac_uninstaller/core/scanning/presentation/result_tree_view.dart';
-import 'package:mac_uninstaller/core/scanning/presentation/scan_hero.dart';
-import 'package:mac_uninstaller/core/scanning/presentation/scan_progress_panel.dart';
-import 'package:mac_uninstaller/core/utils/byte_format.dart';
-import 'package:mac_uninstaller/core/widgets/empty_state.dart';
-import 'package:mac_uninstaller/core/widgets/gradient_button.dart';
-import 'package:mac_uninstaller/core/widgets/module_scaffold.dart';
-import 'package:mac_uninstaller/core/widgets/permission_banner.dart';
+import 'package:tidy/core/design/design.dart';
+import 'package:tidy/core/feedback/feedback.dart';
+import 'package:tidy/core/scanning/domain/scan_node.dart';
+import 'package:tidy/core/scanning/logic/scan_bloc.dart';
+import 'package:tidy/core/scanning/logic/scan_event.dart';
+import 'package:tidy/core/scanning/logic/scan_state.dart';
+import 'package:tidy/core/scanning/presentation/removal_summary.dart';
+import 'package:tidy/core/scanning/presentation/result_tiles.dart';
+import 'package:tidy/core/scanning/presentation/result_tree_view.dart';
+import 'package:tidy/core/scanning/presentation/scan_hero.dart';
+import 'package:tidy/core/scanning/presentation/scan_progress_panel.dart';
+import 'package:tidy/core/utils/byte_format.dart';
+import 'package:tidy/core/widgets/empty_state.dart';
+import 'package:tidy/core/widgets/gradient_button.dart';
+import 'package:tidy/core/widgets/module_scaffold.dart';
+import 'package:tidy/core/widgets/permission_banner.dart';
 
 /// A complete module page, driven entirely by a [ScanBloc].
 ///

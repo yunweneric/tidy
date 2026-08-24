@@ -2,9 +2,9 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
-import 'package:mac_uninstaller/core/platform/system_bridge.dart';
-import 'package:mac_uninstaller/core/utils/disk_utils.dart';
-import 'package:mac_uninstaller/features/apps/data/models/mac_app_model.dart';
+import 'package:tidy/core/platform/system_bridge.dart';
+import 'package:tidy/core/utils/disk_utils.dart';
+import 'package:tidy/features/apps/data/models/mac_app_model.dart';
 
 /// Discovers installed applications and their on-disk footprint.
 ///

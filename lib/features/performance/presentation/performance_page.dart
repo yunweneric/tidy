@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:mac_uninstaller/core/design/design.dart';
-import 'package:mac_uninstaller/core/feedback/feedback.dart';
-import 'package:mac_uninstaller/core/di/service_locator.dart';
-import 'package:mac_uninstaller/core/widgets/widgets.dart';
-import 'package:mac_uninstaller/features/performance/data/services/launch_items_service.dart';
-import 'package:mac_uninstaller/features/performance/data/services/maintenance_service.dart';
-import 'package:mac_uninstaller/features/performance/data/services/performance_bridge.dart';
-import 'package:mac_uninstaller/features/performance/data/services/process_monitor_service.dart';
-import 'package:mac_uninstaller/features/performance/logic/performance_bloc.dart';
-import 'package:mac_uninstaller/features/performance/logic/performance_event.dart';
-import 'package:mac_uninstaller/features/performance/logic/performance_state.dart';
-import 'package:mac_uninstaller/features/performance/logic/process_monitor_bloc.dart';
-import 'package:mac_uninstaller/features/performance/presentation/widgets/widgets.dart';
-import 'package:mac_uninstaller/features/shell/domain/app_destination.dart';
-import 'package:mac_uninstaller/features/shell/presentation/active_destination.dart';
+import 'package:tidy/core/design/design.dart';
+import 'package:tidy/core/feedback/feedback.dart';
+import 'package:tidy/core/di/service_locator.dart';
+import 'package:tidy/core/widgets/widgets.dart';
+import 'package:tidy/features/performance/data/services/launch_items_service.dart';
+import 'package:tidy/features/performance/data/services/maintenance_service.dart';
+import 'package:tidy/features/performance/data/services/performance_bridge.dart';
+import 'package:tidy/features/performance/data/services/process_monitor_service.dart';
+import 'package:tidy/features/performance/logic/performance_bloc.dart';
+import 'package:tidy/features/performance/logic/performance_event.dart';
+import 'package:tidy/features/performance/logic/performance_state.dart';
+import 'package:tidy/features/performance/logic/process_monitor_bloc.dart';
+import 'package:tidy/features/performance/presentation/widgets/widgets.dart';
+import 'package:tidy/features/shell/domain/app_destination.dart';
+import 'package:tidy/features/shell/presentation/active_destination.dart';
 
 /// The four things Performance covers.
 enum _Section {

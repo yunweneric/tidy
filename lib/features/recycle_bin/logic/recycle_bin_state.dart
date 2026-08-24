@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
-import 'package:mac_uninstaller/core/feedback/feedback_tone.dart';
-import 'package:mac_uninstaller/features/recycle_bin/data/models/trash_item.dart';
-import 'package:mac_uninstaller/features/recycle_bin/data/models/trash_location.dart';
+import 'package:tidy/core/feedback/feedback_tone.dart';
+import 'package:tidy/features/recycle_bin/data/models/trash_item.dart';
+import 'package:tidy/features/recycle_bin/data/models/trash_location.dart';
 
 enum RecycleBinStatus { initial, loading, ready, failed }
 

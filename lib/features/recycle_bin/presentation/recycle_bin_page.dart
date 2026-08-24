@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:mac_uninstaller/core/design/design.dart';
-import 'package:mac_uninstaller/core/di/service_locator.dart';
-import 'package:mac_uninstaller/core/feedback/feedback.dart';
-import 'package:mac_uninstaller/core/platform/full_disk_access_service.dart';
-import 'package:mac_uninstaller/core/platform/system_bridge.dart';
-import 'package:mac_uninstaller/core/utils/byte_format.dart';
-import 'package:mac_uninstaller/core/utils/home_dir.dart';
-import 'package:mac_uninstaller/core/widgets/widgets.dart';
-import 'package:mac_uninstaller/features/recycle_bin/data/models/trash_item.dart';
-import 'package:mac_uninstaller/features/recycle_bin/data/services/recycle_bin_service.dart';
-import 'package:mac_uninstaller/features/recycle_bin/logic/recycle_bin_bloc.dart';
-import 'package:mac_uninstaller/features/recycle_bin/logic/recycle_bin_event.dart';
-import 'package:mac_uninstaller/features/recycle_bin/logic/recycle_bin_state.dart';
-import 'package:mac_uninstaller/features/recycle_bin/presentation/widgets/widgets.dart';
-import 'package:mac_uninstaller/features/shell/domain/app_destination.dart';
-import 'package:mac_uninstaller/features/shell/presentation/active_destination.dart';
+import 'package:tidy/core/design/design.dart';
+import 'package:tidy/core/di/service_locator.dart';
+import 'package:tidy/core/feedback/feedback.dart';
+import 'package:tidy/core/platform/full_disk_access_service.dart';
+import 'package:tidy/core/platform/system_bridge.dart';
+import 'package:tidy/core/utils/byte_format.dart';
+import 'package:tidy/core/utils/home_dir.dart';
+import 'package:tidy/core/widgets/widgets.dart';
+import 'package:tidy/features/recycle_bin/data/models/trash_item.dart';
+import 'package:tidy/features/recycle_bin/data/services/recycle_bin_service.dart';
+import 'package:tidy/features/recycle_bin/logic/recycle_bin_bloc.dart';
+import 'package:tidy/features/recycle_bin/logic/recycle_bin_event.dart';
+import 'package:tidy/features/recycle_bin/logic/recycle_bin_state.dart';
+import 'package:tidy/features/recycle_bin/presentation/widgets/widgets.dart';
+import 'package:tidy/features/shell/domain/app_destination.dart';
+import 'package:tidy/features/shell/presentation/active_destination.dart';
 
 /// The Recycle Bin.
 ///

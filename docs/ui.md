@@ -28,7 +28,7 @@ lib/core/design/
 ```
 
 ```dart
-import 'package:mac_uninstaller/core/design/design.dart';
+import 'package:tidy/core/design/design.dart';
 ```
 
 ---
@@ -343,7 +343,7 @@ Reach for these before building anything.
 
 ### Telling the user what happened
 
-Lives in `lib/core/feedback/` — `import 'package:mac_uninstaller/core/feedback/feedback.dart';`
+Lives in `lib/core/feedback/` — `import 'package:tidy/core/feedback/feedback.dart';`
 
 **If the user has to do something about it, it is an alert. If they only have
 to know, it is a toast.** A finished uninstall is news; a permanent delete is a

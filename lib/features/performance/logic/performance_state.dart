@@ -1,8 +1,8 @@
 import 'dart:typed_data';
 
 import 'package:equatable/equatable.dart';
-import 'package:mac_uninstaller/features/performance/data/models/launch_item.dart';
-import 'package:mac_uninstaller/features/performance/data/models/maintenance_task.dart';
+import 'package:tidy/features/performance/data/models/launch_item.dart';
+import 'package:tidy/features/performance/data/models/maintenance_task.dart';
 
 enum PerformanceStatus { initial, loading, ready, failed }
 

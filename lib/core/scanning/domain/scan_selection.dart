@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:mac_uninstaller/core/scanning/domain/scan_node.dart';
+import 'package:tidy/core/scanning/domain/scan_node.dart';
 
 /// Which findings the user has agreed to remove.
 ///

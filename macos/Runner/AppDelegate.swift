@@ -11,6 +11,8 @@ class AppDelegate: FlutterAppDelegate {
   /// the status item simply would not appear. Deferring to the next main
   /// run-loop turn keeps the work after NSApp has finished launching.
   override func applicationWillFinishLaunching(_ notification: Notification) {
+    // Before anything opens the support folder under either name.
+    AppSupport.migrate()
     super.applicationWillFinishLaunching(notification)
 
     DispatchQueue.main.async { [weak self] in

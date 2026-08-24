@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:mac_uninstaller/core/scanning/domain/scan_node.dart';
+import 'package:tidy/core/scanning/domain/scan_node.dart';
 
 sealed class ScanEvent extends Equatable {
   const ScanEvent();

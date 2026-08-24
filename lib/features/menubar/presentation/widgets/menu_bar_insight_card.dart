@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:mac_uninstaller/core/design/design.dart';
-import 'package:mac_uninstaller/core/widgets/tidy_card.dart';
-import 'package:mac_uninstaller/features/menubar/domain/menu_bar_insight.dart';
-import 'package:mac_uninstaller/features/menubar/presentation/widgets/menu_bar_button.dart';
-import 'package:mac_uninstaller/features/menubar/presentation/widgets/menu_bar_vitals.dart';
+import 'package:tidy/core/design/design.dart';
+import 'package:tidy/core/widgets/tidy_card.dart';
+import 'package:tidy/features/menubar/domain/menu_bar_insight.dart';
+import 'package:tidy/features/menubar/presentation/widgets/menu_bar_button.dart';
+import 'package:tidy/features/menubar/presentation/widgets/menu_bar_vitals.dart';
 
 /// The panel's headline: one sentence about the machine, and the one button
 /// that does something about it.

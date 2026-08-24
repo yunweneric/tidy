@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
-import 'package:mac_uninstaller/core/platform/system_bridge.dart';
-import 'package:mac_uninstaller/core/scanning/domain/scan_node.dart';
-import 'package:mac_uninstaller/core/scanning/domain/scan_selection.dart';
+import 'package:tidy/core/platform/system_bridge.dart';
+import 'package:tidy/core/scanning/domain/scan_node.dart';
+import 'package:tidy/core/scanning/domain/scan_selection.dart';
 
 /// Where a module is in the scan → review → clean loop.
 enum ScanPhase {

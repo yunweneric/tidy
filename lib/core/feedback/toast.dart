@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:mac_uninstaller/core/design/design.dart';
-import 'package:mac_uninstaller/core/feedback/feedback_tone.dart';
-import 'package:mac_uninstaller/core/widgets/ambient_background.dart';
+import 'package:tidy/core/design/design.dart';
+import 'package:tidy/core/feedback/feedback_tone.dart';
+import 'package:tidy/core/widgets/ambient_background.dart';
 
 /// One button on a toast. At most one — a toast with a choice in it is an
 /// alert that has not admitted it yet.

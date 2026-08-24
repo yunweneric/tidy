@@ -1,4 +1,4 @@
-import 'package:mac_uninstaller/features/apps/data/models/mac_app_model.dart';
+import 'package:tidy/features/apps/data/models/mac_app_model.dart';
 
 abstract class AppsEvent {}
 

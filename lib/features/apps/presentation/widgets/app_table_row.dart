@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:mac_uninstaller/core/design/design.dart';
-import 'package:mac_uninstaller/core/widgets/widgets.dart';
-import 'package:mac_uninstaller/features/apps/data/models/mac_app_model.dart';
-import 'package:mac_uninstaller/features/apps/presentation/widgets/app_icon.dart';
-import 'package:mac_uninstaller/features/apps/utils/size_utils.dart';
+import 'package:tidy/core/design/design.dart';
+import 'package:tidy/core/widgets/widgets.dart';
+import 'package:tidy/features/apps/data/models/mac_app_model.dart';
+import 'package:tidy/features/apps/presentation/widgets/app_icon.dart';
+import 'package:tidy/features/apps/utils/size_utils.dart';
 
 /// Column geometry, shared by the header and every row.
 ///

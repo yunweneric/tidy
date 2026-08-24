@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
-import 'package:mac_uninstaller/core/platform/trash_ledger.dart';
-import 'package:mac_uninstaller/features/recycle_bin/data/models/trash_location.dart';
+import 'package:tidy/core/platform/trash_ledger.dart';
+import 'package:tidy/features/recycle_bin/data/models/trash_location.dart';
 
 /// What sort of thing this is, for the row glyph.
 ///

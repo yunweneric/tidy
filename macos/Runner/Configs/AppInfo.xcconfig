@@ -9,11 +9,11 @@ PRODUCT_NAME = Tidy
 
 // The application's bundle identifier.
 //
-// Deliberately still says macuninstaller even though the product is now Tidy:
-// TCC permission grants (Full Disk Access in particular) are keyed to the
-// bundle id plus signing identity, so changing it would silently revoke access
-// for anyone already running the app.
-PRODUCT_BUNDLE_IDENTIFIER = com.yunweneric.macuninstaller
+// Changing this revokes TCC permission grants — Full Disk Access in
+// particular — because they are keyed to the bundle id plus signing identity.
+// Renamed from com.yunweneric.macuninstaller before release, when the only
+// install that had to re-grant was a developer's.
+PRODUCT_BUNDLE_IDENTIFIER = com.yunweneric.tidy
 
 // The copyright displayed in application information
 PRODUCT_COPYRIGHT = Copyright © 2026 Yunwen Eric. All rights reserved.

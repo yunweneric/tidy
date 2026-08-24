@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
-import 'package:mac_uninstaller/features/apps/data/models/mac_app_model.dart';
+import 'package:tidy/features/apps/data/models/mac_app_model.dart';
 import 'package:path/path.dart' as p;
 
 /// A previously persisted scan.
@@ -24,7 +24,7 @@ class CachedScan {
 /// re-scanning every disk on open.
 class ScanCache {
   static const int _formatVersion = 1;
-  static const String _appSupportFolder = 'MacUninstaller';
+  static const String _appSupportFolder = 'Tidy';
 
   Directory? _cachedDir;
 

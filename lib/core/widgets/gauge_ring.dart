@@ -1,8 +1,8 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:mac_uninstaller/core/design/design.dart';
-import 'package:mac_uninstaller/core/widgets/ambient_background.dart';
+import 'package:tidy/core/design/design.dart';
+import 'package:tidy/core/widgets/ambient_background.dart';
 
 /// The signature radial gauge.
 ///

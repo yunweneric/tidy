@@ -1,4 +1,4 @@
-import 'package:mac_uninstaller/core/platform/system_bridge.dart';
+import 'package:tidy/core/platform/system_bridge.dart';
 
 /// Default parallelism for [mapPooled].
 const int kDefaultConcurrency = 8;

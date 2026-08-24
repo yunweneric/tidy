@@ -1,13 +1,13 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:mac_uninstaller/core/design/app_icons.dart';
-import 'package:mac_uninstaller/core/scanning/domain/scan_module.dart';
-import 'package:mac_uninstaller/core/scanning/domain/scan_node.dart';
-import 'package:mac_uninstaller/core/utils/byte_format.dart';
-import 'package:mac_uninstaller/features/apps/data/services/apps_service.dart';
-import 'package:mac_uninstaller/features/apps/data/services/junk_scanner.dart';
-import 'package:mac_uninstaller/features/apps/data/services/scan_cache.dart';
+import 'package:tidy/core/design/app_icons.dart';
+import 'package:tidy/core/scanning/domain/scan_module.dart';
+import 'package:tidy/core/scanning/domain/scan_node.dart';
+import 'package:tidy/core/utils/byte_format.dart';
+import 'package:tidy/features/apps/data/services/apps_service.dart';
+import 'package:tidy/features/apps/data/services/junk_scanner.dart';
+import 'package:tidy/features/apps/data/services/scan_cache.dart';
 
 /// Reclaimable space: caches, logs, saved window state and orphaned leftovers.
 ///

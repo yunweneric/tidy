@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:mac_uninstaller/core/design/design.dart';
-import 'package:mac_uninstaller/core/di/service_locator.dart';
-import 'package:mac_uninstaller/core/platform/full_disk_access_service.dart';
-import 'package:mac_uninstaller/core/settings/app_settings.dart';
-import 'package:mac_uninstaller/core/widgets/fade_through.dart';
-import 'package:mac_uninstaller/core/widgets/module_scaffold.dart';
-import 'package:mac_uninstaller/features/settings/domain/settings_section.dart';
-import 'package:mac_uninstaller/features/settings/presentation/sections/about_section.dart';
-import 'package:mac_uninstaller/features/settings/presentation/sections/appearance_section.dart';
-import 'package:mac_uninstaller/features/settings/presentation/sections/clipboard_section.dart';
-import 'package:mac_uninstaller/features/settings/presentation/sections/general_section.dart';
-import 'package:mac_uninstaller/features/settings/presentation/sections/permissions_section.dart';
-import 'package:mac_uninstaller/features/settings/presentation/widgets/settings_rail.dart';
+import 'package:tidy/core/design/design.dart';
+import 'package:tidy/core/di/service_locator.dart';
+import 'package:tidy/core/platform/full_disk_access_service.dart';
+import 'package:tidy/core/settings/app_settings.dart';
+import 'package:tidy/core/widgets/fade_through.dart';
+import 'package:tidy/core/widgets/module_scaffold.dart';
+import 'package:tidy/features/settings/domain/settings_section.dart';
+import 'package:tidy/features/settings/presentation/sections/about_section.dart';
+import 'package:tidy/features/settings/presentation/sections/appearance_section.dart';
+import 'package:tidy/features/settings/presentation/sections/clipboard_section.dart';
+import 'package:tidy/features/settings/presentation/sections/general_section.dart';
+import 'package:tidy/features/settings/presentation/sections/permissions_section.dart';
+import 'package:tidy/features/settings/presentation/widgets/settings_rail.dart';
 
 /// Settings, as two panes: the sections down the left, the chosen one's
 /// controls on the right.

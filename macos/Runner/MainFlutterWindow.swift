@@ -3,6 +3,10 @@ import FlutterMacOS
 
 class MainFlutterWindow: NSWindow {
   override func awakeFromNib() {
+    // The nib can load before applicationWillFinishLaunching, and creating the
+    // view controller starts the Dart isolate that reads settings.json.
+    AppSupport.migrate()
+
     let flutterViewController = FlutterViewController()
     self.contentViewController = flutterViewController
 

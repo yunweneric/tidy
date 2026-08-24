@@ -1,4 +1,4 @@
-package com.example.mac_uninstaller
+package com.example.tidy
 
 import io.flutter.embedding.android.FlutterActivity
 

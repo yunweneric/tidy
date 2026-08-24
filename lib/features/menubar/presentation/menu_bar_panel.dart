@@ -1,31 +1,31 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:mac_uninstaller/core/design/design.dart';
-import 'package:mac_uninstaller/core/di/service_locator.dart';
-import 'package:mac_uninstaller/core/platform/system_bridge.dart';
-import 'package:mac_uninstaller/core/utils/byte_format.dart';
-import 'package:mac_uninstaller/features/apps/data/services/junk_scanner.dart';
-import 'package:mac_uninstaller/features/apps/data/services/scan_cache.dart';
-import 'package:mac_uninstaller/features/clipboard/data/models/clipboard_entry.dart';
-import 'package:mac_uninstaller/features/clipboard/data/services/clipboard_service.dart';
-import 'package:mac_uninstaller/features/menubar/domain/menu_bar_insight.dart';
-import 'package:mac_uninstaller/features/menubar/platform/popover_bridge.dart';
-import 'package:mac_uninstaller/features/menubar/presentation/widgets/measure_size.dart';
-import 'package:mac_uninstaller/features/menubar/presentation/widgets/menu_bar_button.dart';
-import 'package:mac_uninstaller/features/menubar/presentation/widgets/menu_bar_clip_row.dart';
-import 'package:mac_uninstaller/features/menubar/presentation/widgets/menu_bar_insight_card.dart';
-import 'package:mac_uninstaller/features/menubar/presentation/widgets/menu_bar_process_row.dart';
-import 'package:mac_uninstaller/features/menubar/presentation/widgets/menu_bar_reclaim_row.dart';
-import 'package:mac_uninstaller/features/menubar/presentation/widgets/menu_bar_section.dart';
-import 'package:mac_uninstaller/features/menubar/presentation/widgets/menu_bar_vitals.dart';
-import 'package:mac_uninstaller/features/performance/data/models/process_sample.dart';
-import 'package:mac_uninstaller/features/performance/data/models/system_vitals.dart';
-import 'package:mac_uninstaller/features/performance/data/services/performance_bridge.dart';
-import 'package:mac_uninstaller/features/performance/data/services/process_monitor_service.dart';
-import 'package:mac_uninstaller/features/recycle_bin/data/models/trash_item.dart';
-import 'package:mac_uninstaller/features/recycle_bin/data/services/recycle_bin_service.dart';
-import 'package:mac_uninstaller/features/shell/domain/app_destination.dart';
+import 'package:tidy/core/design/design.dart';
+import 'package:tidy/core/di/service_locator.dart';
+import 'package:tidy/core/platform/system_bridge.dart';
+import 'package:tidy/core/utils/byte_format.dart';
+import 'package:tidy/features/apps/data/services/junk_scanner.dart';
+import 'package:tidy/features/apps/data/services/scan_cache.dart';
+import 'package:tidy/features/clipboard/data/models/clipboard_entry.dart';
+import 'package:tidy/features/clipboard/data/services/clipboard_service.dart';
+import 'package:tidy/features/menubar/domain/menu_bar_insight.dart';
+import 'package:tidy/features/menubar/platform/popover_bridge.dart';
+import 'package:tidy/features/menubar/presentation/widgets/measure_size.dart';
+import 'package:tidy/features/menubar/presentation/widgets/menu_bar_button.dart';
+import 'package:tidy/features/menubar/presentation/widgets/menu_bar_clip_row.dart';
+import 'package:tidy/features/menubar/presentation/widgets/menu_bar_insight_card.dart';
+import 'package:tidy/features/menubar/presentation/widgets/menu_bar_process_row.dart';
+import 'package:tidy/features/menubar/presentation/widgets/menu_bar_reclaim_row.dart';
+import 'package:tidy/features/menubar/presentation/widgets/menu_bar_section.dart';
+import 'package:tidy/features/menubar/presentation/widgets/menu_bar_vitals.dart';
+import 'package:tidy/features/performance/data/models/process_sample.dart';
+import 'package:tidy/features/performance/data/models/system_vitals.dart';
+import 'package:tidy/features/performance/data/services/performance_bridge.dart';
+import 'package:tidy/features/performance/data/services/process_monitor_service.dart';
+import 'package:tidy/features/recycle_bin/data/models/trash_item.dart';
+import 'package:tidy/features/recycle_bin/data/services/recycle_bin_service.dart';
+import 'package:tidy/features/shell/domain/app_destination.dart';
 
 /// Root of the menu bar popover engine.
 ///

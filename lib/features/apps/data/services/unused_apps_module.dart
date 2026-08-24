@@ -1,12 +1,12 @@
 import 'package:flutter/widgets.dart';
-import 'package:mac_uninstaller/core/design/app_icons.dart';
-import 'package:mac_uninstaller/core/scanning/domain/scan_module.dart';
-import 'package:mac_uninstaller/core/scanning/domain/scan_node.dart';
-import 'package:mac_uninstaller/core/utils/disk_utils.dart';
-import 'package:mac_uninstaller/features/apps/data/models/mac_app_model.dart';
-import 'package:mac_uninstaller/features/apps/data/services/apps_service.dart';
-import 'package:mac_uninstaller/features/apps/data/services/leftover_scanner.dart';
-import 'package:mac_uninstaller/features/apps/data/services/scan_cache.dart';
+import 'package:tidy/core/design/app_icons.dart';
+import 'package:tidy/core/scanning/domain/scan_module.dart';
+import 'package:tidy/core/scanning/domain/scan_node.dart';
+import 'package:tidy/core/utils/disk_utils.dart';
+import 'package:tidy/features/apps/data/models/mac_app_model.dart';
+import 'package:tidy/features/apps/data/services/apps_service.dart';
+import 'package:tidy/features/apps/data/services/leftover_scanner.dart';
+import 'package:tidy/features/apps/data/services/scan_cache.dart';
 
 /// Apps that have not been opened in a long time, with everything they would
 /// take with them.

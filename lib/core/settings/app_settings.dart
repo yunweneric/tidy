@@ -3,8 +3,8 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' show ThemeMode;
-import 'package:mac_uninstaller/core/design/brand.dart';
-import 'package:mac_uninstaller/features/clipboard/data/models/clipboard_prefs.dart';
+import 'package:tidy/core/design/brand.dart';
+import 'package:tidy/features/clipboard/data/models/clipboard_prefs.dart';
 import 'package:path/path.dart' as p;
 
 /// User preferences, persisted as JSON next to the scan cache.

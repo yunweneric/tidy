@@ -1,5 +1,5 @@
-import 'package:mac_uninstaller/features/performance/data/models/maintenance_task.dart';
-import 'package:mac_uninstaller/features/performance/data/services/performance_bridge.dart';
+import 'package:tidy/features/performance/data/models/maintenance_task.dart';
+import 'package:tidy/features/performance/data/services/performance_bridge.dart';
 
 /// The maintenance catalog, filtered down to what this Mac can actually do.
 ///

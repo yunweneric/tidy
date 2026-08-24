@@ -1,8 +1,8 @@
-import 'package:mac_uninstaller/core/platform/system_bridge.dart';
-import 'package:mac_uninstaller/core/platform/trash_ledger.dart';
-import 'package:mac_uninstaller/features/recycle_bin/data/models/trash_item.dart';
-import 'package:mac_uninstaller/features/recycle_bin/data/models/trash_location.dart';
-import 'package:mac_uninstaller/features/recycle_bin/data/services/recycle_bin_bridge.dart';
+import 'package:tidy/core/platform/system_bridge.dart';
+import 'package:tidy/core/platform/trash_ledger.dart';
+import 'package:tidy/features/recycle_bin/data/models/trash_item.dart';
+import 'package:tidy/features/recycle_bin/data/models/trash_location.dart';
+import 'package:tidy/features/recycle_bin/data/services/recycle_bin_bridge.dart';
 
 /// Everything the Trash can be asked to do: read it, put things back, or empty
 /// it for good.

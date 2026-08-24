@@ -1,8 +1,8 @@
-import 'package:mac_uninstaller/core/design/app_icons.dart';
-import 'package:mac_uninstaller/core/scanning/domain/composite_scan_module.dart';
-import 'package:mac_uninstaller/core/scanning/domain/scan_module.dart';
-import 'package:mac_uninstaller/features/apps/data/services/unused_apps_module.dart';
-import 'package:mac_uninstaller/features/cleanup/data/cleanup_scan_module.dart';
+import 'package:tidy/core/design/app_icons.dart';
+import 'package:tidy/core/scanning/domain/composite_scan_module.dart';
+import 'package:tidy/core/scanning/domain/scan_module.dart';
+import 'package:tidy/features/apps/data/services/unused_apps_module.dart';
+import 'package:tidy/features/cleanup/data/cleanup_scan_module.dart';
 
 /// One pass over every check that exists, reviewed in one place.
 ///

@@ -1,5 +1,5 @@
 import 'package:flutter/widgets.dart';
-import 'package:mac_uninstaller/core/design/design.dart';
+import 'package:tidy/core/design/design.dart';
 
 /// What a toast or an alert is telling you, named by meaning rather than hue.
 ///

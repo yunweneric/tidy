@@ -3,9 +3,9 @@ import 'dart:typed_data';
 
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:mac_uninstaller/features/performance/data/models/process_sample.dart';
-import 'package:mac_uninstaller/features/performance/data/services/process_monitor_service.dart';
-import 'package:mac_uninstaller/features/performance/logic/performance_state.dart';
+import 'package:tidy/features/performance/data/models/process_sample.dart';
+import 'package:tidy/features/performance/data/services/process_monitor_service.dart';
+import 'package:tidy/features/performance/logic/performance_state.dart';
 
 // ─── Events ─────────────────────────────────────────────────────────────────
 

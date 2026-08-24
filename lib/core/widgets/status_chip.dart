@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:mac_uninstaller/core/design/design.dart';
-import 'package:mac_uninstaller/core/scanning/domain/scan_node.dart';
+import 'package:tidy/core/design/design.dart';
+import 'package:tidy/core/scanning/domain/scan_node.dart';
 
 /// A small tinted label. Used for safety tiers, "needs admin", counts.
 class StatusChip extends StatelessWidget {

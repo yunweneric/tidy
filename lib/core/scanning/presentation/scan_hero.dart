@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:mac_uninstaller/core/design/design.dart';
-import 'package:mac_uninstaller/core/utils/byte_format.dart';
-import 'package:mac_uninstaller/core/widgets/ambient_background.dart';
-import 'package:mac_uninstaller/core/widgets/animated_bytes.dart';
-import 'package:mac_uninstaller/core/widgets/gauge_ring.dart';
-import 'package:mac_uninstaller/core/widgets/gradient_button.dart';
+import 'package:tidy/core/design/design.dart';
+import 'package:tidy/core/utils/byte_format.dart';
+import 'package:tidy/core/widgets/ambient_background.dart';
+import 'package:tidy/core/widgets/animated_bytes.dart';
+import 'package:tidy/core/widgets/gauge_ring.dart';
+import 'package:tidy/core/widgets/gradient_button.dart';
 
 /// The centrepiece of every module: ring, running total, one clear action.
 ///

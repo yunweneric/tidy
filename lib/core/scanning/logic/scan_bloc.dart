@@ -1,12 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:mac_uninstaller/core/platform/system_bridge.dart';
-import 'package:mac_uninstaller/core/scanning/domain/scan_module.dart';
-import 'package:mac_uninstaller/core/scanning/domain/scan_node.dart';
-import 'package:mac_uninstaller/core/scanning/domain/scan_selection.dart';
-import 'package:mac_uninstaller/core/scanning/logic/scan_event.dart';
-import 'package:mac_uninstaller/core/scanning/logic/scan_state.dart';
+import 'package:tidy/core/platform/system_bridge.dart';
+import 'package:tidy/core/scanning/domain/scan_module.dart';
+import 'package:tidy/core/scanning/domain/scan_node.dart';
+import 'package:tidy/core/scanning/domain/scan_selection.dart';
+import 'package:tidy/core/scanning/logic/scan_event.dart';
+import 'package:tidy/core/scanning/logic/scan_state.dart';
 
 /// Drives one [ScanModule] through scan → review → clean.
 ///

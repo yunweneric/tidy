@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mac_uninstaller/core/design/design.dart';
+import 'package:tidy/core/design/design.dart';
 
 /// How loudly a menu bar button asks to be pressed.
 enum MenuBarButtonTone { filled, quiet, danger }

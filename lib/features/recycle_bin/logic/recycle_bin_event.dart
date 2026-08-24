@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
-import 'package:mac_uninstaller/features/recycle_bin/data/models/trash_item.dart';
-import 'package:mac_uninstaller/features/recycle_bin/logic/recycle_bin_state.dart';
+import 'package:tidy/features/recycle_bin/data/models/trash_item.dart';
+import 'package:tidy/features/recycle_bin/logic/recycle_bin_state.dart';
 
 sealed class RecycleBinEvent extends Equatable {
   const RecycleBinEvent();

@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mac_uninstaller/core/design/design.dart';
-import 'package:mac_uninstaller/core/di/service_locator.dart';
-import 'package:mac_uninstaller/core/platform/full_disk_access_service.dart';
-import 'package:mac_uninstaller/core/platform/system_bridge.dart';
-import 'package:mac_uninstaller/core/scanning/logic/scan_bloc.dart';
-import 'package:mac_uninstaller/core/scanning/logic/scan_state.dart';
-import 'package:mac_uninstaller/core/utils/byte_format.dart';
-import 'package:mac_uninstaller/core/widgets/widgets.dart';
-import 'package:mac_uninstaller/features/apps/data/services/apps_service.dart';
-import 'package:mac_uninstaller/features/apps/logic/app_bloc.dart';
-import 'package:mac_uninstaller/features/apps/logic/app_event.dart';
-import 'package:mac_uninstaller/features/cleanup/data/cleanup_scan_module.dart';
-import 'package:mac_uninstaller/features/shell/domain/app_destination.dart';
-import 'package:mac_uninstaller/features/shell/presentation/active_destination.dart';
-import 'package:mac_uninstaller/features/shell/presentation/widgets/nav_sidebar.dart';
+import 'package:tidy/core/design/design.dart';
+import 'package:tidy/core/di/service_locator.dart';
+import 'package:tidy/core/platform/full_disk_access_service.dart';
+import 'package:tidy/core/platform/system_bridge.dart';
+import 'package:tidy/core/scanning/logic/scan_bloc.dart';
+import 'package:tidy/core/scanning/logic/scan_state.dart';
+import 'package:tidy/core/utils/byte_format.dart';
+import 'package:tidy/core/widgets/widgets.dart';
+import 'package:tidy/features/apps/data/services/apps_service.dart';
+import 'package:tidy/features/apps/logic/app_bloc.dart';
+import 'package:tidy/features/apps/logic/app_event.dart';
+import 'package:tidy/features/cleanup/data/cleanup_scan_module.dart';
+import 'package:tidy/features/shell/domain/app_destination.dart';
+import 'package:tidy/features/shell/presentation/active_destination.dart';
+import 'package:tidy/features/shell/presentation/widgets/nav_sidebar.dart';
 
 /// The window chrome: permanent sidebar, plus whichever branch is active.
 ///

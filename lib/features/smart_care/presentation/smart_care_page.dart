@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:mac_uninstaller/core/design/design.dart';
-import 'package:mac_uninstaller/core/di/service_locator.dart';
-import 'package:mac_uninstaller/core/platform/full_disk_access_service.dart';
-import 'package:mac_uninstaller/core/settings/app_settings.dart';
-import 'package:mac_uninstaller/core/scanning/logic/scan_bloc.dart';
-import 'package:mac_uninstaller/core/scanning/presentation/scan_view.dart';
-import 'package:mac_uninstaller/core/widgets/tidy_card.dart';
-import 'package:mac_uninstaller/features/smart_care/data/smart_care_module.dart';
+import 'package:tidy/core/design/design.dart';
+import 'package:tidy/core/di/service_locator.dart';
+import 'package:tidy/core/platform/full_disk_access_service.dart';
+import 'package:tidy/core/settings/app_settings.dart';
+import 'package:tidy/core/scanning/logic/scan_bloc.dart';
+import 'package:tidy/core/scanning/presentation/scan_view.dart';
+import 'package:tidy/core/widgets/tidy_card.dart';
+import 'package:tidy/features/smart_care/data/smart_care_module.dart';
 
 /// The Smart Care module.
 ///

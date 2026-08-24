@@ -1,7 +1,7 @@
-import 'package:mac_uninstaller/core/utils/byte_format.dart';
-import 'package:mac_uninstaller/features/apps/data/models/mac_app_model.dart';
+import 'package:tidy/core/utils/byte_format.dart';
+import 'package:tidy/features/apps/data/models/mac_app_model.dart';
 
-export 'package:mac_uninstaller/core/utils/byte_format.dart' show formatBytes;
+export 'package:tidy/core/utils/byte_format.dart' show formatBytes;
 
 /// Total bytes occupied by [apps].
 int totalBytes(Iterable<MacApp> apps) =>

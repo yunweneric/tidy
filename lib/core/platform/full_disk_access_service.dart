@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:mac_uninstaller/core/platform/system_bridge.dart';
+import 'package:tidy/core/platform/system_bridge.dart';
 
 /// Tracks whether the app holds Full Disk Access.
 ///

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:mac_uninstaller/core/design/design.dart';
-import 'package:mac_uninstaller/core/platform/system_bridge.dart';
-import 'package:mac_uninstaller/core/utils/byte_format.dart';
-import 'package:mac_uninstaller/core/widgets/size_bar.dart';
-import 'package:mac_uninstaller/core/widgets/tidy_card.dart';
-import 'package:mac_uninstaller/features/menubar/domain/menu_bar_insight.dart';
-import 'package:mac_uninstaller/features/performance/data/models/system_vitals.dart';
+import 'package:tidy/core/design/design.dart';
+import 'package:tidy/core/platform/system_bridge.dart';
+import 'package:tidy/core/utils/byte_format.dart';
+import 'package:tidy/core/widgets/size_bar.dart';
+import 'package:tidy/core/widgets/tidy_card.dart';
+import 'package:tidy/features/menubar/domain/menu_bar_insight.dart';
+import 'package:tidy/features/performance/data/models/system_vitals.dart';
 
 /// The colour a [VitalLevel] wears, everywhere in the panel.
 Color colorForLevel(BuildContext context, VitalLevel level) => switch (level) {

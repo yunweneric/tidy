@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:mac_uninstaller/core/design/design.dart';
-import 'package:mac_uninstaller/core/utils/byte_format.dart';
-import 'package:mac_uninstaller/features/recycle_bin/logic/recycle_bin_state.dart';
+import 'package:tidy/core/design/design.dart';
+import 'package:tidy/core/utils/byte_format.dart';
+import 'package:tidy/features/recycle_bin/logic/recycle_bin_state.dart';
 
 /// The strip under the table: what is in front of you, what you have picked,
 /// and the two things you can do with it.

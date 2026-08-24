@@ -2,9 +2,9 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
-import 'package:mac_uninstaller/core/design/design.dart';
-import 'package:mac_uninstaller/features/clipboard/data/models/clipboard_entry.dart';
-import 'package:mac_uninstaller/features/clipboard/data/services/clipboard_service.dart';
+import 'package:tidy/core/design/design.dart';
+import 'package:tidy/features/clipboard/data/models/clipboard_entry.dart';
+import 'package:tidy/features/clipboard/data/services/clipboard_service.dart';
 
 /// Column geometry, shared by the header and every row.
 ///

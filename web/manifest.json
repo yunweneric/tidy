@@ -1,6 +1,6 @@
 {
-    "name": "mac_uninstaller",
-    "short_name": "mac_uninstaller",
+    "name": "tidy",
+    "short_name": "tidy",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

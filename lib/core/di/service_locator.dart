@@ -1,18 +1,18 @@
 import 'package:get_it/get_it.dart';
-import 'package:mac_uninstaller/core/platform/full_disk_access_service.dart';
-import 'package:mac_uninstaller/core/settings/app_settings.dart';
-import 'package:mac_uninstaller/features/apps/data/services/apps_service.dart';
-import 'package:mac_uninstaller/features/apps/data/services/junk_scanner.dart';
-import 'package:mac_uninstaller/features/apps/data/services/leftover_scanner.dart';
-import 'package:mac_uninstaller/features/apps/data/services/scan_cache.dart';
-import 'package:mac_uninstaller/features/apps/data/services/unused_apps_module.dart';
-import 'package:mac_uninstaller/features/cleanup/data/cleanup_scan_module.dart';
-import 'package:mac_uninstaller/features/clipboard/data/services/clipboard_service.dart';
-import 'package:mac_uninstaller/features/performance/data/services/launch_items_service.dart';
-import 'package:mac_uninstaller/features/performance/data/services/maintenance_service.dart';
-import 'package:mac_uninstaller/features/performance/data/services/process_monitor_service.dart';
-import 'package:mac_uninstaller/features/recycle_bin/data/services/recycle_bin_service.dart';
-import 'package:mac_uninstaller/features/smart_care/data/smart_care_module.dart';
+import 'package:tidy/core/platform/full_disk_access_service.dart';
+import 'package:tidy/core/settings/app_settings.dart';
+import 'package:tidy/features/apps/data/services/apps_service.dart';
+import 'package:tidy/features/apps/data/services/junk_scanner.dart';
+import 'package:tidy/features/apps/data/services/leftover_scanner.dart';
+import 'package:tidy/features/apps/data/services/scan_cache.dart';
+import 'package:tidy/features/apps/data/services/unused_apps_module.dart';
+import 'package:tidy/features/cleanup/data/cleanup_scan_module.dart';
+import 'package:tidy/features/clipboard/data/services/clipboard_service.dart';
+import 'package:tidy/features/performance/data/services/launch_items_service.dart';
+import 'package:tidy/features/performance/data/services/maintenance_service.dart';
+import 'package:tidy/features/performance/data/services/process_monitor_service.dart';
+import 'package:tidy/features/recycle_bin/data/services/recycle_bin_service.dart';
+import 'package:tidy/features/smart_care/data/smart_care_module.dart';
 
 final GetIt locator = GetIt.instance;
 

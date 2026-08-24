@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:mac_uninstaller/core/design/design.dart';
-import 'package:mac_uninstaller/core/utils/byte_format.dart';
-import 'package:mac_uninstaller/core/widgets/widgets.dart';
-import 'package:mac_uninstaller/features/recycle_bin/logic/recycle_bin_state.dart';
+import 'package:tidy/core/design/design.dart';
+import 'package:tidy/core/utils/byte_format.dart';
+import 'package:tidy/core/widgets/widgets.dart';
+import 'package:tidy/features/recycle_bin/logic/recycle_bin_state.dart';
 
 /// The three figures worth reading before the table: how much is in there, what
 /// it is holding on to, and how much of it has been there long enough to let go

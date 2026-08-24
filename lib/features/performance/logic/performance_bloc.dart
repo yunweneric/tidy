@@ -1,8 +1,8 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:mac_uninstaller/features/performance/data/services/launch_items_service.dart';
-import 'package:mac_uninstaller/features/performance/data/services/maintenance_service.dart';
-import 'package:mac_uninstaller/features/performance/logic/performance_event.dart';
-import 'package:mac_uninstaller/features/performance/logic/performance_state.dart';
+import 'package:tidy/features/performance/data/services/launch_items_service.dart';
+import 'package:tidy/features/performance/data/services/maintenance_service.dart';
+import 'package:tidy/features/performance/logic/performance_event.dart';
+import 'package:tidy/features/performance/logic/performance_state.dart';
 
 /// Drives the three list-shaped Performance sections: login items, background
 /// items and maintenance.

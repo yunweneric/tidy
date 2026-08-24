@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mac_uninstaller/core/design/design.dart';
+import 'package:tidy/core/design/design.dart';
 
 /// Search input with a prefix glyph. Filtering happens in [onChanged].
 class AppSearchField extends StatelessWidget {

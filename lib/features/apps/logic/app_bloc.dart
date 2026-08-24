@@ -1,14 +1,14 @@
 import 'dart:io';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:mac_uninstaller/core/platform/system_bridge.dart';
-import 'package:mac_uninstaller/features/apps/data/models/mac_app_model.dart';
-import 'package:mac_uninstaller/features/apps/data/models/removal_progress.dart';
-import 'package:mac_uninstaller/features/apps/data/services/apps_service.dart';
-import 'package:mac_uninstaller/features/apps/data/services/junk_scanner.dart';
-import 'package:mac_uninstaller/features/apps/data/services/scan_cache.dart';
-import 'package:mac_uninstaller/features/apps/logic/app_event.dart';
-import 'package:mac_uninstaller/features/apps/logic/app_states.dart';
+import 'package:tidy/core/platform/system_bridge.dart';
+import 'package:tidy/features/apps/data/models/mac_app_model.dart';
+import 'package:tidy/features/apps/data/models/removal_progress.dart';
+import 'package:tidy/features/apps/data/services/apps_service.dart';
+import 'package:tidy/features/apps/data/services/junk_scanner.dart';
+import 'package:tidy/features/apps/data/services/scan_cache.dart';
+import 'package:tidy/features/apps/logic/app_event.dart';
+import 'package:tidy/features/apps/logic/app_states.dart';
 
 /// Drives the application list: scan, refresh, uninstall, junk sweep.
 ///

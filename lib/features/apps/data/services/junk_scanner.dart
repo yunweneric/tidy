@@ -1,7 +1,7 @@
 import 'dart:io';
 
-import 'package:mac_uninstaller/core/utils/disk_utils.dart';
-import 'package:mac_uninstaller/features/apps/data/models/mac_app_model.dart';
+import 'package:tidy/core/utils/disk_utils.dart';
+import 'package:tidy/features/apps/data/models/mac_app_model.dart';
 
 /// Kinds of reclaimable space the scanner reports.
 enum JunkKind {

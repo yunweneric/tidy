@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:mac_uninstaller/core/platform/system_bridge.dart';
-import 'package:mac_uninstaller/core/design/design.dart';
-import 'package:mac_uninstaller/core/feedback/feedback.dart';
-import 'package:mac_uninstaller/features/apps/data/models/leftover_item.dart';
-import 'package:mac_uninstaller/features/apps/data/models/mac_app_model.dart';
-import 'package:mac_uninstaller/features/apps/data/models/removal_progress.dart';
-import 'package:mac_uninstaller/features/apps/data/services/leftover_scanner.dart';
-import 'package:mac_uninstaller/features/apps/logic/app_bloc.dart';
-import 'package:mac_uninstaller/features/apps/logic/app_event.dart';
-import 'package:mac_uninstaller/features/apps/logic/app_states.dart';
-import 'package:mac_uninstaller/features/apps/presentation/widgets/app_icon.dart';
-import 'package:mac_uninstaller/core/widgets/status_chip.dart';
-import 'package:mac_uninstaller/features/apps/utils/size_utils.dart';
+import 'package:tidy/core/platform/system_bridge.dart';
+import 'package:tidy/core/design/design.dart';
+import 'package:tidy/core/feedback/feedback.dart';
+import 'package:tidy/features/apps/data/models/leftover_item.dart';
+import 'package:tidy/features/apps/data/models/mac_app_model.dart';
+import 'package:tidy/features/apps/data/models/removal_progress.dart';
+import 'package:tidy/features/apps/data/services/leftover_scanner.dart';
+import 'package:tidy/features/apps/logic/app_bloc.dart';
+import 'package:tidy/features/apps/logic/app_event.dart';
+import 'package:tidy/features/apps/logic/app_states.dart';
+import 'package:tidy/features/apps/presentation/widgets/app_icon.dart';
+import 'package:tidy/core/widgets/status_chip.dart';
+import 'package:tidy/features/apps/utils/size_utils.dart';
 
 /// What the user approved in the preview.
 class UninstallPlan {

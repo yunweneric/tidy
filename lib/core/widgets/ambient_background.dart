@@ -1,7 +1,7 @@
 import 'dart:ui' show PointMode;
 
 import 'package:flutter/material.dart';
-import 'package:mac_uninstaller/core/design/design.dart';
+import 'package:tidy/core/design/design.dart';
 
 /// The window backdrop: the active module's colour, edge to edge.
 ///

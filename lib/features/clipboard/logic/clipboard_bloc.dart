@@ -1,13 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:mac_uninstaller/core/feedback/feedback.dart';
-import 'package:mac_uninstaller/features/clipboard/data/services/clipboard_service.dart';
-import 'package:mac_uninstaller/features/clipboard/logic/clipboard_event.dart';
-import 'package:mac_uninstaller/features/clipboard/logic/clipboard_state.dart';
+import 'package:tidy/core/feedback/feedback.dart';
+import 'package:tidy/features/clipboard/data/services/clipboard_service.dart';
+import 'package:tidy/features/clipboard/logic/clipboard_event.dart';
+import 'package:tidy/features/clipboard/logic/clipboard_state.dart';
 
-export 'package:mac_uninstaller/features/clipboard/logic/clipboard_event.dart';
-export 'package:mac_uninstaller/features/clipboard/logic/clipboard_state.dart';
+export 'package:tidy/features/clipboard/logic/clipboard_event.dart';
+export 'package:tidy/features/clipboard/logic/clipboard_state.dart';
 
 class ClipboardBloc extends Bloc<ClipboardEvent, ClipboardState> {
   ClipboardBloc(this._service) : super(const ClipboardState()) {

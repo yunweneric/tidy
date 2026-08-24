@@ -1,11 +1,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'package:mac_uninstaller/core/platform/action_outcome.dart';
-import 'package:mac_uninstaller/features/performance/data/models/system_vitals.dart';
+import 'package:tidy/core/platform/action_outcome.dart';
+import 'package:tidy/features/performance/data/models/system_vitals.dart';
 
 // Moved to core/ when Clipboard needed it too; re-exported so the services that
 // already speak in outcomes keep their single import.
-export 'package:mac_uninstaller/core/platform/action_outcome.dart';
+export 'package:tidy/core/platform/action_outcome.dart';
 
 /// Thin wrapper over `macos/Runner/PerformanceChannel.swift`.
 ///
@@ -17,7 +17,7 @@ class PerformanceBridge {
   PerformanceBridge._();
 
   static const MethodChannel _channel = MethodChannel(
-    'com.yunweneric.macuninstaller/performance',
+    'com.yunweneric.tidy/performance',
   );
 
   // ─── Launch items ─────────────────────────────────────────────────────────

@@ -1,5 +1,5 @@
 import 'package:flutter/widgets.dart';
-import 'package:mac_uninstaller/core/scanning/domain/scan_node.dart';
+import 'package:tidy/core/scanning/domain/scan_node.dart';
 
 /// Every scanner the app can run.
 ///

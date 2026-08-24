@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mac_uninstaller/core/di/service_locator.dart';
-import 'package:mac_uninstaller/core/platform/full_disk_access_service.dart';
-import 'package:mac_uninstaller/core/settings/app_settings.dart';
-import 'package:mac_uninstaller/core/widgets/fade_through.dart';
-import 'package:mac_uninstaller/features/apps/presentation/screens/applications_page.dart';
-import 'package:mac_uninstaller/features/cleanup/presentation/cleanup_page.dart';
-import 'package:mac_uninstaller/features/onboarding/presentation/onboarding_screen.dart';
-import 'package:mac_uninstaller/features/performance/presentation/performance_page.dart';
-import 'package:mac_uninstaller/features/clipboard/presentation/clipboard_page.dart';
-import 'package:mac_uninstaller/features/recycle_bin/presentation/recycle_bin_page.dart';
-import 'package:mac_uninstaller/features/settings/presentation/settings_page.dart';
-import 'package:mac_uninstaller/features/shell/domain/app_destination.dart';
-import 'package:mac_uninstaller/features/shell/presentation/shell_scaffold.dart';
-import 'package:mac_uninstaller/features/smart_care/presentation/smart_care_page.dart';
-import 'package:mac_uninstaller/features/shell/presentation/widgets/coming_soon_page.dart';
+import 'package:tidy/core/di/service_locator.dart';
+import 'package:tidy/core/platform/full_disk_access_service.dart';
+import 'package:tidy/core/settings/app_settings.dart';
+import 'package:tidy/core/widgets/fade_through.dart';
+import 'package:tidy/features/apps/presentation/screens/applications_page.dart';
+import 'package:tidy/features/cleanup/presentation/cleanup_page.dart';
+import 'package:tidy/features/onboarding/presentation/onboarding_screen.dart';
+import 'package:tidy/features/performance/presentation/performance_page.dart';
+import 'package:tidy/features/clipboard/presentation/clipboard_page.dart';
+import 'package:tidy/features/recycle_bin/presentation/recycle_bin_page.dart';
+import 'package:tidy/features/settings/presentation/settings_page.dart';
+import 'package:tidy/features/shell/domain/app_destination.dart';
+import 'package:tidy/features/shell/presentation/shell_scaffold.dart';
+import 'package:tidy/features/smart_care/presentation/smart_care_page.dart';
+import 'package:tidy/features/shell/presentation/widgets/coming_soon_page.dart';
 
 /// Routes that live outside the shell.
 abstract final class Routes {
