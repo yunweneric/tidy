@@ -10,7 +10,7 @@ class MacApp {
     required this.path,
     required this.version,
     required this.bundleId,
-    required this.sizeBytes,
+    this.sizeBytes = 0,
     this.iconBytes,
     this.developer,
     this.lastUsed,

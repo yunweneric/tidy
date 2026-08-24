@@ -126,6 +126,25 @@ class TidyTheme {
         shape: const RoundedRectangleBorder(borderRadius: AppRadii.xsAll),
         visualDensity: VisualDensity.compact,
       ),
+      segmentedButtonTheme: SegmentedButtonThemeData(
+        style: ButtonStyle(
+          // Material defaults a selected segment to colorScheme.secondary,
+          // which is our "safe" green — a theme picker is not a status.
+          backgroundColor: WidgetStateProperty.resolveWith(
+            (s) => s.contains(WidgetState.selected) ? c.accent : Colors.transparent,
+          ),
+          foregroundColor: WidgetStateProperty.resolveWith(
+            (s) => s.contains(WidgetState.selected)
+                ? c.textOnAccent
+                : c.textSecondary,
+          ),
+          side: WidgetStatePropertyAll(BorderSide(color: c.border)),
+          textStyle: WidgetStatePropertyAll(type.label),
+          shape: const WidgetStatePropertyAll(
+            RoundedRectangleBorder(borderRadius: AppRadii.mdAll),
+          ),
+        ),
+      ),
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStatePropertyAll(c.textOnAccent),
         trackColor: WidgetStateProperty.resolveWith(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mac_uninstaller/core/design/design.dart';
+import 'package:mac_uninstaller/core/di/service_locator.dart';
 import 'package:mac_uninstaller/core/platform/full_disk_access_service.dart';
 import 'package:mac_uninstaller/core/settings/app_settings.dart';
 import 'package:mac_uninstaller/core/widgets/module_scaffold.dart';
@@ -7,17 +8,13 @@ import 'package:mac_uninstaller/core/widgets/status_chip.dart';
 import 'package:mac_uninstaller/core/widgets/tidy_card.dart';
 
 class SettingsPage extends StatelessWidget {
-  const SettingsPage({
-    super.key,
-    required this.settings,
-    required this.fullDiskAccess,
-  });
-
-  final AppSettings settings;
-  final FullDiskAccessService fullDiskAccess;
+  const SettingsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final settings = locator<AppSettings>();
+    final fullDiskAccess = locator<FullDiskAccessService>();
+
     return ModuleScaffold(
       title: 'Settings',
       subtitle: 'Appearance, motion and the permissions ${Brand.name} needs.',
@@ -45,6 +42,33 @@ class SettingsPage extends StatelessWidget {
           _Section(
             title: 'Permissions',
             child: _FullDiskAccessRow(service: fullDiskAccess),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          _Section(
+            title: 'Introduction',
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Show the intro again', style: context.text.titleS),
+                      const SizedBox(height: AppSpacing.xxs),
+                      Text(
+                        'Replays the first-run walkthrough, including the '
+                        'permission step, next time you open ${Brand.name}.',
+                        style: context.text.bodyS,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.lg),
+                OutlinedButton(
+                  onPressed: settings.resetOnboarding,
+                  child: const Text('Replay intro'),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: AppSpacing.lg),
           _Section(

@@ -64,7 +64,11 @@ class OnboardingFrame extends StatelessWidget {
                     ),
                   ],
                   const SizedBox(height: AppSpacing.xxl),
-                  Expanded(child: SingleChildScrollView(child: child)),
+                  Expanded(
+                    child: Center(
+                      child: SingleChildScrollView(child: child),
+                    ),
+                  ),
                   const SizedBox(height: AppSpacing.xl),
                   Row(
                     children: [

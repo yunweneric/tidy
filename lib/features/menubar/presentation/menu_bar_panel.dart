@@ -83,12 +83,21 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
     final disk = await SystemBridge.diskUsage();
     if (mounted) setState(() => _disk = disk);
 
-    final apps = await _service.scanApps();
+    var apps = await _service.scanApps();
     if (!mounted) return;
     setState(() {
       _apps = apps;
       _loading = false;
     });
+
+    // "Largest apps" is meaningless until sizes land, and sizes are the slow
+    // part — but the cached list above is already on screen, so this refines
+    // rather than blocks.
+    await for (final withSizes in _service.attachSizes(apps)) {
+      apps = withSizes;
+      if (!mounted) return;
+      setState(() => _apps = apps);
+    }
 
     // Icons only matter for the handful of rows on screen here.
     final top = _topApps(apps);

@@ -115,7 +115,7 @@ class _ApplicationsPageState extends State<ApplicationsPage>
       children: [
         Expanded(
           child: _Stat(
-            label: 'Apps installed',
+            label: 'Apps you can remove',
             value: '${removable.length}',
             icon: AppIcons.applications,
             color: colors.accent,
@@ -124,7 +124,7 @@ class _ApplicationsPageState extends State<ApplicationsPage>
         const SizedBox(width: AppSpacing.lg),
         Expanded(
           child: _Stat(
-            label: 'Space used by apps',
+            label: 'Space they use',
             value: formatBytes(totalBytes(removable)),
             icon: AppIcons.analytics,
             color: colors.info,

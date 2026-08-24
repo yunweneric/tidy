@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:mac_uninstaller/core/design/design.dart';
 import 'package:mac_uninstaller/core/di/service_locator.dart';
+import 'package:mac_uninstaller/core/router/app_router.dart';
 import 'package:mac_uninstaller/core/settings/app_settings.dart';
 import 'package:mac_uninstaller/features/menubar/presentation/menu_bar_panel.dart';
-import 'package:mac_uninstaller/features/shell/presentation/shell_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,8 +15,8 @@ Future<void> main() async {
 /// `macos/Runner/MenuBarController.swift`.
 ///
 /// That engine is its own Dart isolate: it cannot see the main window's
-/// providers, so it registers its own services and keeps in step through the
-/// on-disk scan cache.
+/// providers or its router, so it registers its own services and keeps in step
+/// through the on-disk scan cache.
 @pragma('vm:entry-point')
 Future<void> menuBarMain() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,23 +24,32 @@ Future<void> menuBarMain() async {
   runApp(const MenuBarPanelApp());
 }
 
-class TidyApp extends StatelessWidget {
+class TidyApp extends StatefulWidget {
   const TidyApp({super.key, required this.settings});
 
   final AppSettings settings;
 
   @override
+  State<TidyApp> createState() => _TidyAppState();
+}
+
+class _TidyAppState extends State<TidyApp> {
+  // Built once and held: rebuilding the router on every settings change would
+  // throw away the shell's branch state along with it.
+  late final _router = buildRouter(settings: widget.settings);
+
+  @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: settings,
+      animation: widget.settings,
       builder: (context, _) {
-        return MaterialApp(
+        return MaterialApp.router(
           title: Brand.name,
           debugShowCheckedModeBanner: false,
-          themeMode: settings.themeMode,
-          theme: TidyTheme.light(reduceMotion: settings.reduceMotion),
-          darkTheme: TidyTheme.dark(reduceMotion: settings.reduceMotion),
-          home: const ShellScreen(),
+          themeMode: widget.settings.themeMode,
+          theme: TidyTheme.light(reduceMotion: widget.settings.reduceMotion),
+          darkTheme: TidyTheme.dark(reduceMotion: widget.settings.reduceMotion),
+          routerConfig: _router,
         );
       },
     );

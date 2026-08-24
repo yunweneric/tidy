@@ -4,6 +4,7 @@ library;
 // Token-driven primitives — the ones new code should reach for.
 export 'animated_bytes.dart';
 export 'empty_state.dart';
+export 'fade_through.dart';
 export 'gauge_ring.dart';
 export 'module_scaffold.dart';
 export 'permission_banner.dart';

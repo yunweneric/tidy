@@ -99,9 +99,27 @@ class AppsBloc extends Bloc<AppsEvent, AppsState> {
         ),
       );
 
-      // Icons stream in without holding up the list.
+      // Icons first: they are a handful of quick channel calls and they are
+      // what makes the list look like the user's own Mac rather than a table.
       await for (final withIcons in service.attachIcons(apps)) {
         apps = withIcons;
+        emit(
+          AppsLoaded(
+            apps: apps,
+            disk: disk,
+            junk: _currentJunk,
+            isRefreshing: true,
+            isScanningJunk: true,
+            scannedAt: DateTime.now(),
+          ),
+        );
+      }
+
+      // Sizes last of the app passes: measuring a bundle means walking every
+      // file in it, and one Xcode is worth every other app combined. Streaming
+      // them means the list is usable long before the total is exact.
+      await for (final withSizes in service.attachSizes(apps)) {
+        apps = withSizes;
         emit(
           AppsLoaded(
             apps: apps,

@@ -20,7 +20,7 @@ class AppTableLayout {
   /// Fixed rather than flexed: version strings and sizes are short and
   /// predictable, and letting them flex pushes the columns around as the list
   /// filters.
-  static const double version = 88;
+  static const double version = 100;
   static const double size = 96;
 
   static const int appFlex = 4;

@@ -24,6 +24,10 @@ class AppManagerService {
   /// Bundles per icon batch handed to the platform channel.
   static const int _iconChunkSize = 24;
 
+  /// Bundles per sizing batch. Small enough that the first sizes land within
+  /// a second, large enough that the channel round trip is not the cost.
+  static const int _sizeChunkSize = 12;
+
   static String? get _home => Platform.environment['HOME'];
 
   /// Roots that are scanned for removable apps.
@@ -32,23 +36,49 @@ class AppManagerService {
     if (_home != null) '$_home/Applications',
   ];
 
-  /// Metadata pass. Returns apps sorted largest first.
+  /// Metadata pass: name, version, developer, last-used. No sizes.
+  ///
+  /// Sizing is deliberately not done here. Measuring a bundle means walking
+  /// every file inside it, and something like Xcode is hundreds of thousands of
+  /// files — waiting for all of them before showing anything left the window on
+  /// a spinner for the better part of a minute. Call [attachSizes] next.
+  ///
+  /// Sorted by name, since there is nothing better to sort by yet.
   Future<List<MacApp>> scanApps() async {
     final bundles = _discoverBundles();
 
-    // Sizes come back in a single native walk; metadata still needs one plist
-    // read per bundle, which is what the pool is for.
-    final sizes = await pathSizes(bundles.map((ref) => ref.path).toList());
-    final apps = await mapPooled<_BundleRef, MacApp?>(
-      bundles,
-      (ref) => _readBundle(ref, sizes[ref.path] ?? 0),
-    );
+    final apps = await mapPooled<_BundleRef, MacApp?>(bundles, _readBundle);
 
     final found = apps.whereType<MacApp>().toList();
     final withDates = await _attachLastUsed(found);
 
-    withDates.sort((a, b) => b.sizeBytes.compareTo(a.sizeBytes));
+    withDates.sort(
+      (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+    );
     return withDates;
+  }
+
+  /// Size pass. Yields the whole list again after each batch so the caller can
+  /// emit progressive updates, and re-sorts largest-first once every size is in.
+  Stream<List<MacApp>> attachSizes(List<MacApp> apps) async* {
+    final working = List<MacApp>.from(apps);
+
+    for (var start = 0; start < working.length; start += _sizeChunkSize) {
+      final end = (start + _sizeChunkSize).clamp(0, working.length);
+      final chunk = working.sublist(start, end);
+
+      final sizes = await pathSizes(chunk.map((app) => app.path).toList());
+      if (sizes.isEmpty) continue;
+
+      for (var i = start; i < end; i++) {
+        final bytes = sizes[working[i].path];
+        if (bytes != null) working[i] = working[i].copyWith(sizeBytes: bytes);
+      }
+      yield List<MacApp>.from(working);
+    }
+
+    working.sort((a, b) => b.sizeBytes.compareTo(a.sizeBytes));
+    yield working;
   }
 
   /// Icon pass. Yields the whole list again after each batch so the caller can
@@ -134,7 +164,7 @@ class AppManagerService {
 
   // ----------------------------------------------------------------- metadata
 
-  Future<MacApp?> _readBundle(_BundleRef ref, int sizeBytes) async {
+  Future<MacApp?> _readBundle(_BundleRef ref) async {
     final fileName = ref.path.split('/').last;
     final fallbackName = fileName.replaceAll(RegExp(r'\.app$'), '');
 
@@ -155,7 +185,6 @@ class AppManagerService {
         info['CFBundleVersion'],
       ]),
       bundleId: bundleId,
-      sizeBytes: sizeBytes,
       developer: _developerFrom(bundleId, info['NSHumanReadableCopyright']),
       isSystem: ref.isSystem,
     );
