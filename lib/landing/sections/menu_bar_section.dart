@@ -18,6 +18,10 @@ class MenuBarSection extends StatefulWidget {
   State<MenuBarSection> createState() => _MenuBarSectionState();
 }
 
+/// Tighter than the page's usual rhythm, so the band and its padding fit a
+/// laptop screen together.
+const double _kVertical = 64;
+
 class _MenuBarSectionState extends State<MenuBarSection> {
   final PreviewMac _mac = PreviewMac();
 
@@ -59,15 +63,33 @@ class _MenuBarSectionState extends State<MenuBarSection> {
   Widget build(BuildContext context) {
     final split = context.windowSize.atLeast(WindowSizeClass.large);
 
+    // The whole band is meant to land in one screenful. The popover is the
+    // tallest single thing on the page by some way, so rather than letting it
+    // set the height and push the copy beside it off the bottom, it is capped
+    // against the window and scales down to fit. `_kVertical * 2` is the
+    // band's own padding, and `kLandingNavHeight` is the floating bar, which
+    // overlaps whatever an anchor jump lands on.
+    final cap = (MediaQuery.sizeOf(context).height -
+            kLandingNavHeight -
+            _kVertical * 2 -
+            16)
+        .clamp(360.0, MenuBarPreview.height);
+
     final preview = Reveal(
-      child: AnimatedBuilder(
-        animation: _mac,
-        builder:
-            (context, _) => MenuBarPreview(
-              mac: _mac,
-              panel: _panel,
-              onSelect: split ? (kind) => setState(() => _panel = kind) : null,
-            ),
+      child: Align(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: cap),
+          child: AnimatedBuilder(
+            animation: _mac,
+            builder:
+                (context, _) => MenuBarPreview(
+                  mac: _mac,
+                  panel: _panel,
+                  onSelect:
+                      split ? (kind) => setState(() => _panel = kind) : null,
+                ),
+          ),
+        ),
       ),
     );
 
@@ -116,6 +138,8 @@ class _MenuBarSectionState extends State<MenuBarSection> {
 
     return LandingSection(
       anchor: widget.anchor,
+      topPadding: _kVertical,
+      bottomPadding: _kVertical,
       child:
           split
               ? Row(
