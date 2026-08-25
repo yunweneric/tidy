@@ -2,34 +2,23 @@
 
 <img src="assets/icon/app_icon_macos.png" width="108" alt="" />
 
-<h1>Tidy</h1>
+<h1 align="center">Tidy</h1>
 
-<p><strong>A Mac utility toolkit. One app for the small jobs macOS makes awkward.</strong></p>
+<p align="center"><strong>A Mac utility toolkit. One app for the small jobs macOS makes awkward.</strong></p>
 
-<p>
+<p align="center">
   Clipboard history &nbsp;·&nbsp; disk cleanup &nbsp;·&nbsp; uninstalling apps properly
   <br />
   startup and process control &nbsp;·&nbsp; getting things back out of the Trash
 </p>
 
-<p>
-  <a href="https://tidy.yunweneric.com"><img alt="Visit the landing page" src="https://img.shields.io/badge/Landing_page-tidy.yunweneric.com-8B79FF?style=for-the-badge&labelColor=1B1440" /></a>
-  &nbsp;
-  <a href="https://github.com/yunweneric/tidy/releases/latest"><img alt="Download for macOS" src="https://img.shields.io/badge/Download_for_macOS-1B1440?style=for-the-badge&logo=apple&logoColor=white" /></a>
-</p>
+<p align="center"><a href="https://tidy.yunweneric.com"><img height="28" alt="Visit the landing page" src="https://img.shields.io/badge/Landing_page-tidy.yunweneric.com-8B79FF?style=for-the-badge&labelColor=1B1440" /></a>&nbsp;&nbsp;<a href="https://github.com/yunweneric/tidy/releases/latest"><img height="28" alt="Download for macOS" src="https://img.shields.io/badge/Download_for_macOS-1B1440?style=for-the-badge&logo=apple&logoColor=white" /></a></p>
 
-<p>
-  <img alt="Flutter" src="https://img.shields.io/badge/Flutter-3.38-02569B?style=flat-square&logo=flutter&logoColor=white" />
-  <img alt="Dart" src="https://img.shields.io/badge/Dart-3.7-0175C2?style=flat-square&logo=dart&logoColor=white" />
-  <img alt="Swift" src="https://img.shields.io/badge/Swift-AppKit-F05138?style=flat-square&logo=swift&logoColor=white" />
-  <img alt="macOS 11 or later" src="https://img.shields.io/badge/macOS-11%2B-1B1440?style=flat-square&logo=apple&logoColor=white" />
-  <a href="https://github.com/yunweneric/tidy/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/yunweneric/tidy?style=flat-square&color=8B79FF" /></a>
-  <a href="LICENSE"><img alt="GPL-3.0" src="https://img.shields.io/github/license/yunweneric/tidy?style=flat-square&color=8B79FF" /></a>
-</p>
+<p align="center"><img height="20" alt="Flutter" src="https://img.shields.io/badge/Flutter-3.38-02569B?style=flat-square&logo=flutter&logoColor=white" />&nbsp;<img height="20" alt="Dart" src="https://img.shields.io/badge/Dart-3.7-0175C2?style=flat-square&logo=dart&logoColor=white" />&nbsp;<img height="20" alt="Swift" src="https://img.shields.io/badge/Swift-AppKit-F05138?style=flat-square&logo=swift&logoColor=white" />&nbsp;<img height="20" alt="macOS 11 or later" src="https://img.shields.io/badge/macOS-11%2B-1B1440?style=flat-square&logo=apple&logoColor=white" />&nbsp;<a href="https://github.com/yunweneric/tidy/releases/latest"><img height="20" alt="Latest release" src="https://img.shields.io/github/v/release/yunweneric/tidy?style=flat-square&color=8B79FF" /></a>&nbsp;<a href="LICENSE"><img height="20" alt="GPL-3.0" src="https://img.shields.io/github/license/yunweneric/tidy?style=flat-square&color=8B79FF" /></a></p>
 
 <br />
 
-<img src="docs/hero.png" width="900" alt="Tidy's dashboard: a health score, live vitals, and what can be reclaimed" />
+<p align="center"><img src="docs/hero.png" width="900" alt="Tidy's dashboard: a health score, live vitals, and what can be reclaimed" /></p>
 
 </div>
 
@@ -336,9 +325,12 @@ module grid is generated from `AppDestination`, blurbs included. Adding a module
 adds a card; rewording a blurb rewords the page. A marketing site with its own
 copy of the feature list is a marketing site that will eventually be wrong.
 
-`lib/landing/preview/menu_bar_preview.dart` draws the menu bar and all three
+`lib/landing/preview/menu_bar_preview.dart` draws the menu bar and all four
 popovers the same way — the status items, the pointer, the 460pt dashboard panel
-and the two 320pt ones, at the widths `MenuBarController.swift` actually uses.
+and the three 320pt ones, at the widths `MenuBarSurface.panelWidth` actually
+uses. The bar is drawn as an enlarged crop rather than a whole desktop, and the
+two surfaces that `hasReadout` — AI Usage and Network — draw their figures in it
+rather than a glyph.
 
 `lib/landing/preview/preview_mac.dart` is the fiction behind the demo — a 512 GB
 disk, 66 apps, four junk categories, a Trash, a clipboard. It is a
@@ -485,23 +477,14 @@ available to whoever runs *it*.
 
 <div align="center">
 
-<sub><b>Built with</b></sub>
+<p align="center"><sub><b>BUILT WITH</b></sub></p>
 
-<p>
-  <a href="https://flutter.dev"><img alt="Flutter" src="https://img.shields.io/badge/Flutter-02569B?style=for-the-badge&logo=flutter&logoColor=white" /></a>
-  <a href="https://dart.dev"><img alt="Dart" src="https://img.shields.io/badge/Dart-0175C2?style=for-the-badge&logo=dart&logoColor=white" /></a>
-  <a href="https://developer.apple.com/documentation/appkit"><img alt="Swift and AppKit" src="https://img.shields.io/badge/Swift_&_AppKit-F05138?style=for-the-badge&logo=swift&logoColor=white" /></a>
-</p>
+<p align="center"><a href="https://flutter.dev"><img height="28" alt="Flutter" src="https://img.shields.io/badge/Flutter-02569B?style=for-the-badge&logo=flutter&logoColor=white" /></a>&nbsp;&nbsp;<a href="https://dart.dev"><img height="28" alt="Dart" src="https://img.shields.io/badge/Dart-0175C2?style=for-the-badge&logo=dart&logoColor=white" /></a>&nbsp;&nbsp;<a href="https://developer.apple.com/documentation/appkit"><img height="28" alt="Swift and AppKit" src="https://img.shields.io/badge/Swift_&_AppKit-F05138?style=for-the-badge&logo=swift&logoColor=white" /></a></p>
 
-<sub>
-
-Flutter for the window, the popover and the site · Swift for everything that
-touches the disk
-
-</sub>
+<p align="center"><sub>Flutter for the window, the popover and the site &nbsp;·&nbsp; Swift for everything that touches the disk</sub></p>
 
 <br />
 
-<a href="https://tidy.yunweneric.com"><b>tidy.yunweneric.com</b></a>
+<p align="center"><a href="https://tidy.yunweneric.com"><b>tidy.yunweneric.com</b></a></p>
 
 </div>

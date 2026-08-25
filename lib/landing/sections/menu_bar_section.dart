@@ -25,7 +25,7 @@ const double _kVertical = 64;
 class _MenuBarSectionState extends State<MenuBarSection> {
   final PreviewMac _mac = PreviewMac();
 
-  MenuBarPanelKind _panel = MenuBarPanelKind.aiUsage;
+  MenuBarPanelKind _panel = MenuBarPanelKind.dashboard;
 
   Timer? _ticker;
 
