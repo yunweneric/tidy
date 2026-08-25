@@ -28,6 +28,11 @@ class AppIcons {
   static const IconData clutter = HugeIcons.strokeRoundedFolderLibrary;
   static const IconData spaceLens = HugeIcons.strokeRoundedChartRing;
   static const IconData allTools = HugeIcons.strokeRoundedTools;
+
+  /// The navigation sheet on a narrow window. A hamburger rather than the
+  /// wrench [allTools] wears: on a phone the affordance has to be recognised
+  /// on sight, and this is the one glyph every visitor already knows.
+  static const IconData menu = HugeIcons.strokeRoundedMenu01;
   static const IconData activity = HugeIcons.strokeRoundedClock01;
   static const IconData assistant = HugeIcons.strokeRoundedActivity01;
   static const IconData settings = HugeIcons.strokeRoundedSettings01;
@@ -96,6 +101,11 @@ class AppIcons {
   /// Back to exactly where it came from, as opposed to [restore], which asks.
   static const IconData putBack = HugeIcons.strokeRoundedDeletePutBack;
   static const IconData openExternal = HugeIcons.strokeRoundedLinkSquare01;
+
+  /// The repository. GitHub's own mark rather than a generic link glyph,
+  /// because the chip it sits in carries a bare number — and a mark and a
+  /// count only read as "stars on GitHub" together.
+  static const IconData github = HugeIcons.strokeRoundedGithub01;
   static const IconData back = HugeIcons.strokeRoundedArrowLeft01;
   static const IconData forward = HugeIcons.strokeRoundedArrowRight01;
   static const IconData expand = HugeIcons.strokeRoundedArrowDown01;

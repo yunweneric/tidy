@@ -352,6 +352,30 @@ notarizes and staples both artifacts, and creates the GitHub release tagged
 one-time setup, what the updater expects of a release, and the two things that
 bite on the first signed build.
 
+**How many people downloaded it.** GitHub counts every release asset download,
+but only ever reports a running total — there is no "downloads last week"
+anywhere in the API. So `.github/workflows/download-stats.yml` samples the
+totals weekly into `metrics/downloads.csv`, and the difference between two rows
+is the answer. Run it yourself any time:
+
+```bash
+./scripts/download_stats.sh            # current counts, and the change since the last sample
+./scripts/download_stats.sh --append   # ... and record this sample
+```
+
+The three assets do not measure the same thing, and it is easy to read the
+wrong one:
+
+| Asset | What it counts |
+| --- | --- |
+| `Tidy-<v>.dmg` | Closest to a person deciding to install Tidy — only humans fetch it |
+| `Tidy-<v>-macos.zip` | New installs **plus every in-app update**; the updater downloads this |
+| `SHA256SUMS.txt` | Fetched while *checking* for an update, so it tracks active installs |
+
+None of them deduplicate — crawlers and mirrors count, and one person
+downloading twice counts twice. There is no analytics in the app and none on
+the landing page; this is the whole of what is measured.
+
 **Unsigned releases from CI.** `.github/workflows/ci.yml` lints and builds every
 push and PR, and on a `v*` tag publishes the zip, the DMG and `SHA256SUMS.txt`
 to a GitHub Release. It runs `scripts/build_dmg.sh --flavor prod` — only ever
@@ -485,6 +509,9 @@ scripts/
   hooks/pre-commit          Format check on staged Dart, mirroring CI
   generate_icons.py         Regenerate both flavors' icons and the menu bar glyph
   generate_og_image.py      Regenerate the landing page's social card
+  download_stats.sh         Sample release download counts → metrics/downloads.csv
+metrics/
+  downloads.csv             Weekly snapshots of every release asset's download count
   generate_readme_hero.py   Frame the README screenshot as a macOS window
 docs/
   feature.md                How to build a feature, and the safety rules

@@ -1,0 +1,82 @@
+name: Download stats
+
+# GitHub counts every release asset download and keeps a running total, but
+# offers no history — there is no "downloads last week" anywhere in the API. So
+# the totals are sampled weekly and committed, and the differences between two
+# samples are the actual answer.
+#
+# Monday morning UTC, which puts the boundary between samples at a quiet point
+# rather than mid-week. GitHub delays scheduled runs under load and skips them
+# on repositories with no activity for 60 days, so treat the cadence as "about
+# weekly" — the snapshot carries its own timestamp, and the analysis reads the
+# gap between rows rather than assuming seven days.
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch: # for a sample on demand
+
+# Never two writers on one file: a second run starting while the first is
+# between `git pull` and `git push` would lose one of the two snapshots.
+concurrency:
+  group: download-stats
+  cancel-in-progress: false
+
+permissions:
+  contents: write # to commit the snapshot back
+
+jobs:
+  snapshot:
+    name: Record download counts
+    runs-on: ubuntu-latest
+    steps:
+      # Full history, because the commit below rebases onto whatever landed
+      # while this ran, and rebasing a shallow clone is a fight not worth
+      # having for a repository this size.
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Sample the release download counts
+        env:
+          # `scripts/download_stats.sh` shells out to `gh`, which reads this.
+          # The default token is enough: it only lists this repository's own
+          # public releases.
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          ./scripts/download_stats.sh --append | tee /tmp/downloads.txt
+          {
+            echo "## 📊 Downloads"
+            echo ""
+            echo '```'
+            cat /tmp/downloads.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Commit the snapshot
+        run: |
+          set -euo pipefail
+
+          # `git status --porcelain` rather than `git diff --quiet`: diff only
+          # sees tracked files, so on the run that first creates the CSV it
+          # would report no change and the snapshot would never be committed.
+          if [[ -z "$(git status --porcelain -- metrics/downloads.csv)" ]]; then
+            echo "No new rows — nothing to commit."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add metrics/downloads.csv
+
+          # `[skip ci]` because ci.yml runs on every push to main, and a row in
+          # a CSV does not need a macOS build, a notarization-shaped artifact,
+          # or fifteen minutes of a runner.
+          git commit -m "Record release download counts [skip ci]"
+
+          # A rebase rather than a plain push: the schedule can land at the same
+          # moment as a human push, and losing the sample to a rejected
+          # non-fast-forward would leave a hole in the history for that week.
+          git pull --rebase origin main
+          git push origin HEAD:main
