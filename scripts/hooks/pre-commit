@@ -46,11 +46,21 @@ fi
 # Check the *staged* content, not the file on disk. With a partially staged
 # file those differ, and it is the staged version that becomes the commit — and
 # the version CI will see.
-TMP="$(mktemp -d "${TMPDIR:-/tmp}/tidy-fmt.XXXXXX")"
+#
+# Inside `.dart_tool/`, and that is load-bearing rather than tidiness. The
+# formatter picks its style from the language version it resolves for a file:
+# under this package's `sdk: ^3.7.2` a wrapped conditional indents one way, and
+# with no package in sight it defaults to the newest style and indents it
+# another. A scratch directory in /tmp resolves to no package at all, so every
+# file carrying a wrapped ternary came back "unformatted" against a style the
+# repo will never be checked with. `.dart_tool/` is inside the package root, so
+# the walk up finds `.dart_tool/package_config.json` and agrees with CI — and it
+# is already gitignored.
+TMP="$(mktemp -d "$(git rev-parse --show-toplevel)/.dart_tool/precommit.XXXXXX")"
 trap 'rm -rf "$TMP"' EXIT
-# On macOS mktemp hands back a path under /var, which is a symlink to
-# /private/var. dart format reports the resolved path, so the prefix stripped
-# from its output below has to be resolved too or it will not match.
+# On macOS mktemp can hand back a path under a symlink (/var → /private/var).
+# dart format reports the resolved path, so the prefix stripped from its output
+# below has to be resolved too or it will not match.
 TMP="$(cd "$TMP" && pwd -P)"
 
 for file in "${STAGED[@]}"; do

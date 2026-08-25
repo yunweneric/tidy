@@ -188,6 +188,63 @@ class PreviewLaunchItem {
   );
 }
 
+/// One provider's limit window, as the AI Usage popover draws it.
+///
+/// `usedPercent` is null where the provider publishes no allowance. That is the
+/// honesty boundary the real panel is built around: Codex reports its own
+/// `used_percent` and gets a percentage, Claude Code publishes nothing, so its
+/// windows can only report the tokens that went through them. Inventing a
+/// denominator for the second would be the single most tempting lie in the
+/// feature, and the preview does not tell it either.
+@immutable
+class PreviewUsageWindow {
+  const PreviewUsageWindow({
+    required this.label,
+    required this.resetsIn,
+    required this.tokens,
+    required this.elapsed,
+    this.usedPercent,
+  });
+
+  final String label;
+  final String resetsIn;
+
+  /// Already formatted the way `formatCount` would render it.
+  final String tokens;
+
+  /// How far through the window the clock is, 0–1.
+  final double elapsed;
+
+  final double? usedPercent;
+
+  bool get isMeasured => usedPercent != null;
+
+  /// How full the bar is — the allowance where one is published, the clock
+  /// where it is not. An inferred window still draws a bar, dimmed, because a
+  /// row with an empty track reads as a reading that failed rather than as a
+  /// window nobody publishes a ceiling for.
+  double get fraction => (usedPercent ?? elapsed * 100) / 100;
+}
+
+/// One model's share of the day, for the popover's Models section.
+@immutable
+class PreviewModelUsage {
+  const PreviewModelUsage({
+    required this.model,
+    required this.tokens,
+    required this.cost,
+    this.priced = true,
+  });
+
+  final String model;
+  final String tokens;
+  final String cost;
+
+  /// Nobody publishes a per-token rate for the Codex models, and `$0.00` would
+  /// say those tokens were free rather than unpriced. Those rows draw a dash.
+  final bool priced;
+}
+
 /// A running process, for the heavy-consumers table.
 @immutable
 class PreviewProcess {
@@ -562,6 +619,65 @@ class PreviewMac extends ChangeNotifier {
     PreviewProcess(name: 'mds_stores', cpu: 11.9, memoryBytes: 240 * _mb),
     PreviewProcess(name: 'Docker', cpu: 6.4, memoryBytes: 2 * _gb + 100 * _mb),
     PreviewProcess(name: 'WindowServer', cpu: 4.1, memoryBytes: 620 * _mb),
+  ];
+
+  // ─── AI usage ────────────────────────────────────────────────────────────
+
+  /// Today, at published API rates — which is a floor, not a bill.
+  static const String aiCostToday = r'$12.84';
+  static const String aiTokensToday = '8.4M';
+  static const int aiRepliesToday = 214;
+  static const int aiSessionsToday = 6;
+
+  static const List<({String provider, List<PreviewUsageWindow> windows})>
+  aiWindows = [
+    (
+      provider: 'Claude Code',
+      windows: [
+        PreviewUsageWindow(
+          label: 'Session (5h)',
+          resetsIn: '2h 41m',
+          tokens: '5.1M',
+          elapsed: 0.46,
+        ),
+        PreviewUsageWindow(
+          label: 'Week',
+          resetsIn: '4d 6h',
+          tokens: '31.8M',
+          elapsed: 0.39,
+        ),
+      ],
+    ),
+    (
+      provider: 'Codex',
+      windows: [
+        PreviewUsageWindow(
+          label: 'Session (5h)',
+          resetsIn: '1h 09m',
+          tokens: '820K',
+          elapsed: 0.77,
+          usedPercent: 38.2,
+        ),
+        PreviewUsageWindow(
+          label: 'Week',
+          resetsIn: '2d 14h',
+          tokens: '6.4M',
+          elapsed: 0.63,
+          usedPercent: 71.5,
+        ),
+      ],
+    ),
+  ];
+
+  static const List<PreviewModelUsage> aiModels = [
+    PreviewModelUsage(model: 'claude-opus-5', tokens: '4.9M', cost: r'$9.12'),
+    PreviewModelUsage(model: 'claude-sonnet-5', tokens: '2.3M', cost: r'$3.72'),
+    PreviewModelUsage(
+      model: 'gpt-5.1-codex',
+      tokens: '1.2M',
+      cost: '—',
+      priced: false,
+    ),
   ];
 
   // ─── Mutable state ───────────────────────────────────────────────────────

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:tidy/core/design/design.dart';
 import 'package:tidy/core/utils/byte_format.dart';
+import 'package:tidy/core/utils/duration_format.dart';
 import 'package:tidy/core/widgets/widgets.dart';
 import 'package:tidy/features/ai_usage/data/models/ai_usage_report.dart';
 import 'package:tidy/features/ai_usage/data/models/usage_totals.dart';
@@ -186,7 +187,7 @@ class _BlockPanel extends StatelessWidget {
         Text(
           left == Duration.zero
               ? 'This block has closed.'
-              : '${_span(left)} left in the block',
+              : '${formatCountdown(left)} left in the block',
           style: text.caption.copyWith(color: colors.textSecondary),
         ),
       ],
@@ -253,13 +254,6 @@ class _CodexPanel extends StatelessWidget {
 String _clock(DateTime at) =>
     '${at.hour.toString().padLeft(2, '0')}:'
     '${at.minute.toString().padLeft(2, '0')}';
-
-String _span(Duration left) {
-  final hours = left.inHours;
-  final minutes = left.inMinutes % 60;
-  if (hours == 0) return '${minutes}m';
-  return '${hours}h ${minutes}m';
-}
 
 String _window(Duration window) {
   if (window.inDays >= 1) return '${window.inDays}-DAY';

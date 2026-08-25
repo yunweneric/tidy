@@ -1,0 +1,13 @@
+// The prod flavour: the shipping app.
+//
+// Everything it needs is already in AppInfo.xcconfig — this file exists so the
+// two flavours are symmetrical, and so `--flavor prod` and a plain unflavoured
+// `Release` build produce the same bundle rather than nearly the same one.
+// `scripts/build_dmg.sh` and CI use the unflavoured configurations; keep the
+// two identical.
+
+#include "AppInfo.xcconfig"
+
+// Set here rather than in the target's build settings, so that every difference
+// between the flavours sits in these two files and nowhere else.
+ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon

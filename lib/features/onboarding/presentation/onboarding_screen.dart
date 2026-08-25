@@ -1,28 +1,42 @@
 import 'package:flutter/material.dart';
 import 'package:tidy/core/design/design.dart';
+import 'package:tidy/core/platform/app_data_access_service.dart';
 import 'package:tidy/core/platform/full_disk_access_service.dart';
 import 'package:tidy/core/settings/app_settings.dart';
 import 'package:tidy/core/widgets/status_chip.dart';
 import 'package:tidy/core/widgets/tidy_card.dart';
 import 'package:tidy/features/onboarding/presentation/widgets/onboarding_frame.dart';
 
-/// First-run introduction, ending in the Full Disk Access request.
+/// First-run introduction, ending in the permission requests.
 ///
-/// The permission step exists because there is no API to request Full Disk
-/// Access — the user has to add the app by hand in System Settings. An app that
-/// sends people there with no explanation is indistinguishable from malware, so
-/// this says what the permission unlocks, what happens without it, and that a
-/// relaunch is required before the grant takes effect.
+/// Two permissions, asked differently, because macOS treats them differently:
+///
+/// - **Full Disk Access** cannot be requested at all. The user has to add the
+///   app by hand in System Settings, so the step deep-links there, says what
+///   the permission unlocks, and warns that a relaunch is needed before the
+///   grant takes effect.
+/// - **Other apps' data** (`kTCCServiceSystemPolicyAppData`, new in Sonoma) can
+///   only be requested by *using* it — the first access is the prompt. So it
+///   gets a button that triggers macOS's own dialog on purpose.
+///
+/// The second one is the reason this screen exists in its current shape. That
+/// dialog used to appear at launch, unbidden, because the Full Disk Access
+/// probe listed `~/Library/Containers` as a fallback. An app that sends people
+/// to a privacy pane with no explanation is indistinguishable from malware;
+/// one that throws "would like to access data from other apps" at them before
+/// it has introduced itself is worse.
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({
     super.key,
     required this.settings,
     required this.fullDiskAccess,
+    required this.appDataAccess,
     required this.onFinished,
   });
 
   final AppSettings settings;
   final FullDiskAccessService fullDiskAccess;
+  final AppDataAccessService appDataAccess;
   final VoidCallback onFinished;
 
   @override
@@ -39,6 +53,10 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     widget.fullDiskAccess.refresh();
+    // Silent unless the question has already been put — see
+    // `AppDataAccessService.refresh`, which is a no-op until then. Onboarding
+    // must not be the thing that springs the dialog.
+    widget.appDataAccess.refresh();
   }
 
   @override
@@ -53,6 +71,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     // making them find the Re-check button.
     if (state == AppLifecycleState.resumed) {
       widget.fullDiskAccess.refresh();
+      widget.appDataAccess.refresh();
     }
   }
 
@@ -233,18 +252,30 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     return OnboardingFrame(
       stepIndex: 3,
       stepCount: _stepCount,
-      title: 'One permission to grant',
+      title: 'Two permissions to grant',
       subtitle:
-          'macOS keeps other apps’ data behind Full Disk Access. Without it, '
-          '${Brand.name} can only see part of your disk — and will quietly '
-          'under-report what it finds.',
+          'macOS keeps the rest of your disk behind these. Without them '
+          '${Brand.name} can only see part of it — and will say so rather than '
+          'quietly under-reporting what it finds.',
       primaryLabel: 'Finish',
       onPrimary: _finish,
       onBack: () => setState(() => _step--),
+      // Merged rather than nested: the two cards sit in one column and either
+      // service can change while the other is mid-probe.
       child: AnimatedBuilder(
-        animation: widget.fullDiskAccess,
+        animation: Listenable.merge([
+          widget.fullDiskAccess,
+          widget.appDataAccess,
+        ]),
         builder:
-            (context, _) => _PermissionCard(service: widget.fullDiskAccess),
+            (context, _) => Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _FullDiskCard(service: widget.fullDiskAccess),
+                const SizedBox(height: AppSpacing.lg),
+                _AppDataCard(service: widget.appDataAccess),
+              ],
+            ),
       ),
     );
   }
@@ -302,9 +333,109 @@ class _Feature extends StatelessWidget {
   }
 }
 
-/// Live permission state plus the two things the user can do about it.
+/// The shell both permission cards are built from.
+///
+/// One shape, so the two grants read as two of the same thing rather than as
+/// two features that happen to be adjacent — the tinted glyph, the live status
+/// chip, one paragraph of what it unlocks, and the actions underneath.
 class _PermissionCard extends StatelessWidget {
-  const _PermissionCard({required this.service});
+  const _PermissionCard({
+    required this.title,
+    required this.granted,
+    required this.checking,
+    required this.body,
+    this.actions = const [],
+  });
+
+  final String title;
+
+  /// Null means the question has not been answered yet — which for the app-data
+  /// grant is a real state, not a loading one.
+  final bool? granted;
+
+  final bool checking;
+  final String body;
+  final List<Widget> actions;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final tone = granted == true ? colors.safe : colors.review;
+
+    return TidyCard(
+      accent: tone,
+      selected: true,
+      padding: const EdgeInsets.all(AppSpacing.xl),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: tone.withValues(alpha: 0.13),
+              borderRadius: AppRadii.mdAll,
+            ),
+            child: Icon(
+              granted == true ? AppIcons.unlocked : AppIcons.locked,
+              size: 21,
+              color: tone,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.lg),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(title, style: context.text.titleM),
+                    const SizedBox(width: AppSpacing.md),
+                    if (checking)
+                      const SizedBox(
+                        width: 13,
+                        height: 13,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    else if (granted == true)
+                      StatusChip(
+                        label: 'Granted',
+                        color: colors.safe,
+                        icon: AppIcons.safe,
+                      )
+                    else if (granted == false)
+                      StatusChip(
+                        label: 'Not granted',
+                        color: colors.review,
+                        icon: AppIcons.locked,
+                      ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Text(body, style: context.text.bodyM),
+                if (actions.isNotEmpty) ...[
+                  const SizedBox(height: AppSpacing.lg),
+                  Row(
+                    children: [
+                      for (var i = 0; i < actions.length; i++) ...[
+                        if (i > 0) const SizedBox(width: AppSpacing.sm),
+                        actions[i],
+                      ],
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Full Disk Access: cannot be requested, only explained and deep-linked to.
+class _FullDiskCard extends StatelessWidget {
+  const _FullDiskCard({required this.service});
 
   final FullDiskAccessService service;
 
@@ -316,87 +447,28 @@ class _PermissionCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        TidyCard(
-          accent: granted == true ? colors.safe : colors.review,
-          selected: true,
-          padding: const EdgeInsets.all(AppSpacing.xl),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: (granted == true ? colors.safe : colors.review)
-                      .withValues(alpha: 0.13),
-                  borderRadius: AppRadii.mdAll,
-                ),
-                child: Icon(
-                  granted == true ? AppIcons.unlocked : AppIcons.locked,
-                  size: 21,
-                  color: granted == true ? colors.safe : colors.review,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.lg),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text('Full Disk Access', style: context.text.titleM),
-                        const SizedBox(width: AppSpacing.md),
-                        if (service.isChecking)
-                          const SizedBox(
-                            width: 13,
-                            height: 13,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        else if (granted == true)
-                          StatusChip(
-                            label: 'Granted',
-                            color: colors.safe,
-                            icon: AppIcons.safe,
-                          )
-                        else if (granted == false)
-                          StatusChip(
-                            label: 'Not granted',
-                            color: colors.review,
-                            icon: AppIcons.locked,
-                          ),
-                      ],
+        _PermissionCard(
+          title: 'Full Disk Access',
+          granted: granted,
+          checking: service.isChecking,
+          body:
+              granted == true
+                  ? 'You are all set. Scans can see your whole disk.'
+                  : 'Unlocks Mail and Messages attachments, iOS backups and Safari '
+                      'data — a large share of what is worth reclaiming.',
+          actions:
+              granted == true
+                  ? const []
+                  : [
+                    ElevatedButton(
+                      onPressed: service.openSettings,
+                      child: const Text('Open System Settings'),
                     ),
-                    const SizedBox(height: AppSpacing.sm),
-                    Text(
-                      granted == true
-                          ? 'You are all set. Scans can see your whole disk.'
-                          : 'Unlocks Mail and Messages attachments, other apps’ '
-                              'containers, iOS backups and Safari data — a '
-                              'large share of what is worth reclaiming.',
-                      style: context.text.bodyM,
+                    TextButton(
+                      onPressed: service.isChecking ? null : service.refresh,
+                      child: const Text('Re-check'),
                     ),
-                    if (granted != true) ...[
-                      const SizedBox(height: AppSpacing.lg),
-                      Row(
-                        children: [
-                          ElevatedButton(
-                            onPressed: service.openSettings,
-                            child: const Text('Open System Settings'),
-                          ),
-                          const SizedBox(width: AppSpacing.sm),
-                          TextButton(
-                            onPressed:
-                                service.isChecking ? null : service.refresh,
-                            child: const Text('Re-check'),
-                          ),
-                        ],
-                      ),
-                    ],
                   ],
-                ),
-              ),
-            ],
-          ),
         ),
         if (granted != true) ...[
           const SizedBox(height: AppSpacing.lg),
@@ -408,12 +480,69 @@ class _PermissionCard extends StatelessWidget {
               const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: Text(
-                  'You can skip this and grant it later from Settings. '
-                  '${Brand.name} works without it — it will just find less.',
+                  'You can skip both of these and grant them later from '
+                  'Settings. ${Brand.name} works without them — it will just '
+                  'find less.',
                   style: context.text.bodyS,
                 ),
               ),
             ],
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+/// Other apps' data: the one permission Tidy can actually ask for.
+///
+/// macOS shows its own dialog the first time the containers directory is read,
+/// so the button here does not "open settings" — it does the read, and the
+/// system takes it from there. After that the answer is cached and the button
+/// becomes a deep link, because a second read will not re-prompt.
+class _AppDataCard extends StatelessWidget {
+  const _AppDataCard({required this.service});
+
+  final AppDataAccessService service;
+
+  @override
+  Widget build(BuildContext context) {
+    final granted = service.granted;
+    final asked = service.hasBeenAsked;
+
+    return _PermissionCard(
+      title: 'Other apps’ data',
+      granted: granted,
+      checking: service.isChecking,
+      body: switch (granted) {
+        true =>
+          'You are all set. Leftovers inside other apps’ containers are '
+              'visible to a scan.',
+        false =>
+          'Without it, ${Brand.name} cannot see inside other apps’ '
+              'containers — where a good deal of cache and leftover data '
+              'lives. It will report what it could not read rather than '
+              'counting it as zero.',
+        null =>
+          'macOS asks for this one itself, the first time ${Brand.name} looks '
+              'inside another app’s container. Getting it over with here means '
+              'the dialog arrives now, with an explanation, instead of halfway '
+              'through your first scan.',
+      },
+      actions: [
+        if (!asked)
+          ElevatedButton(
+            onPressed: service.isChecking ? null : service.request,
+            child: const Text('Ask macOS now'),
+          )
+        else if (granted != true) ...[
+          ElevatedButton(
+            onPressed: service.openSettings,
+            child: const Text('Open System Settings'),
+          ),
+          TextButton(
+            onPressed: service.isChecking ? null : service.refresh,
+            child: const Text('Re-check'),
           ),
         ],
       ],

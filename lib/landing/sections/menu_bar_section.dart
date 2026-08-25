@@ -25,7 +25,7 @@ const double _kVertical = 64;
 class _MenuBarSectionState extends State<MenuBarSection> {
   final PreviewMac _mac = PreviewMac();
 
-  MenuBarPanelKind _panel = MenuBarPanelKind.dashboard;
+  MenuBarPanelKind _panel = MenuBarPanelKind.aiUsage;
 
   Timer? _ticker;
 
@@ -51,6 +51,9 @@ class _MenuBarSectionState extends State<MenuBarSection> {
     MenuBarPanelKind.dashboard:
         'Live vitals, the one thing worth doing, what is using the most CPU, '
         'and what you copied last. Most of it is actionable from here.',
+    MenuBarPanelKind.aiUsage:
+        'What your AI coding tools got through today, what it would cost at '
+        'published rates, and how much of each provider’s window is gone.',
     MenuBarPanelKind.clipboard:
         'The last few things you copied, one keystroke away — ⌘⇧V opens it '
         'from anywhere, with no Accessibility permission.',

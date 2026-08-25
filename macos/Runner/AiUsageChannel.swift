@@ -14,7 +14,16 @@ import Foundation
 struct AiUsageSummary {
   /// Bumped when the shape changes. A summary written by an older build is
   /// discarded rather than half-read.
-  static let version = 1
+  ///
+  /// Must match `AiUsageSummary.version` in
+  /// `lib/features/ai_usage/data/models/ai_usage_summary.dart`. A mismatch is
+  /// not a partial read — `fromMap` rejects the whole summary, and the status
+  /// item quietly falls back to a bare glyph with nothing to say why.
+  ///
+  /// 2 added `windows`, the per-provider limit rows the popover draws. Nothing
+  /// here reads them: they cross this channel on their way to the second
+  /// Flutter engine, which is what `raw` is for.
+  static let version = 2
 
   var generatedAt: Date
   var tokensToday = 0

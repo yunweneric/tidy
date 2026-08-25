@@ -7,6 +7,12 @@ class MainFlutterWindow: NSWindow, NSWindowDelegate {
     // view controller starts the Dart isolate that reads settings.json.
     AppSupport.migrate()
 
+    // Before the view controller, because this is what the window is painted
+    // with until Flutter's first frame lands — and on a cold start that gap is
+    // long enough to see. `SplashGate` on the Dart side covers everything
+    // after it; this covers everything before.
+    self.backgroundColor = AppearancePrefs.launchBackground
+
     let flutterViewController = FlutterViewController()
     self.contentViewController = flutterViewController
 

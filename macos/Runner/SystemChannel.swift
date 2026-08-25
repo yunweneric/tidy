@@ -55,6 +55,17 @@ enum SystemChannel {
       result(nil)
     case "fullDiskAccessStatus":
       result(["granted": FullDiskAccess.isGranted])
+    // Both of these do the same work; the two names exist so the call site has
+    // to say which it means. `requestAppData` is allowed to put macOS's dialog
+    // on screen, `appDataAccessStatus` is only ever called once the user has
+    // already answered it. See `AppDataAccess`.
+    case "requestAppDataAccess":
+      result(["granted": AppDataAccess.request()])
+    case "appDataAccessStatus":
+      result(["granted": AppDataAccess.isGranted])
+    case "openAppDataSettings":
+      AppDataAccess.openSettings()
+      result(nil)
     case "canReadPaths":
       let paths = (call.arguments as? [String: Any])?["paths"] as? [String] ?? []
       result(Dictionary(uniqueKeysWithValues: paths.map { ($0, FullDiskAccess.canRead($0)) }))

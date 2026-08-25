@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs><linearGradient id="fb-ramp" x1="0" y1="0" x2="0" y2="1"><stop offset="0.0" stop-color="#FFE6BE"/><stop offset="0.34" stop-color="#F59E0B"/><stop offset="1.0" stop-color="#B45309"/></linearGradient><linearGradient id="fb-top" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.55"/><stop offset="0.14" stop-color="#FFFFFF" stop-opacity="0"/></linearGradient><linearGradient id="fb-bottom" x1="0" y1="0" x2="0" y2="1"><stop offset="0.62" stop-color="#5A2A05" stop-opacity="0"/><stop offset="1" stop-color="#5A2A05" stop-opacity="0.42"/></linearGradient></defs>
+  <rect width="1024" height="1024" fill="url(#fb-ramp)"/>
+  <rect width="1024" height="1024" fill="url(#fb-top)"/>
+  <rect width="1024" height="1024" fill="url(#fb-bottom)"/>
+  <g transform="translate(232.000 232.000) scale(11.666667)">
+    <rect x="7" y="10" width="34" height="23" rx="5" stroke="#FFFFFF" stroke-width="3.0" fill="none"/>
+    <path d="M20.5 33v4h7v-4M16 39h16" stroke="#FFFFFF" stroke-width="3.0" stroke-linecap="round" fill="none"/>
+    <path d="M24 14.5c1.3 4.8 3.2 6.7 8 8-4.8 1.3-6.7 3.2-8 8-1.3-4.8-3.2-6.7-8-8 4.8-1.3 6.7-3.2 8-8Z" fill="#FFFFFF"/>
+  </g>
+</svg>

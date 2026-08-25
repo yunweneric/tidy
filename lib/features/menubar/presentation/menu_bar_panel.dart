@@ -5,14 +5,12 @@ import 'package:tidy/core/design/design.dart';
 import 'package:tidy/core/di/service_locator.dart';
 import 'package:tidy/core/platform/system_bridge.dart';
 import 'package:tidy/core/utils/byte_format.dart';
-import 'package:tidy/core/widgets/size_bar.dart';
 import 'package:tidy/features/apps/data/services/junk_scanner.dart';
 import 'package:tidy/features/apps/data/services/scan_cache.dart';
 import 'package:tidy/core/models/clipboard_entry.dart';
 import 'package:tidy/features/clipboard/data/services/clipboard_service.dart';
 import 'package:tidy/core/insights/health_insight.dart';
 import 'package:tidy/features/ai_usage/data/models/ai_usage_summary.dart';
-import 'package:tidy/features/ai_usage/data/models/usage_window.dart';
 import 'package:tidy/features/ai_usage/data/services/ai_usage_bridge.dart';
 import 'package:tidy/features/menubar/domain/menu_bar_surface.dart';
 import 'package:tidy/features/menubar/platform/popover_bridge.dart';
@@ -24,6 +22,7 @@ import 'package:tidy/features/menubar/presentation/widgets/menu_bar_network.dart
 import 'package:tidy/features/menubar/presentation/widgets/menu_bar_process_row.dart';
 import 'package:tidy/features/menubar/presentation/widgets/menu_bar_reclaim_row.dart';
 import 'package:tidy/features/menubar/presentation/widgets/menu_bar_section.dart';
+import 'package:tidy/features/menubar/presentation/widgets/menu_bar_usage_window.dart';
 import 'package:tidy/features/menubar/presentation/widgets/menu_bar_tabs.dart';
 import 'package:tidy/features/menubar/presentation/widgets/menu_bar_vitals.dart';
 import 'package:tidy/features/network/data/models/network_sample.dart';
@@ -730,8 +729,9 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
       ];
     }
 
-    final block = summary.blockStartsAt;
-    final elapsed = summary.blockElapsedAt(DateTime.now());
+    // One reading for every row in this build, so two countdowns cannot
+    // disagree by a minute because they were built either side of one.
+    final now = DateTime.now();
 
     return [
       Padding(
@@ -778,40 +778,47 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
           ],
         ),
       ),
-      if (block != null && elapsed != null) ...[
+      // One card, a section per provider, a row per window — the shape of the
+      // question people actually ask the icon: how much is left, and when does
+      // it come back. What each row is allowed to claim differs by provider and
+      // is decided in `AiUsageWindow`, not here.
+      if (summary.windows.isNotEmpty) ...[
         const Divider(height: 1),
-        MenuBarSection(
-          title: 'Session block',
-          trailing: '${_clock(block)} – ${_clock(block.add(kBlockLength))}',
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.md + 2,
-            0,
-            AppSpacing.md + 2,
-            AppSpacing.sm,
+        const MenuBarSection(title: 'Usage'),
+        for (final provider in summary.providersWithWindows) ...[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.md + 2,
+              AppSpacing.xxs,
+              AppSpacing.md + 2,
+              AppSpacing.xxs,
+            ),
+            child: Text(
+              provider.label,
+              style: text.titleS.copyWith(color: colors.textPrimary),
+            ),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Text(
-                    '${formatCount(summary.blockTokens)} tokens',
-                    style: text.bodyM,
-                  ),
-                  const Spacer(),
-                  Text(formatUsd(summary.blockCost), style: text.titleS),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.xs),
-              // Elapsed time, not an allowance. Neither CLI writes a limit
-              // down, so there is no denominator to draw a percentage against
-              // and this bar does not pretend there is.
-              SizeBar(fraction: elapsed, color: colors.accent, height: 4),
-            ],
+          for (final window in summary.windowsFor(provider))
+            MenuBarUsageWindow(window: window, now: now),
+          const SizedBox(height: AppSpacing.xs),
+        ],
+        if (summary.windows.any((window) => !window.isMeasured))
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.md + 2,
+              0,
+              AppSpacing.md + 2,
+              AppSpacing.sm,
+            ),
+            child: Text(
+              // Said once, at the bottom, rather than on every row it applies
+              // to. The rows already differ — a percentage against tokens — and
+              // this is the sentence that explains why they do.
+              'Claude Code publishes no limit, so its windows show what went '
+              'through them rather than a share of an allowance.',
+              style: text.caption,
+            ),
           ),
-        ),
       ],
       if (summary.topModels.isNotEmpty) ...[
         const Divider(height: 1),

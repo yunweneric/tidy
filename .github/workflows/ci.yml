@@ -120,10 +120,30 @@ jobs:
 
       # The same script a developer runs locally, so a CI artifact and a
       # hand-built one are the same thing: ad-hoc signed, never notarized.
+      #
+      # `--flavor prod` explicitly. CI ships to users, so it builds the
+      # shipping identity and nothing else — `com.yunweneric.tidy`, the violet
+      # icon, `Tidy.app`. Naming it beats relying on the unflavoured `Release`
+      # configuration meaning the same thing: it does, but only by convention,
+      # and a release is the wrong place to lean on one.
       - name: Build & package
         env:
           VERSION: ${{ needs.prepare.outputs.version }}
-        run: ./scripts/build_dmg.sh --zip --version "$VERSION" --output-dir build/dist
+        run: ./scripts/build_dmg.sh --flavor prod --zip --version "$VERSION" --output-dir build/dist
+
+      # Cheap insurance against a flavour mix-up reaching a release: the bundle
+      # id is the one thing that would be silently wrong, and everything
+      # downstream — the updater's identity check, TCC grants — depends on it.
+      - name: Verify the bundle is prod
+        run: |
+          set -euo pipefail
+          APP="build/macos/Build/Products/Release-prod/Tidy.app"
+          ID="$(plutil -extract CFBundleIdentifier raw -o - "$APP/Contents/Info.plist")"
+          if [ "$ID" != "com.yunweneric.tidy" ]; then
+            echo "::error::Built $ID, expected com.yunweneric.tidy."
+            exit 1
+          fi
+          echo "Bundle id: $ID"
 
       # The updater reads a digest out of SHA256SUMS.txt rather than trusting
       # GitHub's asset `digest`, which is only recorded for recent uploads. It

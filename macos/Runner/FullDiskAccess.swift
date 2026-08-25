@@ -21,6 +21,10 @@ enum FullDiskAccess {
       "\(home)/Library/Application Support/com.apple.TCC/TCC.db",
       "\(home)/Library/Safari/CloudTabs.db",
       "\(home)/Library/Messages/chat.db",
+      // Files, not directories: the probe below opens a handle, and `open()`
+      // on a directory succeeds for reasons that have nothing to do with TCC.
+      "\(home)/Library/Cookies/Cookies.binarycookies",
+      "\(home)/Library/Application Support/com.apple.sharedfilelist/com.apple.LSSharedFileList.RecentDocuments.sfl3",
     ]
   }
 
@@ -36,15 +40,16 @@ enum FullDiskAccess {
       return true
     }
 
-    // None of the probe files exist (a fresh account that has never opened
-    // Safari or Messages). Fall back to listing a protected directory.
-    let containers = "\(NSHomeDirectory())/Library/Containers"
-    if fm.fileExists(atPath: containers) {
-      return (try? fm.contentsOfDirectory(atPath: containers)) != nil
-    }
-
-    // Nothing to probe. Report granted rather than blocking the user behind a
+    // Nothing to probe: a fresh account that has never opened Safari, Mail or
+    // Messages. Report granted rather than blocking the user behind a
     // permission request we cannot verify.
+    //
+    // This used to fall back to listing `~/Library/Containers`, which was a
+    // mistake. That directory is other apps' data, and on Sonoma and later
+    // touching it trips `kTCCServiceSystemPolicyAppData` — so a probe whose
+    // whole point was to be silent put "Tidy would like to access data from
+    // other apps" on screen at launch, before onboarding had said a word about
+    // it. See `AppDataAccess`, which asks for that deliberately instead.
     return true
   }
 

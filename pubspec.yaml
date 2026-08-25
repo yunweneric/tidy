@@ -120,6 +120,11 @@ flutter:
 # The sources under `assets/icon/` are themselves generated — run
 # `python3 scripts/generate_icons.py` first if the mark changes.
 #
+# Prod only. `flutter_launcher_icons` knows about one icon per platform, so the
+# dev flavour's macOS set is written directly into
+# `macos/Runner/Assets.xcassets/AppIcon-dev.appiconset` by that same script,
+# and `dart run flutter_launcher_icons` leaves it alone.
+#
 # Three source images rather than one, because the platforms want genuinely
 # different things: iOS/web/Android-legacy mask the icon themselves and need it
 # edge to edge, macOS and Windows want the tile drawn inside the canvas with its

@@ -13,15 +13,13 @@
 #   ./scripts/build_dmg.sh --zip              # also emit Tidy-<v>-macos.zip
 #   ./scripts/build_dmg.sh --version 1.2.0    # override the artifact version
 #   ./scripts/build_dmg.sh --output-dir DIR   # write artifacts somewhere else
+#   ./scripts/build_dmg.sh --flavor dev       # package the dev flavour instead
 
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 
-APP_NAME="Tidy"
-BUILD_DIR="build/macos/Build/Products/Release"
-APP_PATH="$BUILD_DIR/$APP_NAME.app"
 ENTITLEMENTS="macos/Runner/Release.entitlements"
 
 DIST_DIR="dist"
@@ -29,6 +27,10 @@ SKIP_BUILD=false
 OPEN_AFTER=false
 MAKE_ZIP=false
 VERSION=""
+# Empty means the unflavoured `Release` configuration — which is what CI and
+# `release.sh` build, and which is identical to `--flavor prod`. Kept as the
+# default so adding flavours changed nothing about the release path.
+FLAVOR=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -36,12 +38,34 @@ while [[ $# -gt 0 ]]; do
     --open) OPEN_AFTER=true ;;
     --zip) MAKE_ZIP=true ;;
     --version) VERSION="${2:?--version needs a value}"; shift ;;
+    --flavor) FLAVOR="${2:?--flavor needs a value}"; shift ;;
     --output-dir) DIST_DIR="${2:?--output-dir needs a value}"; shift ;;
-    -h|--help) sed -n '2,16p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) sed -n '2,17p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "Unknown option: $1" >&2; exit 1 ;;
   esac
   shift
 done
+
+# The flavour decides three things at once, and they have to agree: which Xcode
+# configuration is built, which scheme selects it, and what the resulting bundle
+# is called — `Tidy Dev.app` under `Products/Release-dev`, not `Tidy.app` under
+# `Products/Release`.
+case "$FLAVOR" in
+  "")   CONFIGURATION="Release";      SCHEME="Runner"; APP_NAME="Tidy" ;;
+  prod) CONFIGURATION="Release-prod"; SCHEME="prod";   APP_NAME="Tidy" ;;
+  dev)  CONFIGURATION="Release-dev";  SCHEME="dev";    APP_NAME="Tidy Dev" ;;
+  *)    echo "Unknown flavor: $FLAVOR (expected dev or prod)" >&2; exit 1 ;;
+esac
+
+BUILD_DIR="build/macos/Build/Products/$CONFIGURATION"
+APP_PATH="$BUILD_DIR/$APP_NAME.app"
+
+# An array rather than a bare `${FLAVOR:+...}`, so an empty flavour contributes
+# no argument at all instead of an empty one.
+FLUTTER_FLAVOR_ARGS=()
+if [[ -n "$FLAVOR" ]]; then
+  FLUTTER_FLAVOR_ARGS=(--flavor "$FLAVOR")
+fi
 
 # Version comes from pubspec unless overridden, so the DMG name tracks the app.
 # CI overrides it to append a short sha to builds that are not releases.
@@ -53,8 +77,11 @@ if [[ -z "$VERSION" ]]; then
   exit 1
 fi
 
-DMG_PATH="$DIST_DIR/$APP_NAME-$VERSION.dmg"
-ZIP_PATH="$DIST_DIR/$APP_NAME-$VERSION-macos.zip"
+# The artifact name drops the space so the updater's `Tidy-<version>-macos.zip`
+# convention survives a flavoured build.
+ARTIFACT_NAME="${APP_NAME// /-}"
+DMG_PATH="$DIST_DIR/$ARTIFACT_NAME-$VERSION.dmg"
+ZIP_PATH="$DIST_DIR/$ARTIFACT_NAME-$VERSION-macos.zip"
 
 echo "==> Building $APP_NAME $VERSION"
 
@@ -68,11 +95,11 @@ echo "==> Building $APP_NAME $VERSION"
 # which exist in a fresh checkout. It stops short of calling xcodebuild.
 if [[ "$SKIP_BUILD" == false ]]; then
   flutter pub get
-  flutter build macos --release --config-only
+  flutter build macos --release --config-only "${FLUTTER_FLAVOR_ARGS[@]}"
   xcrun xcodebuild \
     -workspace macos/Runner.xcworkspace \
-    -configuration Release \
-    -scheme Runner \
+    -configuration "$CONFIGURATION" \
+    -scheme "$SCHEME" \
     -derivedDataPath build/macos \
     -destination "platform=macOS,arch=arm64" \
     OBJROOT="$PWD/build/macos/Build/Intermediates.noindex" \
@@ -158,7 +185,7 @@ To open it on another Mac:
 
   1. Drag $APP_NAME to Applications, then open System Settings ->
      Privacy & Security and choose "Open Anyway", or
-  2. Run: xattr -dr com.apple.quarantine /Applications/$APP_NAME.app
+  2. Run: xattr -dr com.apple.quarantine "/Applications/$APP_NAME.app"
 
 $APP_NAME runs outside the App Sandbox (it has to, in order to inspect
 /Applications and ~/Library). Grant Full Disk Access in System Settings, then

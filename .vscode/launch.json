@@ -1,21 +1,60 @@
 {
   "version": "0.2.0",
   "configurations": [
+    // ─── The app ────────────────────────────────────────────────────────────
+    //
+    // `--flavor` is the whole of it: Flutter picks the matching Xcode
+    // configuration (`Debug-dev` for a debug run of `dev`), and the Dart side
+    // reads the same value back through `appFlavor` — so there is nothing to
+    // keep in sync by hand and no `--dart-define` to forget.
+    //
+    // Dev is first because it is the one to run: it installs as "Tidy Dev"
+    // with its own bundle id, its own amber icon and its own Application
+    // Support folder, so it cannot touch the copy of Tidy you actually use.
     {
-      "name": "Tidy (macOS)",
-      "request": "launch",
-      "type": "dart",
-      "program": "lib/main.dart",
-      "deviceId": "macos"
-    },
-    {
-      "name": "Tidy (macOS, profile)",
+      "name": "Tidy Dev (macOS)",
       "request": "launch",
       "type": "dart",
       "program": "lib/main.dart",
       "deviceId": "macos",
-      "flutterMode": "profile"
+      "args": ["--flavor", "dev"]
     },
+    {
+      "name": "Tidy Dev (macOS, profile)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "deviceId": "macos",
+      "flutterMode": "profile",
+      "args": ["--flavor", "dev"]
+    },
+    {
+      // The shipping identity, in a debug build. Reach for it only to
+      // reproduce something that depends on being prod — the real bundle id,
+      // or data already in `~/Library/Application Support/Tidy`. It shares
+      // both with the installed app, so it can lock its store and it answers
+      // to its Full Disk Access grant.
+      "name": "Tidy Prod (macOS)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "deviceId": "macos",
+      "args": ["--flavor", "prod"]
+    },
+    {
+      "name": "Tidy Prod (macOS, release)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "deviceId": "macos",
+      "flutterMode": "release",
+      "args": ["--flavor", "prod"]
+    },
+
+    // ─── The landing page ───────────────────────────────────────────────────
+    //
+    // No flavour: it compiles for the web, where there is no bundle id, no
+    // icon set and no Application Support folder to keep apart.
     {
       "name": "Landing page (Chrome)",
       "request": "launch",

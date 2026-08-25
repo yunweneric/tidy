@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:tidy/core/design/brand.dart';
 import 'package:tidy/core/logging/logging.dart';
 import 'package:tidy/features/apps/data/models/mac_app_model.dart';
 import 'package:path/path.dart' as p;
@@ -25,7 +26,11 @@ class CachedScan {
 /// re-scanning every disk on open.
 class ScanCache {
   static const int _formatVersion = 1;
-  static const String _appSupportFolder = 'Tidy';
+
+  /// Not a literal: the folder is per flavour, and a dev build writing its
+  /// scan cache into the shipping app's folder would hand it stale results
+  /// for apps it never scanned.
+  static String get _appSupportFolder => Brand.supportDirectoryName;
 
   Directory? _cachedDir;
 

@@ -13,7 +13,9 @@ class AppearanceSection extends StatelessWidget {
       children: [
         SettingsChoiceRow<ThemeMode>(
           title: 'Theme',
-          detail: 'Follows your macOS appearance unless you pick one.',
+          detail:
+              'Dark unless you pick otherwise. System follows your macOS '
+              'appearance instead.',
           options: const {
             ThemeMode.system: 'System',
             ThemeMode.light: 'Light',

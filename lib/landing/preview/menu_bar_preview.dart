@@ -18,6 +18,7 @@ import 'package:tidy/landing/preview/preview_mac.dart';
 /// before it can ship. Three of them is a gallery, not an inventory.
 enum MenuBarPanelKind {
   dashboard('Dashboard', AppIcons.brand, 460),
+  aiUsage('AI Usage', AppIcons.aiUsage, 320),
   clipboard('Clipboard', AppIcons.clipboard, 320),
   network('Network', AppIcons.network, 320);
 
@@ -73,6 +74,12 @@ class MenuBarPreview extends StatelessWidget {
   static const double _clockWidth = 74;
   static const double _wifiWidth = 28;
   static const double _networkWidth = 82;
+
+  /// The AI item draws today's spend rather than a glyph — `MenuBarSurface`
+  /// calls the two that do this `hasReadout`, and they are the reason the
+  /// consolidated layout exists at all.
+  static const double _aiWidth = 62;
+
   static const double _itemWidth = 38;
 
   static double get _barLeft => (width - _barWidth) / 2;
@@ -85,12 +92,14 @@ class MenuBarPreview extends StatelessWidget {
   /// addition is cheaper and more predictable than a post-frame read.
   static double _anchorFromRight(MenuBarPanelKind kind) {
     final network = _barPad + _clockWidth + _gap + _wifiWidth + _gap;
+    final clipboard = network + _networkWidth + _gap;
+    final ai = clipboard + _itemWidth + _gap;
+    final dashboard = ai + _aiWidth + _gap;
     return switch (kind) {
       MenuBarPanelKind.network => network + _networkWidth / 2,
-      MenuBarPanelKind.clipboard =>
-        network + _networkWidth + _gap + _itemWidth / 2,
-      MenuBarPanelKind.dashboard =>
-        network + _networkWidth + _gap + _itemWidth + _gap + _itemWidth / 2,
+      MenuBarPanelKind.clipboard => clipboard + _itemWidth / 2,
+      MenuBarPanelKind.aiUsage => ai + _aiWidth / 2,
+      MenuBarPanelKind.dashboard => dashboard + _itemWidth / 2,
     };
   }
 
@@ -242,6 +251,26 @@ class _Bar extends StatelessWidget {
             active: active,
             onSelect: onSelect,
             child: const BrandMark(size: 20, tile: false),
+          ),
+          const SizedBox(width: MenuBarPreview._gap),
+          _StatusItem(
+            kind: MenuBarPanelKind.aiUsage,
+            active: active,
+            onSelect: onSelect,
+            width: MenuBarPreview._aiWidth,
+            // The `cost` readout style: today's spend, in dollars, because the
+            // rates it comes from are published in dollars and nothing here
+            // converts them. The other two styles stack the token count under
+            // it, or draw how far into the current block you are.
+            child: Text(
+              PreviewMac.aiCostToday,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: colors.textPrimary,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
           ),
           const SizedBox(width: MenuBarPreview._gap),
           _StatusItem(
@@ -441,6 +470,7 @@ class _Popover extends StatelessWidget {
             borderRadius: BorderRadius.circular(AppRadii.lg - 1),
             child: switch (panel) {
               MenuBarPanelKind.dashboard => _DashboardPanel(mac: mac),
+              MenuBarPanelKind.aiUsage => const _AiUsagePanel(),
               MenuBarPanelKind.clipboard => _ClipboardPanel(mac: mac),
               // The one panel with a live figure in it, so the one panel that
               // subscribes.
@@ -703,6 +733,278 @@ class _Row extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+// ─── AI usage panel ────────────────────────────────────────────────────────
+
+/// What the AI coding tools have got through today, and how much of each
+/// provider's window is gone.
+///
+/// The shape of the question people actually ask this icon: how much is left,
+/// and when does it come back. Two providers answer it differently and the
+/// panel does not pretend otherwise — see [_WindowRow].
+class _AiUsagePanel extends StatelessWidget {
+  const _AiUsagePanel();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md + 2,
+            AppSpacing.md,
+            AppSpacing.md + 2,
+            AppSpacing.sm,
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'TODAY',
+                      style: context.text.overline.copyWith(
+                        color: colors.textMuted,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.xxs),
+                    Text(PreviewMac.aiCostToday, style: context.text.displayL),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    '${PreviewMac.aiTokensToday} tokens',
+                    style: context.text.bodyM,
+                  ),
+                  Text(
+                    '${PreviewMac.aiRepliesToday} replies · '
+                    '${PreviewMac.aiSessionsToday} sessions',
+                    style: context.text.caption,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        Divider(height: 1, color: colors.border),
+        const MenuBarSection(title: 'Usage'),
+        for (final group in PreviewMac.aiWindows) ...[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.md + 2,
+              AppSpacing.xxs,
+              AppSpacing.md + 2,
+              AppSpacing.xxs,
+            ),
+            child: Text(group.provider, style: context.text.titleS),
+          ),
+          for (final window in group.windows) _WindowRow(window: window),
+          const SizedBox(height: AppSpacing.xs),
+        ],
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md + 2,
+            0,
+            AppSpacing.md + 2,
+            AppSpacing.sm,
+          ),
+          child: Text(
+            // Said once, at the bottom, rather than on every row it applies to.
+            'Claude Code publishes no limit, so its windows show what went '
+            'through them rather than a share of an allowance.',
+            style: context.text.caption,
+          ),
+        ),
+        Divider(height: 1, color: colors.border),
+        const MenuBarSection(title: 'Models'),
+        for (final model in PreviewMac.aiModels)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.md + 2,
+              AppSpacing.xxs,
+              AppSpacing.md + 2,
+              AppSpacing.xxs,
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    model.model,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: context.text.bodyM,
+                  ),
+                ),
+                Text(model.tokens, style: context.text.caption),
+                const SizedBox(width: AppSpacing.sm),
+                SizedBox(
+                  width: 58,
+                  child: Text(
+                    model.cost,
+                    textAlign: TextAlign.right,
+                    style: context.text.bodyM.copyWith(
+                      color:
+                          model.priced ? colors.textPrimary : colors.textMuted,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        Padding(
+          padding: const EdgeInsets.all(AppSpacing.md - 2),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'At API rates, not a bill. Some models have no published '
+                  'rate.',
+                  style: context.text.caption,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              MenuBarButton(
+                label: 'Open AI Usage',
+                tone: MenuBarButtonTone.filled,
+                onPressed: () {},
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// One limit window: what it is, when it rolls over, how far through it you are.
+///
+/// The right-hand figure is the honesty boundary. A window the provider
+/// measures shows a percentage of its own allowance; one Tidy only infers shows
+/// the tokens that went through it, because the allowance is not written down
+/// anywhere on the machine and a percentage would be invented.
+class _WindowRow extends StatelessWidget {
+  const _WindowRow({required this.window});
+
+  final PreviewUsageWindow window;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final percent = window.usedPercent;
+
+    // Green until a window is worth noticing, amber past two thirds, red near
+    // the end — and only ever on a measured window, since an inferred one has
+    // no threshold to have crossed.
+    final tone = switch (percent) {
+      null => colors.accent,
+      >= 90 => colors.risky,
+      >= 66 => colors.review,
+      _ => colors.safe,
+    };
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.md + 2,
+        AppSpacing.xs,
+        AppSpacing.md + 2,
+        AppSpacing.xs + 2,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              // Expanded rather than a Spacer: the panel is 320pt, and the
+              // label is the part a reader can still infer when the other two
+              // need the room.
+              Expanded(
+                child: Text(
+                  window.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: context.text.label,
+                ),
+              ),
+              Text('Resets in ${window.resetsIn}', style: context.text.caption),
+              const SizedBox(width: AppSpacing.sm),
+              Text(
+                window.isMeasured
+                    ? '${percent!.toStringAsFixed(1)}%'
+                    : '${window.tokens} tokens',
+                style: context.text.label.copyWith(
+                  color: window.isMeasured ? tone : colors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          _SegmentedBar(
+            fraction: window.fraction,
+            color: tone,
+            // An inferred window's bar is the clock, not the allowance. Drawn
+            // in the same solid tone as a measured one, the two rows would read
+            // as the same kind of fact.
+            dimmed: !window.isMeasured,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The track: ten segments, filled left to right.
+///
+/// Segmented rather than continuous because at 320pt a solid bar at 19% and one
+/// at 30% are four points apart — close enough to read as the same. Segments
+/// quantise the difference into something countable at a glance.
+class _SegmentedBar extends StatelessWidget {
+  const _SegmentedBar({
+    required this.fraction,
+    required this.color,
+    this.dimmed = false,
+  });
+
+  final double fraction;
+  final Color color;
+  final bool dimmed;
+
+  static const int _segments = 10;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final filled = (fraction * _segments).round().clamp(0, _segments);
+
+    return Row(
+      children: [
+        for (var i = 0; i < _segments; i++) ...[
+          if (i > 0) const SizedBox(width: 2),
+          Expanded(
+            child: Container(
+              height: 4,
+              decoration: BoxDecoration(
+                color:
+                    i < filled
+                        ? (dimmed ? color.withValues(alpha: 0.35) : color)
+                        : colors.surfaceRaised,
+                borderRadius: AppRadii.xsAll,
+              ),
+            ),
+          ),
+        ],
+      ],
     );
   }
 }

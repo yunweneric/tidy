@@ -372,6 +372,52 @@ class SystemBridge {
     }
   }
 
+  /// Reads another app's container, putting macOS's own dialog on screen if it
+  /// has not asked yet.
+  ///
+  /// Sonoma carved `kTCCServiceSystemPolicyAppData` out of Full Disk Access,
+  /// and there is no way to check it without asking — the first access *is* the
+  /// request. Only the onboarding permissions step and the Permissions settings
+  /// tab call this, so the dialog always arrives next to an explanation of what
+  /// it is for.
+  static Future<bool> requestAppDataAccess() async {
+    try {
+      final result = await _channel.invokeMapMethod<String, dynamic>(
+        'requestAppDataAccess',
+      );
+      return result?['granted'] as bool? ?? false;
+    } catch (e) {
+      AppLog.platform.failed('request access to other apps’ data', e);
+      // Assume access rather than hiding features behind a failed probe, the
+      // same way `hasFullDiskAccess` does.
+      return true;
+    }
+  }
+
+  /// The same probe, for a screen reporting state after the question has
+  /// already been put once. Silent, because TCC has the answer cached.
+  static Future<bool> hasAppDataAccess() async {
+    try {
+      final result = await _channel.invokeMapMethod<String, dynamic>(
+        'appDataAccessStatus',
+      );
+      return result?['granted'] as bool? ?? false;
+    } catch (e) {
+      AppLog.platform.failed('probe access to other apps’ data', e);
+      return true;
+    }
+  }
+
+  /// Opens Privacy & Security → Files and Folders, which is where this
+  /// permission is listed — not under Full Disk Access, where people look.
+  static Future<void> openAppDataSettings() async {
+    try {
+      await _channel.invokeMethod<void>('openAppDataSettings');
+    } catch (e) {
+      AppLog.platform.failed('open the Files and Folders settings', e);
+    }
+  }
+
   /// Which of [paths] we can actually read, so a scanner can report "denied"
   /// instead of a confident zero.
   static Future<Map<String, bool>> canReadPaths(List<String> paths) async {

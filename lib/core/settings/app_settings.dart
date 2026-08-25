@@ -27,6 +27,7 @@ class AppSettings extends ChangeNotifier {
   static const String _reduceMotionKey = 'reduceMotion';
   static const String _onboardingKey = 'onboardingCompletedVersion';
   static const String _coverageNoteKey = 'smartCareCoverageSeen';
+  static const String _appDataAskedKey = 'appDataAccessRequested';
 
   // Clipboard. These four are also read directly by `ClipboardStore.swift` at
   // launch, so the native store honours the user's limits before any Flutter
@@ -153,11 +154,24 @@ class AppSettings extends ChangeNotifier {
     return File(p.join(dir.path, 'settings.json'));
   }
 
-  /// Follows the system appearance unless the user has chosen otherwise.
+  /// Dark unless the user has chosen otherwise.
+  ///
+  /// Dark rather than [ThemeMode.system], which is the more usual default and
+  /// is still one tap away in Settings → Appearance. Tidy is a utility that
+  /// spends its time showing gauges, tree views and size bars over an ambient
+  /// backdrop, and the design system's dark palette is the one those were
+  /// drawn against — the light theme is a faithful port of it rather than the
+  /// original. Defaulting to the appearance the app looks best in beats
+  /// defaulting to the appearance the user's Mail client looks best in.
+  ///
+  /// Note this reads on every rebuild rather than being resolved once, so
+  /// there is no stored `system` to migrate: an install that has never opened
+  /// Settings has no `themeMode` key at all, and picks up this default the
+  /// next time it launches.
   ThemeMode get themeMode => switch (_values[_themeKey] as String?) {
     'light' => ThemeMode.light,
-    'dark' => ThemeMode.dark,
-    _ => ThemeMode.system,
+    'system' => ThemeMode.system,
+    _ => ThemeMode.dark,
   };
 
   set themeMode(ThemeMode mode) {
@@ -187,6 +201,23 @@ class AppSettings extends ChangeNotifier {
   /// Used by the "show me the intro again" affordance in Settings.
   void resetOnboarding() {
     _values.remove(_onboardingKey);
+    _persist();
+  }
+
+  /// Whether macOS has already put the "access data from other apps" dialog in
+  /// front of this user.
+  ///
+  /// TCC will not tell us whether it has asked — only what the answer was, and
+  /// only by asking. So the app remembers, and the permissions screens use it
+  /// to decide between a silent status probe and an explicit "Ask macOS"
+  /// button. Getting this wrong means the dialog appears unbidden, which is the
+  /// exact problem the flag exists to prevent.
+  bool get hasRequestedAppDataAccess =>
+      _values[_appDataAskedKey] as bool? ?? false;
+
+  void markAppDataAccessRequested() {
+    if (hasRequestedAppDataAccess) return;
+    _values[_appDataAskedKey] = true;
     _persist();
   }
 

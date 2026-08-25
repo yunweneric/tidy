@@ -3,10 +3,21 @@ platform :osx, '10.15'
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
 
+# Every build configuration the project has, mapped to the CocoaPods build type
+# it behaves like. The `-dev`/`-prod` ones are the flavours — see
+# `Runner/Configs/AppInfo-dev.xcconfig`. A configuration missing from this map
+# is treated as release by CocoaPods with a warning, which would strip a debug
+# flavour's symbols, so this list has to stay in step with the Xcode project.
 project 'Runner', {
   'Debug' => :debug,
   'Profile' => :release,
   'Release' => :release,
+  'Debug-dev' => :debug,
+  'Profile-dev' => :release,
+  'Release-dev' => :release,
+  'Debug-prod' => :debug,
+  'Profile-prod' => :release,
+  'Release-prod' => :release,
 }
 
 def flutter_root

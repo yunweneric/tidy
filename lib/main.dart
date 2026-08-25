@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:tidy/core/config/flavor.dart';
 import 'package:tidy/core/design/design.dart';
 import 'package:tidy/core/di/service_locator.dart';
 import 'package:tidy/core/logging/logging.dart';
@@ -19,9 +20,17 @@ Future<void> main() async {
   // than lost: `TidyStore.open` and `AppSettings.load` both survive their own
   // failures quietly, and the warning they log is the only sign it happened.
   setUpLogging();
+  // A `--flavor` nobody recognises falls back to prod, which would point a
+  // debug build at the real Application Support folder. Caught here, in the
+  // only build where it is still cheap to fix.
+  assert(isKnownFlavor, 'Unknown --flavor "$rawFlavor"; expected dev or prod.');
   AppLog.app.info(
     'starting',
-    fields: {'engine': 'main', 'level': Logger.level.name},
+    fields: {
+      'engine': 'main',
+      'flavor': currentFlavor.name,
+      'level': Logger.level.name,
+    },
   );
 
   await setUpLocator(includeUi: true);
@@ -43,7 +52,11 @@ Future<void> menuBarMain() async {
   setUpLogging(engine: 'popover');
   AppLog.menuBar.info(
     'starting',
-    fields: {'engine': 'popover', 'level': Logger.level.name},
+    fields: {
+      'engine': 'popover',
+      'flavor': currentFlavor.name,
+      'level': Logger.level.name,
+    },
   );
 
   await setUpLocator(includeUi: false);
@@ -95,7 +108,7 @@ class _TidyAppState extends State<TidyApp> {
       animation: widget.settings,
       builder: (context, _) {
         return MaterialApp.router(
-          title: Brand.name,
+          title: Brand.displayName,
           debugShowCheckedModeBanner: false,
           themeMode: widget.settings.themeMode,
           theme: TidyTheme.light(reduceMotion: widget.settings.reduceMotion),

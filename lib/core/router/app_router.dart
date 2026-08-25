@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:tidy/features/ai_usage/presentation/ai_usage_page.dart';
 import 'package:tidy/core/di/service_locator.dart';
+import 'package:tidy/core/platform/app_data_access_service.dart';
 import 'package:tidy/core/platform/full_disk_access_service.dart';
 import 'package:tidy/core/settings/app_settings.dart';
 import 'package:tidy/core/widgets/fade_through.dart';
@@ -56,6 +57,7 @@ GoRouter buildRouter({required AppSettings settings}) {
               child: OnboardingScreen(
                 settings: settings,
                 fullDiskAccess: locator<FullDiskAccessService>(),
+                appDataAccess: locator<AppDataAccessService>(),
                 // Completing onboarding updates settings, which notifies the
                 // router's refreshListenable and the redirect takes it from there.
                 onFinished: () => context.go(AppDestination.initial.path),

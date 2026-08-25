@@ -1,5 +1,6 @@
 import 'package:get_it/get_it.dart';
 import 'package:tidy/features/menubar/data/services/menu_bar_service.dart';
+import 'package:tidy/core/platform/app_data_access_service.dart';
 import 'package:tidy/core/platform/full_disk_access_service.dart';
 import 'package:tidy/core/insights/dashboard_repository.dart';
 import 'package:tidy/core/platform/system_bridge.dart';
@@ -110,6 +111,14 @@ Future<void> setUpLocator({required bool includeUi}) async {
   if (includeUi) {
     final settings = await AppSettings.load();
     locator.registerSingleton<AppSettings>(settings);
+
+    // `includeUi` only, because it needs settings — it has to remember whether
+    // macOS has already put its dialog on screen, which TCC will not say and
+    // which cannot be found out without asking. The popover never asks for a
+    // permission anyway; that conversation belongs in a window.
+    locator.registerLazySingleton<AppDataAccessService>(
+      () => AppDataAccessService(settings),
+    );
 
     // Opened before the first frame so the Dashboard never has to render an
     // "opening the store" state, and only here — this is the `includeUi` branch,

@@ -3,6 +3,7 @@ import 'package:tidy/features/settings/presentation/sections/menu_bar_section.da
 import 'package:tidy/features/settings/presentation/sections/ai_usage_section.dart';
 import 'package:tidy/core/design/design.dart';
 import 'package:tidy/core/di/service_locator.dart';
+import 'package:tidy/core/platform/app_data_access_service.dart';
 import 'package:tidy/core/platform/full_disk_access_service.dart';
 import 'package:tidy/core/settings/app_settings.dart';
 import 'package:tidy/core/widgets/fade_through.dart';
@@ -108,6 +109,7 @@ class _SettingsPageState extends State<SettingsPage> {
     SettingsSection.history => const HistorySection(),
     SettingsSection.permissions => PermissionsSection(
       service: locator<FullDiskAccessService>(),
+      appData: locator<AppDataAccessService>(),
     ),
     SettingsSection.updates => UpdatesSection(settings: settings),
     SettingsSection.about => const AboutSection(),
