@@ -82,6 +82,11 @@ do not exist yet. `build_dmg.sh` runs `flutter build macos --config-only` to
 generate both before calling `xcodebuild`; if that step is skipped (via
 `--skip-build`) on a fresh checkout, the workspace will not resolve.
 
+**`Verify formatting` fails and nothing else ran** — the format check gates the
+job, so analyze and tests never start. Run `dart format .`, commit, push. To
+catch it before the push instead, install the repo's hooks once:
+`git config core.hooksPath scripts/hooks`.
+
 **A release published but the app never offers the update** — check, in order:
 the tag parses as three numbers, the release is not a draft, it is not marked
 prerelease (invisible unless the app was built with

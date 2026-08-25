@@ -1,0 +1,88 @@
+#!/usr/bin/env bash
+#
+# Rejects a commit whose staged Dart files are not formatted.
+#
+# This is the same check CI runs (`dart format --set-exit-if-changed`), moved to
+# the point where it is cheap to fix. Without it the failure surfaces minutes
+# later in Actions, on a commit that is already pushed.
+#
+# Installed by pointing git at this directory, which is why the hook is in the
+# repo rather than in .git/hooks — one command per clone, and the hook itself
+# is reviewed and versioned like anything else:
+#
+#   git config core.hooksPath scripts/hooks
+#
+# To bypass it for one commit: git commit --no-verify
+
+set -euo pipefail
+
+# git runs hooks from the top of the working tree, so relative paths are safe.
+
+# ACMR skips deletions — a file being removed has no content to format — while
+# keeping renames, which carry content that may never have been checked under
+# its old name. -z survives paths with spaces in them.
+STAGED=()
+while IFS= read -r -d '' file; do
+  STAGED+=("$file")
+done < <(git diff --cached --name-only --diff-filter=ACMR -z -- '*.dart')
+
+if [ ${#STAGED[@]} -eq 0 ]; then
+  exit 0
+fi
+
+# The project pins its SDK with FVM; fall back to whatever dart is on PATH so
+# the hook still works for someone who has not installed FVM.
+if [ -f .fvmrc ] && command -v fvm >/dev/null 2>&1; then
+  DART=(fvm dart)
+else
+  DART=(dart)
+fi
+
+if ! command -v "${DART[0]}" >/dev/null 2>&1; then
+  echo "pre-commit: ${DART[0]} not found on PATH — skipping the format check." >&2
+  exit 0
+fi
+
+# Check the *staged* content, not the file on disk. With a partially staged
+# file those differ, and it is the staged version that becomes the commit — and
+# the version CI will see.
+TMP="$(mktemp -d "${TMPDIR:-/tmp}/tidy-fmt.XXXXXX")"
+trap 'rm -rf "$TMP"' EXIT
+# On macOS mktemp hands back a path under /var, which is a symlink to
+# /private/var. dart format reports the resolved path, so the prefix stripped
+# from its output below has to be resolved too or it will not match.
+TMP="$(cd "$TMP" && pwd -P)"
+
+for file in "${STAGED[@]}"; do
+  mkdir -p "$TMP/$(dirname "$file")"
+  git show ":$file" > "$TMP/$file"
+done
+
+if OUTPUT=$("${DART[@]}" format --output=none --set-exit-if-changed "$TMP" 2>&1); then
+  exit 0
+fi
+
+# `format` reports the temp paths it was handed; the committer needs the real
+# ones. Anything that is not a "Changed <path>" line is a genuine error (a
+# syntax error, most likely) and is worth showing verbatim.
+UNFORMATTED=$(echo "$OUTPUT" | sed -n "s|^Changed $TMP/||p")
+
+if [ -z "$UNFORMATTED" ]; then
+  echo "pre-commit: dart format failed." >&2
+  echo "$OUTPUT" >&2
+  exit 1
+fi
+
+COUNT=$(echo "$UNFORMATTED" | wc -l | tr -d ' ')
+LIST=$(echo "$UNFORMATTED" | tr '\n' ' ' | sed 's/ *$//')
+echo "" >&2
+echo "✖ ${COUNT} staged Dart file(s) are not formatted:" >&2
+echo "$UNFORMATTED" | sed 's/^/    /' >&2
+echo "" >&2
+echo "  CI runs this same check and will fail the build. To fix and re-stage:" >&2
+echo "" >&2
+echo "    ${DART[*]} format $LIST && git add $LIST" >&2
+echo "" >&2
+echo "  To commit anyway: git commit --no-verify" >&2
+echo "" >&2
+exit 1

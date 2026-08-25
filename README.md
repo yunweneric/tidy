@@ -94,7 +94,14 @@ administrator rights tells you so instead of appearing to succeed.
 ```bash
 flutter pub get
 flutter run -d macos
+git config core.hooksPath scripts/hooks   # once per clone
 ```
+
+That last line installs the repo's hooks. `scripts/hooks/pre-commit` runs the
+same `dart format` check CI runs, against the staged content, and refuses a
+commit that would fail the build — `git commit --no-verify` skips it. It is one
+command rather than automatic because git will not let a repository install its
+own hooks, and that is a good thing.
 
 Test Full Disk Access from the **built** `.app`, not `flutter run` — TCC grants
 are keyed to the bundle.
@@ -210,6 +217,7 @@ scripts/
   build_dmg.sh              Quick ad-hoc build → DMG
   release.sh                Build → Developer ID sign → notarize → publish
   add_swift_file.py         Register a Swift file with the Xcode target
+  hooks/pre-commit          Format check on staged Dart, mirroring CI
   generate_icons.py         Regenerate the app icon and menu bar glyphs
 docs/
   feature.md                How to build a feature, and the safety rules
