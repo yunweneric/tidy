@@ -36,6 +36,7 @@ class LandingNav extends StatelessWidget {
     required this.targets,
     required this.menuTargets,
     required this.scrolled,
+    required this.activeId,
     required this.onDownload,
   });
 
@@ -50,6 +51,12 @@ class LandingNav extends StatelessWidget {
   final List<NavTarget> menuTargets;
 
   final bool scrolled;
+
+  /// The section under the reading line. Passed in rather than read off
+  /// [LandingController]: it changes several times per scroll, and a rebuild
+  /// of the whole page for a bold nav link is not a trade worth making.
+  final String? activeId;
+
   final VoidCallback onDownload;
 
   @override
@@ -82,7 +89,7 @@ class LandingNav extends StatelessWidget {
         height: height,
         child: GlassPanel(
           borderRadius: BorderRadius.circular(height / 2),
-          blur: scrolled ? 26 : 16,
+          blur: scrolled ? 18 : 12,
           opacity: scrolled ? 1 : 0.72,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
@@ -96,6 +103,7 @@ class LandingNav extends StatelessWidget {
                     : _FullBar(
                       controller: controller,
                       targets: targets,
+                      activeId: activeId,
                       onDownload: onDownload,
                     ),
           ),
@@ -109,11 +117,13 @@ class _FullBar extends StatelessWidget {
   const _FullBar({
     required this.controller,
     required this.targets,
+    required this.activeId,
     required this.onDownload,
   });
 
   final LandingController controller;
   final List<NavTarget> targets;
+  final String? activeId;
   final VoidCallback onDownload;
 
   @override
@@ -129,10 +139,7 @@ class _FullBar extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             for (final target in targets)
-              _NavLink(
-                target: target,
-                active: target.id == controller.activeAnchor,
-              ),
+              _NavLink(target: target, active: target.id == activeId),
           ],
         ),
         Expanded(

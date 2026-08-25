@@ -1,4 +1,5 @@
 import 'package:get_it/get_it.dart';
+import 'package:tidy/features/menubar/data/services/menu_bar_service.dart';
 import 'package:tidy/core/platform/full_disk_access_service.dart';
 import 'package:tidy/core/insights/dashboard_repository.dart';
 import 'package:tidy/core/platform/system_bridge.dart';
@@ -130,6 +131,8 @@ Future<void> setUpLocator({required bool includeUi}) async {
       () => UpdateService(settings: settings),
     );
 
+    locator.registerLazySingleton<MenuBarService>(MenuBarService.new);
+
     // One owner for the samplers. Both engines could run them and both would
     // write the same minute, so the popover — which has no `includeUi` — does
     // not get one.
@@ -166,6 +169,13 @@ Future<void> setUpLocator({required bool includeUi}) async {
     // itself at launch.
     locator<ClipboardService>().bindTo(settings);
     locator<NetworkService>().bindTo(settings);
+    locator<MenuBarService>().bindTo(settings);
+
+    // The menu bar readout and the popover both want an AI summary and neither
+    // can compute one — the popover has no `AiUsageService` and must never run
+    // the sweep. Started here for the same reason `MetricSampler` is: two
+    // engines refreshing it would be two sweeps over the same gigabyte.
+    locator<AiUsageService>().startPublishing();
   }
 }
 

@@ -20,7 +20,13 @@ class PopoverBridge {
           // Which panel to show is part of *what opened*, and announcing it
           // separately makes the panel change shape twice while the popover is
           // still animating — which the resize handshake does not survive.
-          onPopoverOpened?.call(arguments?['section'] as String?);
+          // The layout rides along for the same reason: whether there is a
+          // tab strip is part of what opened, and this engine has no
+          // `AppSettings` of its own to look it up in.
+          onPopoverOpened?.call(
+            arguments?['section'] as String?,
+            arguments?['layout'] as String?,
+          );
         case 'popoverDidClose':
           onPopoverClosed?.call();
         case 'appearanceChanged':
@@ -38,15 +44,34 @@ class PopoverBridge {
   /// Set by whoever owns the panel's data — the popover is only worth sampling
   /// while it is on screen.
   ///
-  /// The argument is the section the popover was opened for: null from the
-  /// vitals icon, "clipboard" from the clipboard icon and from ⌘⇧V.
-  ValueChanged<String?>? onPopoverOpened;
+  /// The arguments are the section the popover was opened for — null from the
+  /// vitals icon, "clipboard" from the clipboard icon and from ⌘⇧V — and the
+  /// layout the bar is currently in.
+  void Function(String? section, String? layout)? onPopoverOpened;
   VoidCallback? onPopoverClosed;
 
   /// The system switched between light and dark.
   final ValueChanged<bool>? onAppearanceChanged;
 
   double? _lastReportedHeight;
+
+  /// Tells the native side the user picked a different tab.
+  ///
+  /// Only used by the consolidated layout, and only while the popover is
+  /// already open. Swift owns the popover's width and the height it remembers
+  /// for each section, so without this a tab switch would leave the panel at
+  /// the previous section's height until it was next opened from the bar.
+  ///
+  /// Deliberately *not* how the section arrives on open — see the note on
+  /// `popoverDidOpen` above. Announcing a section separately from the open is
+  /// what the resize handshake does not survive.
+  Future<void> setSection(String section) async {
+    try {
+      await _channel.invokeMethod<void>('setSection', {'section': section});
+    } on PlatformException catch (e) {
+      AppLog.menuBar.failed('switch the popover section', e);
+    }
+  }
 
   /// Whether the menu bar is currently dark.
   ///

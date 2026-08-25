@@ -2,12 +2,17 @@ import 'package:flutter/foundation.dart';
 import 'package:tidy/landing/data/github_release.dart';
 import 'package:tidy/landing/data/github_service.dart';
 
-/// Everything the page as a whole knows.
+/// The page's slow-moving state: the appearance, and what GitHub has to say.
 ///
 /// A plain [ChangeNotifier], deliberately: the app is built on bloc and
 /// `get_it`, and reaching for either here would drag the service locator — and
 /// with it every `dart:io` service it registers — into a web bundle whose only
 /// job is to render a page.
+///
+/// Nothing that changes while scrolling lives here. `LandingApp` rebuilds the
+/// whole `MaterialApp` when this notifies, which is the right cost for a theme
+/// toggle and much too high for a scroll-spy — that state is a pair of
+/// `ValueNotifier`s in `LandingPage`, read only by the navigation bar.
 class LandingController extends ChangeNotifier {
   LandingController({GithubService? github})
     : _github = github ?? GithubService();
@@ -25,11 +30,6 @@ class LandingController extends ChangeNotifier {
 
   int? _stars;
   int? get stars => _stars;
-
-  /// The section currently under the reading line, so the navigation bar can
-  /// highlight it.
-  String? _activeAnchor;
-  String? get activeAnchor => _activeAnchor;
 
   /// True when the visitor is already on the platform the app runs on. Flutter
   /// web derives this from the user agent, so it costs no JS interop of ours.
@@ -66,12 +66,6 @@ class LandingController extends ChangeNotifier {
 
   void toggleBrightness() {
     _isDark = !_isDark;
-    notifyListeners();
-  }
-
-  void setActiveAnchor(String? anchor) {
-    if (_activeAnchor == anchor) return;
-    _activeAnchor = anchor;
     notifyListeners();
   }
 

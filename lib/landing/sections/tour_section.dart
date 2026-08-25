@@ -33,7 +33,13 @@ class _TourSectionState extends State<TourSection> {
   Timer? _autoAdvance;
   bool _touched = false;
 
-  /// Drives the live network chart, and only while this section is built.
+  /// Drives the live network chart.
+  ///
+  /// Runs only while the Network pane is the one on screen. A tick notifies
+  /// [PreviewMac], which rebuilds the whole app window — sidebar, tables and
+  /// all — and doing that once a second behind six panes that show no live
+  /// data was a dropped frame every second, which is exactly what scroll
+  /// stutter feels like.
   Timer? _networkTicker;
 
   @override
@@ -42,12 +48,28 @@ class _TourSectionState extends State<TourSection> {
     _autoAdvance = Timer.periodic(const Duration(seconds: 5), (_) {
       if (_touched || !mounted) return;
       final next = (_screen.index + 1) % PreviewScreen.values.length;
-      setState(() => _screen = PreviewScreen.values[next]);
+      _show(PreviewScreen.values[next]);
     });
-    _networkTicker = Timer.periodic(
-      const Duration(seconds: 1),
-      (_) => _mac.tickNetwork(),
-    );
+  }
+
+  void _show(PreviewScreen screen) {
+    setState(() => _screen = screen);
+    _syncTicker();
+  }
+
+  void _syncTicker() {
+    final live = _screen == PreviewScreen.network;
+    if (live == (_networkTicker != null)) return;
+
+    if (live) {
+      _networkTicker = Timer.periodic(
+        const Duration(seconds: 1),
+        (_) => _mac.tickNetwork(),
+      );
+    } else {
+      _networkTicker?.cancel();
+      _networkTicker = null;
+    }
   }
 
   @override
@@ -61,7 +83,7 @@ class _TourSectionState extends State<TourSection> {
   void _go(PreviewScreen screen) {
     _touched = true;
     _autoAdvance?.cancel();
-    setState(() => _screen = screen);
+    _show(screen);
   }
 
   @override

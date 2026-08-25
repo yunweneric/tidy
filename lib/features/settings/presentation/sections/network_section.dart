@@ -4,7 +4,6 @@ import 'package:tidy/core/di/service_locator.dart';
 import 'package:tidy/core/feedback/feedback.dart';
 import 'package:tidy/core/settings/app_settings.dart';
 import 'package:tidy/core/widgets/tidy_card.dart';
-import 'package:tidy/features/network/data/models/network_prefs.dart';
 import 'package:tidy/features/network/data/models/network_units.dart';
 import 'package:tidy/features/network/data/services/network_service.dart';
 import 'package:tidy/features/settings/presentation/widgets/settings_controls.dart';
@@ -17,8 +16,6 @@ class NetworkSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final inMenuBar = settings.networkMenuBarEnabled;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -52,28 +49,11 @@ class NetworkSection extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.lg),
         SettingsGroup(
-          title: 'Menu bar',
+          title: 'Units',
           children: [
-            SettingsSwitchRow(
-              title: 'Show the live readout',
-              detail:
-                  'A running download and upload rate in the menu bar. '
-                  'Turning it off gives the space back; the history keeps '
-                  'recording either way.',
-              value: inMenuBar,
-              onChanged: (value) => settings.networkMenuBarEnabled = value,
-            ),
-            SettingsChoiceRow<NetworkMenuBarStyle>(
-              title: 'Style',
-              detail: settings.networkMenuBarStyle.blurb,
-              options: {
-                for (final style in NetworkMenuBarStyle.values)
-                  style: style.label,
-              },
-              value: settings.networkMenuBarStyle,
-              enabled: inMenuBar,
-              onChanged: (value) => settings.networkMenuBarStyle = value,
-            ),
+            // The readout's switch and style moved to Settings → Menu Bar,
+            // where every icon's is. Units stayed: they are how this feature
+            // reads everywhere, the page included, not a menu bar choice.
             SettingsChoiceRow<NetworkUnits>(
               title: 'Measure rates in',
               detail:

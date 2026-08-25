@@ -3,6 +3,8 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' show ThemeMode;
+import 'package:tidy/features/ai_usage/data/models/ai_menu_bar_style.dart';
+import 'package:tidy/features/menubar/domain/menu_bar_surface.dart';
 import 'package:tidy/core/logging/logging.dart';
 import 'package:tidy/core/design/brand.dart';
 import 'package:tidy/features/clipboard/data/models/clipboard_prefs.dart';
@@ -36,6 +38,20 @@ class AppSettings extends ChangeNotifier {
   static const String _clipboardSensitiveKey = 'clipboardStoreSensitive';
   static const String _clipboardClearOnQuitKey = 'clipboardClearOnQuit';
   static const String _clipboardExcludedKey = 'clipboardExcludedApps';
+
+  // Menu bar. Read directly by `MenuBarPrefs.swift` at launch: the status items
+  // are created in `MenuBarController.init`, before any Flutter engine has run,
+  // and a bar that collapses to one icon and then sprouts three more a second
+  // later is a bug the user can see. Renaming one here means renaming it there.
+  //
+  // The network item's switch is deliberately absent from this block — it is
+  // `_networkMenuBarKey` below, because `NetworkPrefs` on both sides already
+  // reads that string and a rename across the boundary fails silently.
+  static const String _menuBarLayoutKey = 'menuBarLayout';
+  static const String _menuBarVitalsKey = 'menuBarShowVitals';
+  static const String _menuBarAiKey = 'menuBarShowAiUsage';
+  static const String _menuBarClipboardKey = 'menuBarShowClipboard';
+  static const String _aiMenuBarStyleKey = 'aiMenuBarStyle';
 
   // Network. Read directly by `NetworkStore.swift` at launch, so the menu bar
   // readout is already in the right style — or already absent — before any
@@ -85,7 +101,31 @@ class AppSettings extends ChangeNotifier {
       }
     }
 
-    return AppSettings._(file, values);
+    final settings = AppSettings._(file, values);
+    settings._adoptMenuBarLayout();
+    return settings;
+  }
+
+  /// Decides once, on the first launch that knows about menu bar layouts, which
+  /// layout an existing install should land in.
+  ///
+  /// Anyone who had explicitly turned the network readout on gets the separate
+  /// layout with it still on — reproducing exactly the bar they already have.
+  /// Collapsing that to a single icon because the default changed underneath
+  /// them would read as the update having broken something.
+  ///
+  /// The answer is written down rather than re-derived, because it stops being
+  /// true the moment they switch the readout on from Settings → Network: a
+  /// migration that only checked the readout would then move them to a layout
+  /// they never chose, one launch later.
+  void _adoptMenuBarLayout() {
+    if (_values.containsKey(_menuBarLayoutKey)) return;
+    final inherited =
+        (_values[_networkMenuBarKey] as bool? ?? false)
+            ? MenuBarLayout.separate
+            : MenuBarLayout.consolidated;
+    _values[_menuBarLayoutKey] = inherited.name;
+    _persist();
   }
 
   static Future<File?> _settingsFile() async {
@@ -279,6 +319,59 @@ class AppSettings extends ChangeNotifier {
 
   set networkUnits(NetworkUnits value) {
     _values[_networkBitsKey] = value.isBits;
+    _persist();
+  }
+
+  // ─── Menu bar ──────────────────────────────────────────────────────────
+
+  /// How many status items Tidy puts on the bar.
+  ///
+  /// One by default. The trade is width and it is not cosmetic: a menu bar has
+  /// only what is left after the frontmost app's menus, and on a notched Mac
+  /// only what is left to the *right* of the notch. Past that macOS does not
+  /// shrink anything or drop the widest item — it hands out slots underneath
+  /// the notch, where nothing is drawn, and icons the user already had vanish.
+  MenuBarLayout get menuBarLayout =>
+      MenuBarLayout.fromName(_values[_menuBarLayoutKey] as String?);
+
+  set menuBarLayout(MenuBarLayout value) {
+    _values[_menuBarLayoutKey] = value.name;
+    _persist();
+  }
+
+  /// Whether a surface gets an icon of its own in [MenuBarLayout.separate].
+  ///
+  /// Ignored in the consolidated layout, where there is one item by definition
+  /// — Settings greys the switches there rather than letting them look live.
+  bool showInMenuBar(MenuBarSurface surface) => switch (surface) {
+    MenuBarSurface.dashboard => _values[_menuBarVitalsKey] as bool? ?? true,
+    MenuBarSurface.aiUsage => _values[_menuBarAiKey] as bool? ?? false,
+    MenuBarSurface.clipboard => _values[_menuBarClipboardKey] as bool? ?? true,
+    // The network readout's own key, shared with `NetworkPrefs` on both sides.
+    MenuBarSurface.network => networkMenuBarEnabled,
+  };
+
+  void setShowInMenuBar(MenuBarSurface surface, bool value) {
+    switch (surface) {
+      case MenuBarSurface.dashboard:
+        _values[_menuBarVitalsKey] = value;
+      case MenuBarSurface.aiUsage:
+        _values[_menuBarAiKey] = value;
+      case MenuBarSurface.clipboard:
+        _values[_menuBarClipboardKey] = value;
+      case MenuBarSurface.network:
+        // Straight to the shared key rather than through the setter below, so
+        // this makes one write and one notification rather than two.
+        _values[_networkMenuBarKey] = value;
+    }
+    _persist();
+  }
+
+  AiMenuBarStyle get aiMenuBarStyle =>
+      AiMenuBarStyle.fromName(_values[_aiMenuBarStyleKey] as String?);
+
+  set aiMenuBarStyle(AiMenuBarStyle value) {
+    _values[_aiMenuBarStyleKey] = value.name;
     _persist();
   }
 

@@ -3,10 +3,9 @@ import 'package:tidy/core/design/design.dart';
 
 /// Publishes the page's [ScrollController] to everything below it.
 ///
-/// [Reveal] and [ScrollTilt] both need to know where they are as the page
-/// moves. Threading the controller down through every section constructor
-/// would put a parameter on widgets that have no other reason to know the page
-/// scrolls at all.
+/// [Reveal] needs to know where it is as the page moves. Threading the controller
+/// down through every section constructor would put a parameter on widgets that
+/// have no other reason to know the page scrolls at all.
 class LandingScroll extends InheritedWidget {
   const LandingScroll({
     super.key,
@@ -100,9 +99,15 @@ class _RevealState extends State<Reveal> {
   }
 }
 
-/// [Reveal] with a per-index delay, so a row of cards arrives in order.
-class StaggeredReveal extends StatelessWidget {
-  const StaggeredReveal({super.key, required this.index, required this.child});
+/// A per-index delayed fade, with no scroll listener of its own.
+///
+/// Pair it with one [Reveal] around the whole group: the group's listener
+/// decides *when* the row arrives, and these decide the order within it. One
+/// listener per card measured its own position on every scroll frame, which on
+/// a page of grids meant thirty measurements a frame for an effect that has
+/// already finished by the time most of them run.
+class StaggeredFade extends StatelessWidget {
+  const StaggeredFade({super.key, required this.index, required this.child});
 
   final int index;
   final Widget child;
@@ -115,10 +120,21 @@ class StaggeredReveal extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (context.motion.reduced) return child;
-    return Reveal(
-      index: index,
-      child: _DelayedFade(delay: delayFor(index), child: child),
-    );
+    return _DelayedFade(delay: delayFor(index), child: child);
+  }
+}
+
+/// [Reveal] and [StaggeredFade] together, for a lone card outside a grid.
+class StaggeredReveal extends StatelessWidget {
+  const StaggeredReveal({super.key, required this.index, required this.child});
+
+  final int index;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    if (context.motion.reduced) return child;
+    return Reveal(child: StaggeredFade(index: index, child: child));
   }
 }
 

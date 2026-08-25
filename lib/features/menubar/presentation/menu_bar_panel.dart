@@ -5,11 +5,16 @@ import 'package:tidy/core/design/design.dart';
 import 'package:tidy/core/di/service_locator.dart';
 import 'package:tidy/core/platform/system_bridge.dart';
 import 'package:tidy/core/utils/byte_format.dart';
+import 'package:tidy/core/widgets/size_bar.dart';
 import 'package:tidy/features/apps/data/services/junk_scanner.dart';
 import 'package:tidy/features/apps/data/services/scan_cache.dart';
 import 'package:tidy/core/models/clipboard_entry.dart';
 import 'package:tidy/features/clipboard/data/services/clipboard_service.dart';
 import 'package:tidy/core/insights/health_insight.dart';
+import 'package:tidy/features/ai_usage/data/models/ai_usage_summary.dart';
+import 'package:tidy/features/ai_usage/data/models/usage_window.dart';
+import 'package:tidy/features/ai_usage/data/services/ai_usage_bridge.dart';
+import 'package:tidy/features/menubar/domain/menu_bar_surface.dart';
 import 'package:tidy/features/menubar/platform/popover_bridge.dart';
 import 'package:tidy/features/menubar/presentation/widgets/measure_size.dart';
 import 'package:tidy/features/menubar/presentation/widgets/menu_bar_button.dart';
@@ -19,6 +24,7 @@ import 'package:tidy/features/menubar/presentation/widgets/menu_bar_network.dart
 import 'package:tidy/features/menubar/presentation/widgets/menu_bar_process_row.dart';
 import 'package:tidy/features/menubar/presentation/widgets/menu_bar_reclaim_row.dart';
 import 'package:tidy/features/menubar/presentation/widgets/menu_bar_section.dart';
+import 'package:tidy/features/menubar/presentation/widgets/menu_bar_tabs.dart';
 import 'package:tidy/features/menubar/presentation/widgets/menu_bar_vitals.dart';
 import 'package:tidy/features/network/data/models/network_sample.dart';
 import 'package:tidy/core/models/network_series.dart';
@@ -82,13 +88,6 @@ class _MenuBarPanelAppState extends State<MenuBarPanelApp> {
   }
 }
 
-/// Which of the two menu bar icons the panel is answering for.
-///
-/// One Flutter view, two panels. The icons mean different things and the panel
-/// shows what its icon promised — a clipboard icon that opened a disk report
-/// would be a worse lie than having no clipboard icon at all.
-enum MenuBarMode { dashboard, clipboard, network }
-
 /// The panel behind the status item: how the machine is doing right now, the
 /// one thing worth acting on, what is using it, and what can be handed back.
 ///
@@ -146,7 +145,28 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
   ProcessSort _sort = ProcessSort.cpu;
   Timer? _ticker;
 
-  MenuBarMode _mode = MenuBarMode.dashboard;
+  /// Which surface the panel is answering for.
+  ///
+  /// One Flutter view, several panels. An icon means something and the panel
+  /// shows what its icon promised — a clipboard icon that opened a disk report
+  /// would be a worse lie than having no clipboard icon at all. In the
+  /// consolidated layout the tab strip is the promise instead.
+  MenuBarSurface _surface = MenuBarSurface.fallback;
+
+  /// How many icons are on the bar, which decides whether the tab strip shows.
+  ///
+  /// Arrives with every open rather than being read from settings: this engine
+  /// has no `AppSettings` (`includeUi: false`), and the native side is the one
+  /// that acted on the preference anyway — asking it what it did is a shorter
+  /// path to the truth than reading the file it read.
+  MenuBarLayout _layout = MenuBarLayout.consolidated;
+
+  /// The menu bar's slice of the AI usage report, or null when there is none.
+  ///
+  /// Null renders as "nothing measured yet", which is not the same claim as a
+  /// day with no usage. Computed in the main engine and served by the native
+  /// store — see [AiUsageBridge] for why it cannot be computed here.
+  AiUsageSummary? _summary;
 
   List<ClipboardEntry> _clips = const [];
   StreamSubscription<void>? _clipSubscription;
@@ -281,29 +301,61 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
   }
 
   /// The clipboard icon and ⌘⇧V both open the panel asking for "clipboard";
-  /// the vitals icon asks for nothing. Both get a whole panel of their own.
-  void _onPopoverOpened(String? section) {
-    final mode = switch (section) {
-      'clipboard' => MenuBarMode.clipboard,
-      'network' => MenuBarMode.network,
-      _ => MenuBarMode.dashboard,
-    };
-    setState(() => _mode = mode);
+  /// the vitals icon asks for nothing. Each gets a whole panel of its own.
+  void _onPopoverOpened(String? section, String? layout) {
+    _layout = MenuBarLayout.fromName(layout);
+    _showSurface(MenuBarSurface.tryParse(section) ?? MenuBarSurface.fallback);
+  }
+
+  /// A tab click in the consolidated layout.
+  ///
+  /// Tells the native side as well as switching locally. Swift owns the
+  /// popover's width and the height it remembers per section, so a tab that
+  /// only changed the Dart state would leave the panel the previous section's
+  /// height until the next open.
+  void _selectSurface(MenuBarSurface surface) {
+    if (surface == _surface) return;
+    _showSurface(surface);
+    _bridge.setSection(surface.id);
+  }
+
+  /// Points the panel at [surface] and starts or stops what it needs.
+  ///
+  /// Shared by the open handler and the consolidated layout's tab strip, and
+  /// that sharing is the point rather than tidiness: this is the only place
+  /// that knows a surface costs a two-second ticker or a live native tap, so a
+  /// tab that only set the field would leave the vitals sampling behind a
+  /// clipboard list, forever.
+  void _showSurface(MenuBarSurface surface) {
+    setState(() => _surface = surface);
     _loadClips();
 
     _ticker?.cancel();
     _ticker = null;
-    // Nothing on the clipboard panel is sampled, so the two-second tick that
-    // feeds the vitals has no reason to run behind it.
-    if (mode == MenuBarMode.dashboard) {
+    // Nothing on the other panels is sampled, so the two-second tick that
+    // feeds the vitals has no reason to run behind them.
+    if (surface == MenuBarSurface.dashboard) {
       _sample();
       _ticker = Timer.periodic(_tick, (_) => _sample());
     }
 
     // The dashboard carries a one-line traffic row and the network panel is
-    // made of it, so both want the readings; the clipboard panel does not.
-    _setTrafficLive(mode != MenuBarMode.clipboard);
-    if (mode == MenuBarMode.network) _loadTrafficTotals();
+    // made of it, so both want the readings; the others do not.
+    _setTrafficLive(
+      surface == MenuBarSurface.dashboard || surface == MenuBarSurface.network,
+    );
+    if (surface == MenuBarSurface.network) _loadTrafficTotals();
+    if (surface == MenuBarSurface.aiUsage) _loadAiUsage();
+  }
+
+  /// Reads the last summary the main engine published.
+  ///
+  /// A read, never a sweep. The sweep is 16 seconds over a gigabyte and a half
+  /// on a cold start, and this engine exists to draw a panel in under a frame.
+  Future<void> _loadAiUsage() async {
+    final summary = await AiUsageBridge.read();
+    if (!mounted) return;
+    setState(() => _summary = summary);
   }
 
   /// Opens or closes the native tap.
@@ -479,11 +531,19 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _buildHeader(),
+              // Only in the consolidated layout. In the separate layout each
+              // icon already promised one surface, and a strip offering three
+              // more would make the icon a lie.
+              if (_layout.isConsolidated) ...[
+                const Divider(height: 1),
+                MenuBarTabs(selected: _surface, onChanged: _selectSurface),
+              ],
               const Divider(height: 1),
-              ...switch (_mode) {
-                MenuBarMode.dashboard => _dashboardBody(),
-                MenuBarMode.clipboard => _clipboardBody(),
-                MenuBarMode.network => _networkBody(),
+              ...switch (_surface) {
+                MenuBarSurface.dashboard => _dashboardBody(),
+                MenuBarSurface.aiUsage => _aiUsageBody(),
+                MenuBarSurface.clipboard => _clipboardBody(),
+                MenuBarSurface.network => _networkBody(),
               },
               const Divider(height: 1),
               _buildFooter(),
@@ -608,6 +668,217 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
               onPressed:
                   () => _bridge.openMainWindow(
                     route: AppDestination.network.path,
+                  ),
+            ),
+          ],
+        ),
+      ),
+    ];
+  }
+
+  /// What the AI tools have got through today, and what it would have cost.
+  ///
+  /// Every figure here is what the same tokens would cost at published API
+  /// rates. **Not a bill** — both CLIs run on flat-fee subscriptions, and the
+  /// page says so at length. A popover has room for one line of it, so that
+  /// line is the last thing in the panel rather than the first thing cut.
+  List<Widget> _aiUsageBody() {
+    final summary = _summary;
+    final text = context.text;
+    final colors = context.colors;
+
+    if (summary == null || summary.isEmpty) {
+      return [
+        Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md + 2,
+            vertical: AppSpacing.xl,
+          ),
+          child: Column(
+            children: [
+              Icon(AppIcons.aiUsage, size: 26, color: colors.textMuted),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                summary == null ? 'Nothing measured yet' : 'Nothing used today',
+                style: text.titleS,
+              ),
+              const SizedBox(height: AppSpacing.xxs),
+              Text(
+                // Two different facts, and the panel is careful which it
+                // claims. No summary means the window has not read the logs
+                // since Tidy started; an empty one means it read them and you
+                // had not used the tools today.
+                summary == null
+                    ? 'Open ${Brand.name} once and the menu bar keeps up from '
+                        'there.'
+                    : 'That is a quiet day, not a failed reading.',
+                textAlign: TextAlign.center,
+                style: text.caption,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              MenuBarButton(
+                label: 'Open AI Usage',
+                tone: MenuBarButtonTone.filled,
+                onPressed:
+                    () => _bridge.openMainWindow(
+                      route: AppDestination.aiUsage.path,
+                    ),
+              ),
+            ],
+          ),
+        ),
+      ];
+    }
+
+    final block = summary.blockStartsAt;
+    final elapsed = summary.blockElapsedAt(DateTime.now());
+
+    return [
+      Padding(
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.md + 2,
+          AppSpacing.md,
+          AppSpacing.md + 2,
+          AppSpacing.sm,
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'TODAY',
+                    style: text.overline.copyWith(color: colors.textMuted),
+                  ),
+                  const SizedBox(height: AppSpacing.xxs),
+                  Text(
+                    formatUsd(summary.costToday),
+                    style: text.displayL.copyWith(color: colors.textPrimary),
+                  ),
+                ],
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '${formatCount(summary.tokensToday)} tokens',
+                  style: text.bodyM,
+                ),
+                Text(
+                  '${summary.repliesToday} replies · '
+                  '${summary.sessionsToday} '
+                  '${summary.sessionsToday == 1 ? 'session' : 'sessions'}',
+                  style: text.caption,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+      if (block != null && elapsed != null) ...[
+        const Divider(height: 1),
+        MenuBarSection(
+          title: 'Session block',
+          trailing: '${_clock(block)} – ${_clock(block.add(kBlockLength))}',
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md + 2,
+            0,
+            AppSpacing.md + 2,
+            AppSpacing.sm,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Text(
+                    '${formatCount(summary.blockTokens)} tokens',
+                    style: text.bodyM,
+                  ),
+                  const Spacer(),
+                  Text(formatUsd(summary.blockCost), style: text.titleS),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              // Elapsed time, not an allowance. Neither CLI writes a limit
+              // down, so there is no denominator to draw a percentage against
+              // and this bar does not pretend there is.
+              SizeBar(fraction: elapsed, color: colors.accent, height: 4),
+            ],
+          ),
+        ),
+      ],
+      if (summary.topModels.isNotEmpty) ...[
+        const Divider(height: 1),
+        const MenuBarSection(title: 'Models'),
+        for (final model in summary.topModels)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.md + 2,
+              AppSpacing.xxs,
+              AppSpacing.md + 2,
+              AppSpacing.xxs,
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    model.model,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: text.bodyM,
+                  ),
+                ),
+                Text(formatCount(model.tokens), style: text.caption),
+                const SizedBox(width: AppSpacing.sm),
+                SizedBox(
+                  width: 62,
+                  child: Text(
+                    // A dash, never a zero. Nobody publishes a per-token rate
+                    // for the Codex models, and `$0.00` would say those tokens
+                    // were free rather than unpriced.
+                    model.priced ? formatUsd(model.cost) : '—',
+                    textAlign: TextAlign.right,
+                    style: text.bodyM.copyWith(
+                      color:
+                          model.priced ? colors.textPrimary : colors.textMuted,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
+      Padding(
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.md + 2,
+          AppSpacing.sm,
+          AppSpacing.md + 2,
+          AppSpacing.sm,
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                summary.hasUnpricedModels
+                    ? 'At API rates, not a bill. Some models have no published '
+                        'rate.'
+                    : 'At API rates, not a bill.',
+                style: text.caption,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            MenuBarButton(
+              label: 'Open AI Usage',
+              tone: MenuBarButtonTone.filled,
+              onPressed:
+                  () => _bridge.openMainWindow(
+                    route: AppDestination.aiUsage.path,
                   ),
             ),
           ],
@@ -800,15 +1071,15 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
         children: [
           Icon(Brand.mark, size: 15, color: context.colors.accent),
           const SizedBox(width: AppSpacing.sm),
-          Text(switch (_mode) {
-            MenuBarMode.clipboard => 'Clipboard',
-            MenuBarMode.network => 'Network',
-            MenuBarMode.dashboard => Brand.name,
-          }, style: context.text.titleS),
+          Text(
+            _surface == MenuBarSurface.dashboard ? Brand.name : _surface.label,
+            style: context.text.titleS,
+          ),
           const SizedBox(width: AppSpacing.sm),
           // The dot is a verdict about the machine, and the clipboard panel
           // makes no claim about the machine.
-          if (_mode == MenuBarMode.dashboard) _StatusDot(level: insight.level),
+          if (_surface == MenuBarSurface.dashboard)
+            _StatusDot(level: insight.level),
           const Spacer(),
           if (_busy)
             const Padding(
@@ -821,14 +1092,15 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
             ),
           MenuBarIconButton(
             icon: AppIcons.refresh,
-            tooltip: _mode == MenuBarMode.dashboard ? 'Rescan' : 'Reload',
+            tooltip: _surface == MenuBarSurface.dashboard ? 'Rescan' : 'Reload',
             onPressed:
                 _busy
                     ? null
-                    : switch (_mode) {
-                      MenuBarMode.clipboard => _loadClips,
-                      MenuBarMode.network => _loadTrafficTotals,
-                      MenuBarMode.dashboard => _refresh,
+                    : switch (_surface) {
+                      MenuBarSurface.clipboard => _loadClips,
+                      MenuBarSurface.network => _loadTrafficTotals,
+                      MenuBarSurface.aiUsage => _loadAiUsage,
+                      MenuBarSurface.dashboard => _refresh,
                     },
           ),
           MenuBarIconButton(
@@ -910,15 +1182,21 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
   }
 
   String _footerLabel() {
-    if (_mode == MenuBarMode.clipboard) {
+    if (_surface == MenuBarSurface.clipboard) {
       if (_clips.isEmpty) return 'Clipboard history is empty';
       return '${_clips.length} recent ${_clips.length == 1 ? 'clip' : 'clips'}';
     }
 
-    if (_mode == MenuBarMode.network) {
+    if (_surface == MenuBarSurface.network) {
       final busiest = _traffic.busiest;
       if (busiest == null) return 'Nothing moving right now';
       return 'Live over ${busiest.label}';
+    }
+
+    if (_surface == MenuBarSurface.aiUsage) {
+      final summary = _summary;
+      if (summary == null) return 'No reading yet';
+      return 'Last 7 days · ${formatUsd(summary.costLastSevenDays)}';
     }
 
     final parts = <String>[

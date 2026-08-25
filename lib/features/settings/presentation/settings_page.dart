@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tidy/features/settings/presentation/sections/menu_bar_section.dart';
 import 'package:tidy/features/settings/presentation/sections/ai_usage_section.dart';
 import 'package:tidy/core/design/design.dart';
 import 'package:tidy/core/di/service_locator.dart';
@@ -100,6 +101,7 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget _body(AppSettings settings) => switch (_section) {
     SettingsSection.general => GeneralSection(settings: settings),
     SettingsSection.appearance => AppearanceSection(settings: settings),
+    SettingsSection.menuBar => MenuBarSection(settings: settings),
     SettingsSection.clipboard => ClipboardSection(settings: settings),
     SettingsSection.network => NetworkSection(settings: settings),
     SettingsSection.aiUsage => AiUsageSection(settings: settings),

@@ -3,13 +3,20 @@ import FlutterMacOS
 
 /// Owns the menu bar status items and the popover they present.
 ///
-/// There are two icons and one popover. The icons are separate because they
-/// answer different questions — "how is my Mac doing" and "what did I copy" —
-/// and a single icon that hides one behind the other makes the clipboard a
-/// place you have to remember rather than a place you can see. The popover is
-/// shared because the panel behind it is one Flutter view: a second popover
-/// would need a second engine, which is a whole Dart isolate to save an
-/// anchor point.
+/// **N icons, one popover.** The popover is shared because the panel behind it
+/// is one Flutter view: a second popover would need a second engine, which is a
+/// whole Dart isolate to save an anchor point. Which icons exist is the user's
+/// choice, and it is the one preference here with a cost they can see:
+///
+/// - `.consolidated` — one icon. Every surface is a tab inside its panel.
+/// - `.separate` — an icon per surface. Icons answer different questions, and
+///   one that hides another makes the clipboard a place you have to remember
+///   rather than a place you can see. It costs menu bar width to say so.
+///
+/// The bar is rebuilt wholesale by `syncStatusItems()` whenever that preference
+/// changes. Nothing here is ever hidden — see `show(_:)` — so a surface the
+/// user switched off has its item *removed*, and one they switched on is made
+/// fresh, named on the very next line.
 ///
 /// The popover hosts a *second* Flutter engine running the `menuBarMain`
 /// entrypoint, so the panel is real Flutter UI rather than an NSMenu. That
@@ -18,25 +25,27 @@ import FlutterMacOS
 final class MenuBarController: NSObject, NSPopoverDelegate {
   private static let channelName = "com.yunweneric.tidy/popover"
 
-  /// The vitals icon: disk, memory, what is running.
-  private let statusItem: NSStatusItem
-
-  /// The clipboard icon: what was copied recently.
-  private let clipboardItem: NSStatusItem
-
-  /// The network readout: how fast bytes are moving right now.
+  /// Every status item currently on the bar, by the surface it speaks for.
   ///
-  /// Unlike the other two this one carries *text*, not a glyph, and it is the
-  /// only status item the user can turn off — a live readout is the one thing
-  /// here that permanently occupies menu bar width, and menu bar width is the
-  /// scarcest real estate on the machine.
-  private var networkItem: NSStatusItem?
+  /// The single source of truth for what exists. It used to be three fields,
+  /// which meant "is this item on the bar" was answered three different ways
+  /// and adding a fourth meant finding all of them.
+  private var items: [MenuBarSurface: NSStatusItem] = [:]
+
+  /// The widest each text readout has been since its style last changed, so an
+  /// item stops shuffling its neighbours every time a digit is added or
+  /// dropped. Only the surfaces with `hasReadout` ever appear here.
+  private var itemWidths: [MenuBarSurface: CGFloat] = [:]
+
   private var networkObserver: UUID?
   private var prefsObserver: Any?
+  private var menuBarPrefsObserver: Any?
+  private var aiUsageObserver: Any?
 
-  /// The widest the readout has been this session, so the item stops shuffling
-  /// its neighbours every time a digit is added or dropped.
-  private var networkItemWidth: CGFloat = 0
+  /// The item a context menu is currently attached to, so it can be detached
+  /// again from the same one. Previously always the vitals item, which stopped
+  /// being safe once the vitals item became something the user can remove.
+  private weak var contextMenuItem: NSStatusItem?
 
   /// Which icon the popover is currently hanging from, so a second click on
   /// the *same* icon closes it while a click on the other one moves it.
@@ -53,17 +62,11 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
 
   // The panel is a dashboard now, not a menu: three vitals tiles across the
   // top and a live process table below them need room to be read at a glance,
-  // which a menu-width strip does not have.
+  // which a menu-width strip does not have. The narrower surfaces declare their
+  // own width on `MenuBarSurface`; this one is also what the consolidated panel
+  // uses for *every* tab, because a tab strip that resized its own container
+  // would move the thing you were about to click.
   private let panelWidth: CGFloat = 460
-
-  /// The clipboard panel is a column of one-line rows. Dashboard width would
-  /// be a lot of empty gutter, and the hover preview shows the full content
-  /// beside it anyway.
-  private let clipboardPanelWidth: CGFloat = 320
-
-  /// The network panel is two big numbers and a chart. Same column width as the
-  /// clipboard for the same reason — dashboard width would be empty gutter.
-  private let networkPanelWidth: CGFloat = 320
 
   private let minPanelHeight: CGFloat = 160
   private let maxPanelHeight: CGFloat = 760
@@ -87,17 +90,11 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
 
   /// The section the vitals icon means. It is the one that arrives as `nil`,
   /// having no section to ask for, so it needs a name to be filed under.
-  private static let dashboardSection = "dashboard"
+  private static let dashboardSection = MenuBarSurface.dashboard.rawValue
 
   private lazy var preview = ClipPreviewPanel()
 
   override init() {
-    // Named on the line after each is made, before the next one exists. See
-    // `claim` for why the gap between those two lines is the whole bug.
-    statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-    Self.claim(statusItem, as: "TidyVitals")
-    clipboardItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-    Self.claim(clipboardItem, as: "TidyClipboard")
     engine = FlutterEngine(
       name: "menu_bar",
       project: FlutterDartProject(),
@@ -105,11 +102,17 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     )
     super.init()
 
-    configureStatusItem()
-    configureClipboardItem()
-    configureNetworkItem()
+    // Preferences first, and read from `settings.json` rather than waited for:
+    // the items are built on the next line, which is long before any Flutter
+    // engine has finished starting. A bar that collapses to one icon and then
+    // sprouts three more a second later is a bug the user can see.
+    MenuBarStore.shared.load()
+    AiUsageStore.shared.load()
+
+    syncStatusItems()
     configurePopover()
     observeNetwork()
+    observePreferences()
   }
 
   // MARK: - Status item
@@ -154,19 +157,109 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     item.isVisible = true
   }
 
-  private func configureStatusItem() {
-    guard let button = statusItem.button else { return }
+  /// Builds the bar to match the preferences, and rebuilds it when they change.
+  ///
+  /// Generalised from what the network readout did alone, and it keeps that
+  /// function's shape because each branch of it was load-bearing:
+  ///
+  /// - **Switched off → removed**, not hidden. `isVisible = false` leaves a
+  ///   zero-width item still holding its slot in the ordering, and the point of
+  ///   the setting is to give the width back.
+  /// - **Already there → reconfigured in place.** Tearing an item down and
+  ///   rebuilding it re-issues its ordinal, which is the whole hazard `claim`
+  ///   describes. The style may have changed under it, so the width floor is
+  ///   dropped and rebuilt rather than kept.
+  /// - **Survivors re-asserted.** Adding or removing *any* item is exactly when
+  ///   macOS re-reads what belongs on the bar, and the last thing to have
+  ///   written an answer for the others may have been Control Center, on some
+  ///   other app's behalf.
+  private func syncStatusItems() {
+    let wanted = MenuBarStore.shared.prefs.visibleSurfaces
 
-    // Sized and centred by `menuBarGlyph`, which also marks it a template so
-    // AppKit recolours it for a light or dark menu bar.
-    button.image = Self.statusImage()
-    button.imagePosition = .imageOnly
-    button.toolTip = "Tidy"
+    for (surface, item) in items where !wanted.contains(surface) {
+      NSStatusBar.system.removeStatusItem(item)
+      items[surface] = nil
+      itemWidths[surface] = nil
+    }
+
+    // In declared order, so the bar reads the same way every time rather than
+    // in whatever order a dictionary happened to hand them over.
+    for surface in MenuBarSurface.ordered where wanted.contains(surface) {
+      if let existing = items[surface] {
+        // The readout's style may have moved under it. A compact readout has to
+        // be allowed to shrink back out of a two-line item's width, so the
+        // "only ever grows" floor is dropped here and rebuilt from the new one.
+        if surface.hasReadout {
+          itemWidths[surface] = nil
+          existing.length = NSStatusItem.variableLength
+        }
+        render(surface)
+        Self.show(existing)
+        continue
+      }
+      make(surface)
+    }
+  }
+
+  /// Creates one item and puts it on the bar.
+  private func make(_ surface: MenuBarSurface) {
+    // Text items measure themselves; glyph items are square from the moment
+    // they exist.
+    let length = surface.hasReadout
+      ? NSStatusItem.variableLength
+      : NSStatusItem.squareLength
+
+    // Named on the line after it is made, before anything else can be created.
+    // See `claim` for why the gap between those two lines is the whole bug.
+    let item = NSStatusBar.system.statusItem(withLength: length)
+    Self.claim(item, as: surface.autosaveName)
+    items[surface] = item
+
+    guard let button = item.button else { return }
+    button.toolTip = surface.tooltip
     button.target = self
-    button.action = #selector(statusItemClicked(_:))
+    button.action = #selector(itemClicked(_:))
     button.sendAction(on: [.leftMouseUp, .rightMouseUp])
+    button.imagePosition = .imageOnly
+    render(surface)
 
-    Self.show(statusItem)
+    // A readout is shown once there is something in it. Until the first render
+    // a `variableLength` item measures nothing, and asking to be shown at zero
+    // width is a question with no good answer.
+    Self.show(item)
+  }
+
+  /// Draws whatever this surface puts in the bar — a glyph, or live text.
+  private func render(_ surface: MenuBarSurface) {
+    switch surface {
+    case .dashboard:
+      // Sized and centred by `menuBarGlyph`, which also marks it a template so
+      // AppKit recolours it for a light or dark menu bar.
+      items[surface]?.button?.image = Self.statusImage()
+    case .clipboard:
+      items[surface]?.button?.image = Self.clipboardImage()
+    case .network:
+      renderNetwork(NetworkMonitor.shared.latest)
+    case .aiUsage:
+      renderAiUsage()
+    }
+  }
+
+  /// The surface a button belongs to, or nil if it is not one of ours.
+  private func surface(for button: NSStatusBarButton) -> MenuBarSurface? {
+    items.first { $0.value.button === button }?.key
+  }
+
+  /// The item an anchor should hang from.
+  ///
+  /// Falls back to whatever is on the bar when the asked-for surface has no
+  /// icon — the panel is still reachable, it just has no icon of its own. That
+  /// is the ⌘⇧V-with-no-clipboard-icon case, and in the consolidated layout it
+  /// is every case.
+  private func anchorButton(for surface: MenuBarSurface?) -> NSStatusBarButton? {
+    if let surface, let button = items[surface]?.button { return button }
+    if let button = items[.dashboard]?.button { return button }
+    return MenuBarSurface.ordered.compactMap { items[$0]?.button }.first
   }
 
   /// The app's own mark, so the status item and the Dock tile are the same
@@ -310,19 +403,6 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     return nil
   }
 
-  private func configureClipboardItem() {
-    guard let button = clipboardItem.button else { return }
-
-    button.image = Self.clipboardImage()
-    button.imagePosition = .imageOnly
-    button.toolTip = "Clipboard history"
-    button.target = self
-    button.action = #selector(clipboardItemClicked(_:))
-    button.sendAction(on: [.leftMouseUp, .rightMouseUp])
-
-    Self.show(clipboardItem)
-  }
-
   /// Same fallback ladder as the vitals icon, for the same reason: SF Symbol
   /// availability varies by macOS version.
   private static func clipboardImage() -> NSImage? {
@@ -339,85 +419,63 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
 
   // MARK: - Network readout
 
-  /// Creates the readout, or removes it, to match the user's preference.
-  ///
-  /// Removing rather than hiding: `NSStatusItem.isVisible = false` leaves a
-  /// zero-width item that still reserves its slot in the ordering, and the
-  /// setting is meant to give the menu bar space back.
-  private func configureNetworkItem() {
-    NetworkStore.shared.load()
-
-    // The two glyph items are re-asserted here as well as at launch. Adding or
-    // removing an item is exactly when macOS re-reads what belongs on the bar,
-    // and the last thing to have written an answer for them may have been
-    // Control Center, on some other app's behalf.
-    Self.show(statusItem)
-    Self.show(clipboardItem)
-
-    guard NetworkStore.shared.prefs.menuBarEnabled else {
-      if let networkItem { NSStatusBar.system.removeStatusItem(networkItem) }
-      networkItem = nil
-      networkItemWidth = 0
-      return
-    }
-
-    guard networkItem == nil else {
-      // Already there; the style may have changed under it. A compact readout
-      // must be allowed to shrink back out of a two-line item's width, so the
-      // "only ever grows" floor is dropped here and rebuilt from the new style.
-      networkItemWidth = 0
-      networkItem?.length = NSStatusItem.variableLength
-      renderNetwork(NetworkMonitor.shared.latest)
-      return
-    }
-
-    // Variable length, unlike the two glyph items: the readout is text, and how
-    // wide it needs to be depends on how fast the machine is moving bytes.
-    //
-    // Named on the next line, and more sharply here than anywhere else: this is
-    // the one item that comes and goes with a preference, so an ordinal would
-    // be re-issued to somebody every time it did.
-    let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-    Self.claim(item, as: "TidyNetwork")
-    networkItem = item
-
-    guard let button = item.button else { return }
-    button.toolTip = "Network activity"
-    button.target = self
-    button.action = #selector(networkItemClicked(_:))
-    button.sendAction(on: [.leftMouseUp, .rightMouseUp])
-    renderNetwork(NetworkMonitor.shared.latest)
-
-    // Shown once the readout is in it, unlike the two glyph items. Those are
-    // `squareLength` and have a width from the moment they exist; this one is
-    // `variableLength`, so until the first `renderNetwork` it measures nothing,
-    // and asking to be shown at zero width is a question with no good answer.
-    Self.show(item)
-  }
-
   private func observeNetwork() {
     networkObserver = NetworkMonitor.shared.addObserver { [weak self] sample in
       self?.renderNetwork(sample)
     }
-    prefsObserver = NotificationCenter.default.addObserver(
+  }
+
+  /// Rebuilds the bar whenever anything it is drawn from moves.
+  ///
+  /// Three sources, because three different things can change what is on the
+  /// bar: which items the user wants, how the network readout is styled, and
+  /// what the AI readout has to say.
+  private func observePreferences() {
+    let center = NotificationCenter.default
+
+    menuBarPrefsObserver = center.addObserver(
+      forName: MenuBarStore.prefsChanged,
+      object: nil,
+      queue: .main
+    ) { [weak self] _ in
+      self?.syncStatusItems()
+    }
+
+    // The network style and units live under the network module's own key, so
+    // they arrive on its notification rather than the menu bar's.
+    prefsObserver = center.addObserver(
       forName: NetworkChannel.prefsChanged,
       object: nil,
       queue: .main
     ) { [weak self] _ in
-      self?.configureNetworkItem()
+      self?.syncStatusItems()
+    }
+
+    aiUsageObserver = center.addObserver(
+      forName: AiUsageStore.didChange,
+      object: nil,
+      queue: .main
+    ) { [weak self] _ in
+      self?.renderAiUsage()
     }
   }
 
-  @objc private func networkItemClicked(_ sender: NSStatusBarButton) {
+  @objc private func itemClicked(_ sender: NSStatusBarButton) {
     if NSApp.currentEvent?.type == .rightMouseUp {
-      showContextMenu()
-    } else {
-      togglePopover(from: sender, section: "network")
+      showContextMenu(from: sender)
+      return
     }
+    // In the consolidated layout every click is the dashboard's — the panel's
+    // tab strip is what picks a surface from there, not the icon.
+    let clicked = surface(for: sender)
+    let section = MenuBarStore.shared.prefs.layout == .consolidated
+      ? nil
+      : clicked.map(\.rawValue)
+    togglePopover(from: sender, section: section)
   }
 
   private func renderNetwork(_ sample: NetworkSample) {
-    guard let item = networkItem, let button = item.button else { return }
+    guard let item = items[.network], let button = item.button else { return }
 
     let prefs = NetworkStore.shared.prefs
     let bits = prefs.useBits
@@ -441,16 +499,95 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     // icon to its left — twitches sideways each time a digit appears or
     // disappears. Pinning the length to the widest it has been stops that. It
     // only ever grows within a session, and resets when the style changes.
-    let rounded = ((readout.size.width + Self.networkInset) / 4).rounded(.up) * 4
-    if rounded > networkItemWidth {
-      networkItemWidth = rounded
-      item.length = rounded
+    pin(item, for: .network, to: readout.size.width)
+  }
+
+  /// Stops a text item shuffling its neighbours as its content changes width.
+  ///
+  /// `variableLength` re-measures on every change, so the item — and every icon
+  /// to its left — twitches sideways each time a digit appears or disappears.
+  /// Pinning the length to the widest it has been stops that. It only ever
+  /// grows while a style holds, and `syncStatusItems` drops the floor when the
+  /// style changes so a narrower readout can shrink back into it.
+  private func pin(_ item: NSStatusItem, for surface: MenuBarSurface, to width: CGFloat) {
+    let rounded = ((width + Self.readoutInset) / 4).rounded(.up) * 4
+    guard rounded > (itemWidths[surface] ?? 0) else { return }
+    itemWidths[surface] = rounded
+    item.length = rounded
+  }
+
+  // MARK: - AI usage readout
+
+  /// Today's AI spend as ink in the bar, or nothing when there is nothing
+  /// honest to put there.
+  ///
+  /// The item stays — it is the anchor for the AI panel — but it falls back to
+  /// its glyph rather than drawing a number. `AiUsageStore.current()` returns
+  /// nil once the summary is stale or from another day, and `$0.00` would claim
+  /// a day you spent nothing on rather than a day nobody has measured.
+  private func renderAiUsage() {
+    guard let item = items[.aiUsage], let button = item.button else { return }
+
+    guard let summary = AiUsageStore.shared.current() else {
+      button.image = Self.aiUsageImage()
+      // Back to a glyph, so the pinned text width has to go with it.
+      itemWidths[.aiUsage] = nil
+      item.length = NSStatusItem.squareLength
+      return
+    }
+
+    let style = MenuBarStore.shared.prefs.aiStyle
+    let cost = Self.formatUsd(summary.costToday)
+    let readout = Self.aiReadout(
+      cost: cost,
+      tokens: Self.formatCount(summary.tokensToday),
+      style: style,
+      blockElapsed: summary.blockElapsed()
+    )
+    // Ink in an image, so the figure has to be said out loud somewhere else —
+    // and said honestly, since the bar has no room for the caveat.
+    readout.accessibilityDescription =
+      "\(cost) of AI usage today, at published API rates"
+    button.image = readout
+
+    item.length = NSStatusItem.variableLength
+    pin(item, for: .aiUsage, to: readout.size.width)
+  }
+
+  /// The AI item's glyph, for when there is no figure to draw.
+  private static func aiUsageImage() -> NSImage? {
+    symbolGlyph(
+      ["brain.head.profile", "brain", "cpu", "sparkles"],
+      describedAs: "AI usage"
+    ) ?? NSImage(named: NSImage.actionTemplateName).map(menuBarGlyph)
+  }
+
+  /// Money, without dragging a `NumberFormatter` in for two decimal places.
+  ///
+  /// Deliberately not localised. The rates it is derived from are published in
+  /// US dollars and nothing here converts them, so a figure that rendered as
+  /// `12,34 €` would be claiming an exchange rate this app has never seen.
+  private static func formatUsd(_ amount: Double) -> String {
+    if amount <= 0 { return "$0.00" }
+    return String(format: "$%.2f", amount)
+  }
+
+  private static func formatCount(_ count: Int) -> String {
+    switch count {
+    case 1_000_000_000...:
+      return String(format: "%.2fB", Double(count) / 1_000_000_000)
+    case 1_000_000...:
+      return String(format: "%.1fM", Double(count) / 1_000_000)
+    case 1_000...:
+      return String(format: "%.1fK", Double(count) / 1_000)
+    default:
+      return "\(count)"
     }
   }
 
-  /// Padding either side of the readout, matching what AppKit gives a status
+  /// Padding either side of a text readout, matching what AppKit gives a status
   /// item's own content.
-  private static let networkInset: CGFloat = 12
+  private static let readoutInset: CGFloat = 12
 
   /// The gap between the chart and the numbers beside it.
   private static let networkGap: CGFloat = 4
@@ -531,6 +668,139 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     // Template, so the menu bar tints it. That is the same `labelColor` the
     // text used to ask for, arrived at by the route that also follows the bar
     // between light and dark without being told.
+    image.isTemplate = true
+    return image
+  }
+
+  /// The AI readout as one template image, composed the same way.
+  ///
+  /// Same arithmetic as `readout(down:up:style:ring:)` and for the same reason:
+  /// one canvas exactly the bar's thickness, every piece placed against its
+  /// middle, so nothing rides high or low when macOS changes how tall a menu
+  /// bar is.
+  private static func aiReadout(
+    cost: String,
+    tokens: String,
+    style: AiMenuBarStyle,
+    blockElapsed: Double?
+  ) -> NSImage {
+    let text: NSAttributedString
+    switch style {
+    case .cost, .block:
+      text = aiCostTitle(cost)
+    case .costAndTokens:
+      text = aiStackedTitle(cost: cost, tokens: tokens)
+    }
+
+    let measured = text.boundingRect(
+      with: NSSize(
+        width: CGFloat.greatestFiniteMagnitude,
+        height: CGFloat.greatestFiniteMagnitude
+      ),
+      options: [.usesLineFragmentOrigin]
+    )
+    let textSize = NSSize(
+      width: measured.width.rounded(.up),
+      height: measured.height.rounded(.up)
+    )
+
+    // Only the block style carries a bar, and only while a block is open.
+    let bar = style == .block ? blockElapsed.map(blockImage) : nil
+    let barWidth = bar.map { $0.size.width + networkGap } ?? 0
+
+    let image = NSImage(
+      size: NSSize(
+        width: barWidth + textSize.width,
+        height: NSStatusBar.system.thickness
+      ),
+      flipped: false
+    ) { rect in
+      if let bar {
+        bar.draw(
+          in: NSRect(
+            x: rect.minX,
+            y: rect.midY - bar.size.height / 2,
+            width: bar.size.width,
+            height: bar.size.height
+          )
+        )
+      }
+      text.draw(
+        with: NSRect(
+          x: rect.minX + barWidth,
+          y: rect.midY - textSize.height / 2,
+          width: textSize.width,
+          height: textSize.height
+        ),
+        options: [.usesLineFragmentOrigin]
+      )
+      return true
+    }
+
+    image.isTemplate = true
+    return image
+  }
+
+  /// One line: the cost. Black for the same reason `stackedTitle` is — the
+  /// composited image is templated, so the menu bar supplies the ink.
+  private static func aiCostTitle(_ cost: String) -> NSAttributedString {
+    NSAttributedString(
+      string: cost,
+      attributes: [
+        .font: NSFont.monospacedDigitSystemFont(ofSize: 11, weight: .regular),
+        .foregroundColor: NSColor.black,
+      ]
+    )
+  }
+
+  /// Cost over tokens, stacked the way the network readout stacks its rates.
+  private static func aiStackedTitle(cost: String, tokens: String) -> NSAttributedString {
+    let paragraph = NSMutableParagraphStyle()
+    paragraph.maximumLineHeight = 10
+    paragraph.minimumLineHeight = 10
+    paragraph.alignment = .right
+
+    return NSAttributedString(
+      string: "\(cost)\n\(tokens)",
+      attributes: [
+        .font: NSFont.monospacedDigitSystemFont(ofSize: 9, weight: .regular),
+        .foregroundColor: NSColor.black,
+        .paragraphStyle: paragraph,
+      ]
+    )
+  }
+
+  /// How far into the five-hour block, as a small bar.
+  ///
+  /// **Elapsed time, not an allowance.** Claude Code writes no limit into its
+  /// logs, so there is no denominator to fill against; this says how long you
+  /// have been in the current block, which is a fact this Mac holds. Drawing it
+  /// as "how much is left" would be inventing the other number.
+  ///
+  /// An outline with a fill inside it rather than a bare fill, so an empty
+  /// block still reads as a bar at 0% instead of vanishing.
+  private static func blockImage(_ elapsed: Double) -> NSImage {
+    let size = NSSize(width: 22, height: 6)
+    let image = NSImage(size: size, flipped: false) { rect in
+      let radius = rect.height / 2
+      let track = NSBezierPath(roundedRect: rect.insetBy(dx: 0.5, dy: 0.5),
+                               xRadius: radius,
+                               yRadius: radius)
+      track.lineWidth = 1
+      NSColor.black.withAlphaComponent(0.45).setStroke()
+      track.stroke()
+
+      let width = (rect.width - 2) * CGFloat(min(max(elapsed, 0), 1))
+      guard width > 0.5 else { return true }
+      let filled = NSRect(x: rect.minX + 1, y: rect.minY + 1,
+                          width: width, height: rect.height - 2)
+      let fill = NSBezierPath(roundedRect: filled,
+                              xRadius: filled.height / 2,
+                              yRadius: filled.height / 2)
+      NSColor.black.setFill()
+      fill.fill()
+      return true
+    }
     image.isTemplate = true
     return image
   }
@@ -619,23 +889,18 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     return image
   }
 
-  @objc private func statusItemClicked(_ sender: NSStatusBarButton) {
-    if NSApp.currentEvent?.type == .rightMouseUp {
-      showContextMenu()
-    } else {
-      togglePopover(from: sender, section: nil)
-    }
-  }
+  /// Right-click menu, on whichever icon was right-clicked.
+  ///
+  /// It used to be attached to the vitals item whatever had been clicked, which
+  /// was safe while that item always existed. It does not any more — the user
+  /// can switch it off — so the menu is hung on the item that asked for it and
+  /// taken off the same one afterwards.
+  private func showContextMenu(from button: NSStatusBarButton?) {
+    guard let button,
+          let surface = surface(for: button),
+          let item = items[surface]
+    else { return }
 
-  @objc private func clipboardItemClicked(_ sender: NSStatusBarButton) {
-    if NSApp.currentEvent?.type == .rightMouseUp {
-      showContextMenu()
-    } else {
-      togglePopover(from: sender, section: "clipboard")
-    }
-  }
-
-  private func showContextMenu() {
     let menu = NSMenu()
     menu.addItem(
       withTitle: "Open Tidy",
@@ -649,10 +914,12 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
       keyEquivalent: "q"
     ).target = self
 
-    statusItem.menu = menu
-    statusItem.button?.performClick(nil)
+    contextMenuItem = item
+    item.menu = menu
+    item.button?.performClick(nil)
     // Detach again so the next left-click opens the popover, not the menu.
-    statusItem.menu = nil
+    item.menu = nil
+    contextMenuItem = nil
   }
 
   // MARK: - Popover
@@ -674,6 +941,9 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     RecycleBinChannel.register(with: engine.binaryMessenger)
     ClipboardChannel.register(with: engine.binaryMessenger)
     NetworkChannel.register(with: engine.binaryMessenger)
+    // Read-only from here: the panel draws the summary this engine cannot
+    // compute, published by the main window.
+    AiUsageChannel.register(with: engine.binaryMessenger)
 
     channel = FlutterMethodChannel(
       name: Self.channelName,
@@ -796,19 +1066,16 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     showPopover(section: section, from: button)
   }
 
-  /// Opens the popover on the vitals icon. The hot key comes in here with
-  /// "clipboard", which lands on the clipboard icon instead — a panel about
-  /// clips should hang from the icon that means clips.
+  /// Opens the popover on the icon that means [section].
+  ///
+  /// The hot key comes in here with "clipboard", which lands on the clipboard
+  /// icon — a panel about clips should hang from the icon that means clips.
+  /// When that icon is switched off, or in the consolidated layout where there
+  /// is only one, `anchorButton(for:)` falls back to whatever is on the bar:
+  /// the panel is still reachable, it just has no icon of its own.
   func showPopover(section: String?) {
-    let preferred: NSStatusBarButton?
-    switch section {
-    case "clipboard": preferred = clipboardItem.button
-    // Falls back to the vitals icon when the readout is switched off — the panel
-    // is still reachable, it just has no icon of its own to hang from.
-    case "network": preferred = networkItem?.button ?? statusItem.button
-    default: preferred = statusItem.button
-    }
-    showPopover(section: section, from: preferred ?? statusItem.button)
+    let surface = section.flatMap(MenuBarSurface.init(rawValue:))
+    showPopover(section: section, from: anchorButton(for: surface))
   }
 
   private func showPopover(section: String?, from button: NSStatusBarButton?) {
@@ -894,12 +1161,15 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     preview.show(entry: entry, beside: window, rowTop: rowTop)
   }
 
+  /// How wide the panel should be for [section].
+  ///
+  /// One width for every tab in the consolidated layout. The narrow surfaces
+  /// get some gutter there, which is the cheaper of the two costs: a tab strip
+  /// whose container jumped 140pt sideways on each click would move the tab you
+  /// were about to press next.
   private func width(for section: String?) -> CGFloat {
-    switch section {
-    case "clipboard": clipboardPanelWidth
-    case "network": networkPanelWidth
-    default: panelWidth
-    }
+    guard MenuBarStore.shared.prefs.layout == .separate else { return panelWidth }
+    return section.flatMap(MenuBarSurface.init(rawValue:))?.panelWidth ?? panelWidth
   }
 
   /// What this section measured last time, or whatever is on screen now the
@@ -909,9 +1179,17 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     panelHeights[section ?? Self.dashboardSection] ?? popover.contentSize.height
   }
 
-  private func arguments(for section: String?) -> [String: Any]? {
-    guard let section else { return nil }
-    return ["section": section]
+  /// What rides along with `popoverDidOpen`.
+  ///
+  /// Never nil now: the layout has to reach Dart even when the section does
+  /// not, because it decides whether the panel draws a tab strip and this
+  /// engine has no `AppSettings` of its own to look it up in.
+  private func arguments(for section: String?) -> [String: Any] {
+    var arguments: [String: Any] = [
+      "layout": MenuBarStore.shared.prefs.layout.rawValue
+    ]
+    if let section { arguments["section"] = section }
+    return arguments
   }
 
   /// The panel samples CPU and running processes on a timer while it is on
@@ -931,6 +1209,18 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     case "setPopoverHeight":
       if let height = (call.arguments as? [String: Any])?["height"] as? Double {
         setPopoverHeight(CGFloat(height))
+      }
+      result(nil)
+    case "setSection":
+      // A tab click in the consolidated layout, while the popover is already
+      // open. Dart has switched panels itself; this is so the height filed for
+      // the new section is adopted rather than the old one's being kept.
+      //
+      // Deliberately *not* how a section arrives on open — see the note on
+      // `popoverDidOpen` in `popover_bridge.dart`. Announcing a section
+      // separately from the open is what the resize handshake does not survive.
+      if let section = (call.arguments as? [String: Any])?["section"] as? String {
+        adoptSection(section)
       }
       result(nil)
     case "showClipPreview":
@@ -963,6 +1253,19 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     }
   }
 
+  /// Points an already-open popover at another section.
+  ///
+  /// Only the height moves. The width is fixed across tabs in the consolidated
+  /// layout, which is the only layout that can reach this, so re-applying it
+  /// would be a resize the Flutter view has to stop and answer for nothing.
+  private func adoptSection(_ section: String) {
+    guard currentSection != section else { return }
+    currentSection = section
+    let height = height(for: section)
+    guard abs(popover.contentSize.height - height) > 1 else { return }
+    popover.contentSize = NSSize(width: currentWidth, height: height)
+  }
+
   private func setPopoverHeight(_ height: CGFloat) {
     let clamped = min(max(height, minPanelHeight), maxPanelHeight)
     panelHeights[currentSection] = clamped
@@ -982,8 +1285,8 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     if let appearanceObserver {
       DistributedNotificationCenter.default.removeObserver(appearanceObserver)
     }
-    if let prefsObserver {
-      NotificationCenter.default.removeObserver(prefsObserver)
+    for observer in [prefsObserver, menuBarPrefsObserver, aiUsageObserver] {
+      if let observer { NotificationCenter.default.removeObserver(observer) }
     }
     if let networkObserver {
       NetworkMonitor.shared.removeObserver(networkObserver)

@@ -50,6 +50,8 @@
 		A1B2C3D006AA000000000002 /* AppSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D006AA000000000001 /* AppSupport.swift */; };
 		A1B2C3D007AA000000000002 /* NetworkMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D007AA000000000001 /* NetworkMonitor.swift */; };
 		A1B2C3D007AA000000000004 /* NetworkStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D007AA000000000003 /* NetworkStore.swift */; };
+		A1B2C3D007AA000000000102 /* AiUsageChannel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D007AA000000000101 /* AiUsageChannel.swift */; };
+		A1B2C3D007AA000000000104 /* MenuBarPrefs.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D007AA000000000103 /* MenuBarPrefs.swift */; };
 		A1B2C3D007AA000000000006 /* NetworkChannel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D007AA000000000005 /* NetworkChannel.swift */; };
 /* End PBXBuildFile section */
 
@@ -127,6 +129,8 @@
 		A1B2C3D006AA000000000001 /* AppSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSupport.swift; sourceTree = "<group>"; };
 		A1B2C3D007AA000000000001 /* NetworkMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkMonitor.swift; sourceTree = "<group>"; };
 		A1B2C3D007AA000000000003 /* NetworkStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkStore.swift; sourceTree = "<group>"; };
+		A1B2C3D007AA000000000101 /* AiUsageChannel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AiUsageChannel.swift; sourceTree = "<group>"; };
+		A1B2C3D007AA000000000103 /* MenuBarPrefs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarPrefs.swift; sourceTree = "<group>"; };
 		A1B2C3D007AA000000000005 /* NetworkChannel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkChannel.swift; sourceTree = "<group>"; };
 		A58D4BF9EC1A37105C255345 /* Pods-Runner.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.release.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"; sourceTree = "<group>"; };
 		D0734BE18335D58B0F4D0B0D /* Pods_RunnerTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_RunnerTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -255,6 +259,8 @@
 				A1B2C3D004AA000000000007 /* HotKey.swift */,
 				A1B2C3D007AA000000000001 /* NetworkMonitor.swift */,
 				A1B2C3D007AA000000000003 /* NetworkStore.swift */,
+				A1B2C3D007AA000000000101 /* AiUsageChannel.swift */,
+				A1B2C3D007AA000000000103 /* MenuBarPrefs.swift */,
 				A1B2C3D007AA000000000005 /* NetworkChannel.swift */,
 				33E51913231747F40026EE4D /* DebugProfile.entitlements */,
 				33E51914231749380026EE4D /* Release.entitlements */,
@@ -502,6 +508,8 @@
 				A1B2C3D004AA000000000008 /* HotKey.swift in Sources */,
 				A1B2C3D007AA000000000002 /* NetworkMonitor.swift in Sources */,
 				A1B2C3D007AA000000000004 /* NetworkStore.swift in Sources */,
+				A1B2C3D007AA000000000102 /* AiUsageChannel.swift in Sources */,
+				A1B2C3D007AA000000000104 /* MenuBarPrefs.swift in Sources */,
 				A1B2C3D007AA000000000006 /* NetworkChannel.swift in Sources */,
 				33CC10F12044A3C60003C045 /* AppDelegate.swift in Sources */,
 				D9258076458BE66ECFF7AA80 /* UpdateChannel.swift in Sources */,

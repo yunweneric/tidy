@@ -234,23 +234,32 @@ found" from a scanner that does not exist is lying.
 
 ## 4a. Settings the native side reads
 
-Most preferences are read by Dart and pushed to Swift over a channel. Two
-features cannot wait for that: the **clipboard recorder** and the **network
-readout** both run before any Flutter engine has finished starting, so they read
-`settings.json` themselves — `ClipboardStore.readPrefsFromSettings()` and
-`NetworkStore.readPrefsFromSettings()`.
+Most preferences are read by Dart and pushed to Swift over a channel. Three
+sets cannot wait for that: the **clipboard recorder**, the **network readout**
+and the **menu bar itself** all run before any Flutter engine has finished
+starting, so they read `settings.json` themselves —
+`ClipboardStore.readPrefsFromSettings()`, `NetworkStore.readPrefsFromSettings()`
+and `MenuBarStore.readFromSettings()`.
 
 That makes the key names a contract across the language boundary. `AppSettings`
-owns them; `ClipboardPrefs.fromMap` and `NetworkPrefs.fromMap` on the Swift side
-read the same strings. **Renaming a key in one place and not the other fails
-silently** — the native side simply falls back to its default, which for the
-clipboard means recording more than the user asked for, and for the network
-readout means the wrong style in the menu bar for the first second of every
-launch. Both sets carry a comment saying so; keep it there.
+owns them; `ClipboardPrefs.fromMap`, `NetworkPrefs.fromMap` and
+`MenuBarPrefs.fromMap` on the Swift side read the same strings. **Renaming a key
+in one place and not the other fails silently** — the native side simply falls
+back to its default, which for the clipboard means recording more than the user
+asked for, for the network readout means the wrong style in the menu bar for the
+first second of every launch, and for the menu bar means the bar collapsing to
+one icon and then sprouting three more once Dart catches up. All three sets
+carry a comment saying so; keep it there.
 
-The Dart side still pushes on change, through `ClipboardService.bindTo` and
-`NetworkService.bindTo`. The file read is for launch; the channel is for
-everything after it.
+One key is deliberately shared rather than duplicated:
+`networkMenuBarEnabled` is both the network readout's switch and the menu bar's
+"show the network item", and `MenuBarPrefs.fromMap` reads that exact string
+rather than minting a `menuBarShowNetwork` beside it. Two keys for one switch is
+two chances to drift.
+
+The Dart side still pushes on change, through `ClipboardService.bindTo`,
+`NetworkService.bindTo` and `MenuBarService.bindTo`. The file read is for
+launch; the channel is for everything after it.
 
 ---
 

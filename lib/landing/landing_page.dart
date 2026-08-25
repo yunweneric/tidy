@@ -47,7 +47,16 @@ class _LandingPageState extends State<LandingPage> {
   final GlobalKey _steps = GlobalKey();
   final GlobalKey _download = GlobalKey();
 
-  bool _scrolled = false;
+  /// Scroll-derived state, kept out of `setState` and out of
+  /// [LandingController] on purpose.
+  ///
+  /// Both of these change while the page is moving. Routing them through
+  /// `setState` here rebuilt every section on the page — including three live
+  /// preview windows — and routing them through the controller rebuilt the
+  /// whole `MaterialApp`. Only the navigation bar cares, so only the
+  /// navigation bar listens.
+  final ValueNotifier<bool> _scrolled = ValueNotifier<bool>(false);
+  final ValueNotifier<String?> _active = ValueNotifier<String?>(null);
 
   /// Declaration order matters: the spy takes the last section above the
   /// reading line, which is only the right answer if this reads down the page.
@@ -76,6 +85,8 @@ class _LandingPageState extends State<LandingPage> {
   @override
   void dispose() {
     _scroll.dispose();
+    _scrolled.dispose();
+    _active.dispose();
     super.dispose();
   }
 
@@ -87,9 +98,8 @@ class _LandingPageState extends State<LandingPage> {
   }
 
   void _onScroll() {
-    final scrolled = _scroll.offset > 12;
-    if (scrolled != _scrolled) setState(() => _scrolled = scrolled);
-    widget.controller.setActiveAnchor(_sectionInView());
+    _scrolled.value = _scroll.offset > 12;
+    _active.value = _sectionInView();
   }
 
   /// The section under the reading line, measured live from the render tree.
@@ -209,12 +219,21 @@ class _LandingPageState extends State<LandingPage> {
               top: 0,
               left: 0,
               right: 0,
-              child: LandingNav(
-                controller: controller,
-                targets: barTargets,
-                menuTargets: sheetTargets,
-                scrolled: _scrolled,
-                onDownload: () => _jumpTo(_download),
+              child: ValueListenableBuilder<bool>(
+                valueListenable: _scrolled,
+                builder:
+                    (context, scrolled, _) => ValueListenableBuilder<String?>(
+                      valueListenable: _active,
+                      builder:
+                          (context, activeId, _) => LandingNav(
+                            controller: controller,
+                            targets: barTargets,
+                            menuTargets: sheetTargets,
+                            scrolled: scrolled,
+                            activeId: activeId,
+                            onDownload: () => _jumpTo(_download),
+                          ),
+                    ),
               ),
             ),
           ],

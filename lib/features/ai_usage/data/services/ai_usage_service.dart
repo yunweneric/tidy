@@ -1,9 +1,12 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:tidy/core/logging/logging.dart';
 import 'package:tidy/core/settings/app_settings.dart';
 import 'package:tidy/features/ai_usage/data/models/ai_provider.dart';
 import 'package:tidy/features/ai_usage/data/models/ai_usage_report.dart';
+import 'package:tidy/features/ai_usage/data/models/ai_usage_summary.dart';
+import 'package:tidy/features/ai_usage/data/services/ai_usage_bridge.dart';
 import 'package:tidy/features/ai_usage/data/parsing/usage_merge.dart';
 import 'package:tidy/features/ai_usage/data/parsing/usage_scan.dart';
 import 'package:tidy/features/ai_usage/data/services/ai_usage_cache.dart';
@@ -18,11 +21,15 @@ class AiUsageService {
     : _settings = settings,
       _cache = cache ?? AiUsageCache();
 
+  /// How often the menu bar's summary is refreshed.
+  static const Duration _publishInterval = Duration(minutes: 1);
+
   final AppSettings _settings;
   final AiUsageCache _cache;
 
   AiUsageReport? _report;
   Future<AiUsageReport>? _inFlight;
+  Timer? _publisher;
 
   /// The last sweep's result, or null if there has not been one.
   AiUsageReport? get cached => _report;
@@ -103,6 +110,41 @@ class AiUsageService {
       // Whatever was held is better than nothing, and an empty report at least
       // renders the empty state rather than a broken page.
       return _report ??= const AiUsageReport();
+    }
+  }
+
+  /// Keeps the menu bar's summary fresh.
+  ///
+  /// Main engine only, and started from the composition root rather than from
+  /// here — the popover has no `AiUsageService` at all, and two engines
+  /// sweeping the same gigabyte on a timer is exactly what one owner prevents.
+  ///
+  /// A minute, not a second. A cost figure only moves when a reply lands, and
+  /// each pass is a warm sweep: every unchanged log comes straight from the
+  /// cache, so the work is a `stat` per file and nothing else. Sampling this at
+  /// the network readout's cadence would spend an isolate a second to redraw a
+  /// number that had not changed.
+  void startPublishing({Duration every = _publishInterval}) {
+    if (_publisher != null) return;
+    // Once immediately, so the bar is right within a second of launch rather
+    // than a minute into it.
+    unawaited(_publish());
+    _publisher = Timer.periodic(every, (_) => unawaited(_publish()));
+  }
+
+  void stopPublishing() {
+    _publisher?.cancel();
+    _publisher = null;
+  }
+
+  Future<void> _publish() async {
+    try {
+      final report = await load(refresh: true);
+      await AiUsageBridge.publish(report.summarise());
+    } catch (e) {
+      // The bar keeps whatever it last had, which is a stale number rather than
+      // a wrong one — the native side ages it out on its own.
+      AppLog.aiUsage.failed('refresh the menu bar summary', e);
     }
   }
 

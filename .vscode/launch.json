@@ -34,7 +34,7 @@
       "program": "lib/main_landing.dart",
       "deviceId": "chrome",
       "flutterMode": "release",
-      "args": ["--base-href", "/", "--pwa-strategy", "none"]
+      "args": ["--wasm", "--base-href", "/", "--pwa-strategy", "none"]
     }
   ]
 }

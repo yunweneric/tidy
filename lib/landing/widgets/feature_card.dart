@@ -35,25 +35,35 @@ class LandingGrid extends StatelessWidget {
         for (var start = 0; start < children.length; start += columns) {
           final end = (start + columns).clamp(0, children.length);
           rows.add(
-            IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  for (var i = start; i < end; i++) ...[
-                    if (i > start) SizedBox(width: gap),
-                    SizedBox(
-                      width: width,
-                      child: StaggeredReveal(
-                        index: i - start,
-                        child: children[i],
+            // One `Reveal` around the row rather than one per card. Each
+            // instance keeps a scroll listener that measures its own position
+            // on every frame until it trips, and a page of three- and
+            // four-across grids had about thirty of them doing that at once.
+            // The per-card stagger is kept — it just no longer costs a
+            // listener each.
+            Reveal(
+              child: IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (var i = start; i < end; i++) ...[
+                      if (i > start) SizedBox(width: gap),
+                      SizedBox(
+                        width: width,
+                        child: StaggeredFade(
+                          index: i - start,
+                          child: children[i],
+                        ),
                       ),
-                    ),
+                    ],
+                    // Keeps a short final row left-aligned instead of
+                    // stretching its cards across the width the full rows use.
+                    if (end - start < columns)
+                      SizedBox(
+                        width: (columns - (end - start)) * (width + gap),
+                      ),
                   ],
-                  // Keeps a short final row left-aligned instead of stretching
-                  // its cards across the width the full rows use.
-                  if (end - start < columns)
-                    SizedBox(width: (columns - (end - start)) * (width + gap)),
-                ],
+                ),
               ),
             ),
           );

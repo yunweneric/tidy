@@ -122,6 +122,10 @@ Three details that matter:
   including `flutter_bootstrap.js`, which leaves the page stuck on its boot
   curtain with no error anywhere. The step reads `web/CNAME` and picks. Delete
   that file and the site falls back to `yunweneric.github.io/tidy` correctly.
+- **`--wasm`.** Compiles to WasmGC and renders with skwasm, emitting the
+  dart2js + CanvasKit build alongside it as the fallback; `flutter.js` picks
+  per browser. Roughly 2.2 MB gzipped on the wasm path against 3.4 MB on the
+  JavaScript one, and noticeably smoother to scroll.
 - **`--pwa-strategy none`.** No service worker. A marketing page must never
   serve a cached previous version after a deploy.
 - **`flutter analyze` is scoped to `lib/landing` and `lib/main_landing.dart`.**

@@ -21,6 +21,13 @@ enum SettingsSection {
     icon: AppIcons.light,
     blurb: 'Light or dark, and how much of the app moves while it works.',
   ),
+  menuBar(
+    label: 'Menu Bar',
+    icon: AppIcons.brand,
+    blurb:
+        'Which of ${Brand.name}’s icons sit in the menu bar, and what they '
+        'say.',
+  ),
   clipboard(
     label: 'Clipboard',
     icon: AppIcons.clipboard,
@@ -29,7 +36,7 @@ enum SettingsSection {
   network(
     label: 'Network',
     icon: AppIcons.network,
-    blurb: 'The menu bar readout, and what the usage history keeps.',
+    blurb: 'How rates are measured, and what the usage history keeps.',
   ),
   aiUsage(
     label: 'AI Usage',

@@ -53,6 +53,14 @@ class MainFlutterWindow: NSWindow, NSWindowDelegate {
     // Both engines again, and for the same reason: one native sampler, one
     // history, two windows onto it.
     NetworkChannel.register(with: flutterViewController.engine.binaryMessenger)
+    // Both engines. This window publishes the AI summary because it is the only
+    // one with a service that can compute one; the popover reads it back, so
+    // the panel and the menu bar draw the same figures rather than two
+    // opinions.
+    AiUsageChannel.register(with: flutterViewController.engine.binaryMessenger)
+    // Main window only: the menu bar preferences are pushed from the settings
+    // UI, and the popover has none.
+    MenuBarChannel.register(with: flutterViewController.engine.binaryMessenger)
     // Reverse direction only, for "open Tidy at the clipboard" from the
     // popover. The popover's own engine has the other half of this channel.
     PopoverChannel.registerMainWindow(with: flutterViewController.engine.binaryMessenger)

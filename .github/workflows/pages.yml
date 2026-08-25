@@ -82,9 +82,14 @@ jobs:
       - name: Analyze landing page
         run: flutter analyze lib/landing lib/main_landing.dart
 
+      # `--wasm` compiles to WasmGC and renders with skwasm, and emits the
+      # dart2js + CanvasKit build alongside it as the fallback — the loader
+      # picks per browser. It is both faster to run and about a third lighter
+      # over the wire than the JavaScript path on its own.
       - name: Build landing page
         run: |
           flutter build web \
+            --wasm \
             --release \
             --target lib/main_landing.dart \
             --base-href "${{ steps.site.outputs.base_href }}" \

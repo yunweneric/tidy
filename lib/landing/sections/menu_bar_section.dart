@@ -79,15 +79,15 @@ class _MenuBarSectionState extends State<MenuBarSection> {
       child: Align(
         child: ConstrainedBox(
           constraints: BoxConstraints(maxHeight: cap),
-          child: AnimatedBuilder(
-            animation: _mac,
-            builder:
-                (context, _) => MenuBarPreview(
-                  mac: _mac,
-                  panel: _panel,
-                  onSelect:
-                      split ? (kind) => setState(() => _panel = kind) : null,
-                ),
+          // Its own layer, and no `AnimatedBuilder` around the whole thing:
+          // `MenuBarPreview` subscribes to the tick only where a figure is
+          // actually live, which is the bar's readout and the network panel.
+          child: RepaintBoundary(
+            child: MenuBarPreview(
+              mac: _mac,
+              panel: _panel,
+              onSelect: split ? (kind) => setState(() => _panel = kind) : null,
+            ),
           ),
         ),
       ),
@@ -100,9 +100,11 @@ class _MenuBarSectionState extends State<MenuBarSection> {
           eyebrow: 'The menu bar',
           title: 'Most of it never needs the window',
           lead:
-              'Three status items, three popovers. They run a second Flutter '
-              'engine, so they keep working with the main window closed — '
-              'closing it does not quit Tidy.',
+              'One status item with everything behind it, or one per feature '
+              'if you would rather spend the menu bar width — it is a switch '
+              'in Settings. They run a second Flutter engine, so they keep '
+              'working with the main window closed; closing it does not quit '
+              'Tidy.',
         ),
         const SizedBox(height: AppSpacing.xxl),
         // The choices carry their own explanation and sit in a column, so the

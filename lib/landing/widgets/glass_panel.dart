@@ -41,17 +41,15 @@ class GlassPanel extends StatelessWidget {
     return ClipRRect(
       borderRadius: borderRadius,
       child: BackdropFilter(
-        filter: ImageFilter.compose(
-          outer: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-          // Blurring averages colour away; pulling saturation back up is what
-          // keeps the module tone underneath still reading as that module.
-          inner: const ColorFilter.matrix(<double>[
-            1.34, -0.17, -0.17, 0, 0, //
-            -0.17, 1.34, -0.17, 0, 0, //
-            -0.17, -0.17, 1.34, 0, 0, //
-            0, 0, 0, 1, 0, //
-          ]),
-        ),
+        // One filter pass, not two.
+        //
+        // This used to compose the blur with a saturation matrix, to pull back
+        // the colour that blurring averages away. It looked marginally better
+        // and cost twice the work — and this panel is the pinned navigation
+        // bar, so its backdrop is re-read on every frame the page scrolls.
+        // Two full-width filter passes per frame is where the scroll stutter
+        // was coming from. The tint below carries the colour instead.
+        filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
         child: DecoratedBox(
           decoration: BoxDecoration(
             borderRadius: borderRadius,

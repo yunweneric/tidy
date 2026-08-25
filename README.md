@@ -172,7 +172,9 @@ lib/landing/
 ```
 
 Run it with `flutter run -d chrome -t lib/main_landing.dart`, or the
-**Landing page (Chrome)** configuration in `.vscode/launch.json`.
+**Landing page (Chrome)** configuration in `.vscode/launch.json`. It ships as a
+WasmGC build (`--wasm`), with the dart2js + CanvasKit build emitted alongside as
+the fallback.
 
 **The page imports the product.** Everything under `lib/core/design/` and
 `lib/core/widgets/` is free of `dart:io` and free of the service locator, as are

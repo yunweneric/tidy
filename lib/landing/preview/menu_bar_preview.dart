@@ -8,9 +8,14 @@ import 'package:tidy/landing/preview/preview_mac.dart';
 
 /// Which status item the popover belongs to.
 ///
-/// One Flutter view, three panels. The icons mean different things and each
+/// One Flutter view, several panels. The icons mean different things and each
 /// panel shows what its icon promised — a clipboard glyph that opened a disk
 /// report would be a worse lie than having no clipboard glyph at all.
+///
+/// Deliberately **not** `MenuBarSurface` from the app, even though the two
+/// overlap. These are hand-drawn mockups for the marketing page, and folding
+/// them together would mean every surface the app gains has to be drawn twice
+/// before it can ship. Three of them is a gallery, not an inventory.
 enum MenuBarPanelKind {
   dashboard('Dashboard', AppIcons.brand, 460),
   clipboard('Clipboard', AppIcons.clipboard, 320),
@@ -437,7 +442,12 @@ class _Popover extends StatelessWidget {
             child: switch (panel) {
               MenuBarPanelKind.dashboard => _DashboardPanel(mac: mac),
               MenuBarPanelKind.clipboard => _ClipboardPanel(mac: mac),
-              MenuBarPanelKind.network => _NetworkPanel(mac: mac),
+              // The one panel with a live figure in it, so the one panel that
+              // subscribes.
+              MenuBarPanelKind.network => AnimatedBuilder(
+                animation: mac,
+                builder: (context, _) => _NetworkPanel(mac: mac),
+              ),
             },
           ),
         ),
