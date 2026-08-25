@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - feat/ai_token_counter
     paths:
       - "lib/landing/**"
       - "lib/main_landing.dart"
