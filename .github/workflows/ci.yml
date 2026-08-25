@@ -28,7 +28,7 @@ jobs:
       flutter_version: ${{ steps.meta.outputs.flutter_version }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Resolve version and Flutter SDK
         id: meta
@@ -73,7 +73,7 @@ jobs:
     needs: prepare
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -109,7 +109,7 @@ jobs:
     needs: [prepare, verify]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -137,7 +137,7 @@ jobs:
           cat SHA256SUMS.txt
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: tidy-macos
           path: build/dist/*
@@ -150,8 +150,16 @@ jobs:
     needs: [prepare, build-macos]
     if: startsWith(github.ref, 'refs/tags/')
     steps:
+      # The changelog is read out of the log, so this job needs the history
+      # and the tags — the other jobs do not, and take the default shallow
+      # clone.
+      - name: Check out history
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
       - name: Download artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           path: dist
           merge-multiple: true
@@ -163,8 +171,39 @@ jobs:
         env:
           VERSION: ${{ needs.prepare.outputs.version }}
           TAG: ${{ github.ref_name }}
+          REPO_URL: ${{ github.server_url }}/${{ github.repository }}
         run: |
           set -euo pipefail
+
+          # The previous release: the highest version among the tags that are
+          # actually ancestors of this one.
+          #
+          # `--merged` rather than a plain version sort, so a patch cut from an
+          # older branch diffs against its own ancestor instead of against
+          # whatever number happens to sort highest. And a version sort rather
+          # than `git describe`, which returns whichever tag it finds first
+          # when several sit on one commit — v1.0.1 and v1.0.2 both point at
+          # `5226c05`, and describe answered v1.0.1.
+          #
+          # `v[0-9]*` skips the two malformed legacy tags, `v.1.0.0` and
+          # `v.1.0.1`.
+          PREV=$(git tag --list 'v[0-9]*' --sort=-v:refname --merged "${TAG}^" 2>/dev/null | head -n 1 || true)
+
+          if [ -n "${PREV}" ]; then
+            RANGE="${PREV}..${TAG}"
+          else
+            RANGE="${TAG}"
+          fi
+
+          # Oldest first, so the list reads as the order things happened in.
+          git log --no-merges --reverse \
+            --pretty=format:"- %s ([\`%h\`](${REPO_URL}/commit/%H))" \
+            "${RANGE}" > changelog.md
+          printf '\n' >> changelog.md
+
+          COUNT=$(grep -c '^- ' changelog.md || true)
+          echo "::notice::${COUNT} commit(s) in ${RANGE}"
+
           {
             echo "## 🧹 Tidy ${TAG}"
             echo ""
@@ -186,19 +225,46 @@ jobs:
             echo ""
             echo "Verify your download against \`SHA256SUMS.txt\`:"
             echo "\`shasum -a 256 -c SHA256SUMS.txt --ignore-missing\`"
+            echo ""
+            echo "---"
+            echo ""
+
+            if [ "${COUNT}" -eq 0 ]; then
+              echo "### What changed"
+              echo ""
+              echo "Nothing since \`${PREV:-the first commit}\` — this tag points at the"
+              echo "same tree, and was cut to re-run the release."
+            else
+              if [ -n "${PREV}" ]; then
+                echo "### What changed since ${PREV}"
+              else
+                echo "### What changed"
+              fi
+              echo ""
+              cat changelog.md
+            fi
+
+            if [ -n "${PREV}" ]; then
+              echo ""
+              echo "**Full changelog:** ${REPO_URL}/compare/${PREV}...${TAG}"
+            fi
           } > release-notes.md
+
           cat release-notes.md
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           name: Tidy ${{ github.ref_name }}
           tag_name: ${{ github.ref_name }}
           body_path: release-notes.md
           files: dist/**/*
-          # Appends the commit/PR changelog under the body above, so the notes
-          # stop pointing at the commit history and just carry it.
-          generate_release_notes: true
+          # Off: the changelog above is composed from `git log` in the previous
+          # step. GitHub's generator needs a *published* previous release to
+          # diff against and quietly produces nothing when it cannot find one,
+          # which is why tagged releases were going out with only the download
+          # table on them.
+          generate_release_notes: false
           draft: false
           # A prerelease is invisible to the updater unless the app was built
           # with TIDY_UPDATE_PRERELEASE=true, so shipping one by accident would

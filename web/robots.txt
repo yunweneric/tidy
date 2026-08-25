@@ -1,0 +1,15 @@
+# https://tidy.yunweneric.com/robots.txt
+#
+# Everything here is public. The only rule that matters is the sitemap pointer,
+# which is how Search Console and every crawler that does not read it from a
+# submitted feed finds the page.
+
+User-agent: *
+Allow: /
+
+# Build output, not content. Crawling it wastes budget on a single-page site and
+# puts compiled chunks in the index where a search result for them is useless.
+Disallow: /canvaskit/
+Disallow: /assets/fonts/
+
+Sitemap: https://tidy.yunweneric.com/sitemap.xml

@@ -11,11 +11,20 @@
   <meta name="description" content="Tidy is a free, open-source Mac utility toolkit: clipboard history, disk cleanup, uninstalling apps properly, startup and process control, and getting things back out of the Trash. Nothing leaves your Mac.">
   <meta name="theme-color" content="#5B45E0">
 
+  <!-- One page, one address. GitHub Pages answers on both the custom domain and
+       yunweneric.github.io/tidy/, and without this they compete as duplicates. -->
+  <link rel="canonical" href="https://tidy.yunweneric.com/">
+  <!-- The defaults are index,follow; what is worth saying explicitly is that the
+       card image may be shown full size and snippets need not be truncated. -->
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
+  <meta name="author" content="Yunwen Eric">
+
   <!-- Open Graph. A Flutter page renders to a canvas, so these tags and the
        <noscript> block below are the whole of what a crawler or a link unfurl
        ever sees. -->
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Tidy">
+  <meta property="og:locale" content="en_US">
   <meta property="og:url" content="https://tidy.yunweneric.com/">
   <meta property="og:title" content="Tidy — Clean, tune and reclaim your Mac">
   <meta property="og:description" content="One app for the small jobs macOS makes awkward. Free, open source, and nothing leaves your Mac.">
@@ -108,6 +117,56 @@
     noscript h1 { color: #FFFFFF; letter-spacing: -0.8px; }
     noscript a { color: #A593FF; }
   </style>
+  <!-- Structured data. The page itself is a canvas, so this and the <noscript>
+       block are the only machine-readable description of what Tidy is. Kept to
+       what is verifiably true on the page: a free macOS utility, its licence,
+       and where to get it. Deliberately no softwareVersion — it would be a
+       second place to bump on every release, and would silently go stale. -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Tidy",
+    "alternateName": "Tidy for macOS",
+    "url": "https://tidy.yunweneric.com/",
+    "description": "A free, open-source Mac utility toolkit: clipboard history, disk cleanup, uninstalling apps properly, startup and process control, and getting things back out of the Trash. Nothing leaves your Mac.",
+    "applicationCategory": "UtilitiesApplication",
+    "applicationSubCategory": "System Maintenance",
+    "operatingSystem": "macOS 11.0 or later",
+    "downloadUrl": "https://github.com/yunweneric/tidy/releases/latest",
+    "installUrl": "https://github.com/yunweneric/tidy/releases/latest",
+    "softwareHelp": "https://github.com/yunweneric/tidy#readme",
+    "image": "https://tidy.yunweneric.com/og-image.png",
+    "license": "https://www.gnu.org/licenses/gpl-3.0.html",
+    "isAccessibleForFree": true,
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD",
+      "availability": "https://schema.org/InStock"
+    },
+    "author": {
+      "@type": "Person",
+      "name": "Yunwen Eric",
+      "url": "https://github.com/yunweneric"
+    },
+    "maintainer": {
+      "@type": "Person",
+      "name": "Yunwen Eric",
+      "url": "https://github.com/yunweneric"
+    },
+    "featureList": [
+      "Disk cleanup with findings graded safe, worth a look, or your data",
+      "Uninstall apps with every leftover matched by bundle id and exact name",
+      "Clipboard history with a global hotkey that needs no Accessibility permission",
+      "Login items, background agents and live process meters",
+      "Live network throughput in the menu bar",
+      "Restore from the Trash across every volume"
+    ],
+    "codeRepository": "https://github.com/yunweneric/tidy",
+    "sameAs": ["https://github.com/yunweneric/tidy"]
+  }
+  </script>
 </head>
 <body>
   <div id="boot">

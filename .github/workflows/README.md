@@ -18,6 +18,49 @@ Runs on pushes to `main`, PRs into `main`, `v*` tags, and manual dispatch:
 Lint and build live in one workflow so a tag can never publish code that did
 not pass analysis.
 
+### Release notes come from the log
+
+The `release` job composes the body itself rather than asking GitHub for it.
+`generate_release_notes` only produces anything when it can find a *published*
+previous release to diff against, and when it cannot it fails quietly — which
+is why tagged releases were going out carrying nothing but the download table.
+
+So the job takes a full-history checkout, finds the previous release as the
+highest-versioned tag that is an ancestor of this one, and lists every
+non-merge commit in between with a link to it, oldest first. Two details worth
+knowing:
+
+- **`--merged`, not just a version sort.** A patch cut from an older branch has
+  to diff against its own ancestor, not against whichever number sorts highest.
+- **A version sort, not `git describe`.** When several tags sit on one commit
+  describe returns whichever it finds first — `v1.0.1` and `v1.0.2` both point
+  at `5226c05`, and describe answered `v1.0.1`.
+
+Only this job checks out the repository; the others take the default shallow
+clone.
+
+### Action versions
+
+Everything runs on a Node 24 action line, because GitHub has deprecated Node 20
+and now force-runs those actions on 24 anyway. The floating major tags are not
+all on the same number — `actions/upload-artifact@v5` and
+`actions/download-artifact@v6` are still `node20`, so those are pinned a major
+higher than you might expect:
+
+| Action | Version | Runtime |
+| --- | --- | --- |
+| `actions/checkout` | `v5` | node24 |
+| `actions/upload-artifact` | `v6` | node24 |
+| `actions/download-artifact` | `v7` | node24 |
+| `actions/upload-pages-artifact` | `v5` | composite (wraps `upload-artifact@v7`) |
+| `actions/deploy-pages` | `v5` | node24 |
+| `softprops/action-gh-release` | `v3` | node24 |
+| `subosito/flutter-action` | `v2` | composite — no Node, nothing to deprecate |
+
+Newer majors exist for several of these. They are not taken because their
+changes are to fork-PR checkout semantics and single-artifact-by-ID download
+paths, neither of which these workflows use.
+
 Tidy is macOS-only, so there is no Windows/Linux/Android leg. The `android/`,
 `linux/` and `windows/` directories are leftovers from `flutter create` and are
 not built.
@@ -106,7 +149,7 @@ not a `gh-pages` branch.
 
 | Job | Runner | Does |
 | --- | --- | --- |
-| `build` | ubuntu | Resolves the SDK and the base href, analyzes `lib/landing`, `flutter build web` |
+| `build` | ubuntu | Resolves the SDK and the base href, analyzes `lib/landing`, `flutter build web`, writes `sitemap.xml`, checks the origin |
 | `deploy` | ubuntu | Publishes the artifact to the `github-pages` environment |
 
 It triggers only on pushes to `main` that touch what it actually compiles:
@@ -132,6 +175,36 @@ Three details that matter:
   This bundle does not contain the product — no platform channels, no Hive
   store, no updater — and a failure in code it never compiles should not stop
   the site deploying. `ci.yml` analyzes the whole tree.
+
+### SEO
+
+A Flutter page paints to a canvas, so a crawler sees the `<head>` and the
+`<noscript>` block and nothing else. That makes the static parts of
+`web/index.html` the entire machine-readable site:
+
+- **`<title>`, description, canonical.** The canonical matters because Pages
+  answers on both `tidy.yunweneric.com` and `yunweneric.github.io/tidy/`, which
+  would otherwise compete as duplicates of each other.
+- **Open Graph + Twitter card**, pointing at `web/og-image.png` — a 1200×630 PNG
+  rendered by `scripts/generate_og_image.py` from the app's own tokens and
+  brand mark. Regenerate it with `python3 scripts/generate_og_image.py` when the
+  wording or the mark changes; it needs `rsvg-convert` (`brew install librsvg`).
+  The `?v=` on the URL is what makes Slack, X and LinkedIn re-fetch a card they
+  have already cached — bump it when the image changes.
+- **JSON-LD `SoftwareApplication`** — category, OS, licence, free-of-charge
+  offer, download URL and feature list. Deliberately carries no
+  `softwareVersion`: it would be a second place to bump on every release and
+  would quietly go stale between them.
+- **`web/robots.txt`** allows everything except `/canvaskit/` and
+  `/assets/fonts/`, which are compiler output rather than content, and names the
+  sitemap.
+- **`sitemap.xml` is generated at deploy time**, not committed, so `<lastmod>`
+  is the head commit's date rather than a date someone remembered to bump. A
+  `lastmod` a crawler decides it cannot trust is worse than none.
+
+The absolute URLs in `robots.txt` and the canonical tag are only correct while
+the custom domain is what serves the site, so the workflow warns if the origin
+it is deploying to disagrees with them.
 
 ### Repository settings this needs
 

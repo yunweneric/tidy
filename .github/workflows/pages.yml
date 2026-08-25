@@ -35,7 +35,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Resolve Flutter version
         id: meta
@@ -65,9 +65,11 @@ jobs:
           if [ -f "web/CNAME" ]; then
             DOMAIN=$(tr -d '[:space:]' < web/CNAME)
             echo "base_href=/" >> "$GITHUB_OUTPUT"
+            echo "site_url=https://${DOMAIN}/" >> "$GITHUB_OUTPUT"
             echo "Custom domain: ${DOMAIN} — base href /"
           else
             echo "base_href=/${{ github.event.repository.name }}/" >> "$GITHUB_OUTPUT"
+            echo "site_url=https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/" >> "$GITHUB_OUTPUT"
             echo "Project page — base href /${{ github.event.repository.name }}/"
           fi
 
@@ -94,8 +96,44 @@ jobs:
             --base-href "${{ steps.site.outputs.base_href }}" \
             --pwa-strategy none
 
+      # Written here rather than committed so <lastmod> is a fact instead of a
+      # date somebody remembered to bump — a lastmod a crawler decides it cannot
+      # trust is worse than none at all. The workflow only runs when the page
+      # itself changed, so the head commit's date is the page's date.
+      - name: Write sitemap
+        env:
+          SITE_URL: ${{ steps.site.outputs.site_url }}
+        run: |
+          set -euo pipefail
+          LASTMOD=$(git log -1 --format=%cs)
+          cat > build/web/sitemap.xml <<XML
+          <?xml version="1.0" encoding="UTF-8"?>
+          <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+            <url>
+              <loc>${SITE_URL}</loc>
+              <lastmod>${LASTMOD}</lastmod>
+              <changefreq>weekly</changefreq>
+              <priority>1.0</priority>
+            </url>
+          </urlset>
+          XML
+          cat build/web/sitemap.xml
+
+      # robots.txt names the sitemap by absolute URL, and index.html carries an
+      # absolute canonical. Both are wrong on a project page, so they are only
+      # true when the custom domain is what actually serves the site.
+      - name: Check the deployed origin matches the absolute URLs
+        env:
+          SITE_URL: ${{ steps.site.outputs.site_url }}
+        run: |
+          set -euo pipefail
+          grep -q "${SITE_URL}sitemap.xml" build/web/robots.txt \
+            || echo "::warning::robots.txt points at a different origin than ${SITE_URL}"
+          grep -q "rel=\"canonical\" href=\"${SITE_URL}\"" build/web/index.html \
+            || echo "::warning::The canonical URL in index.html is not ${SITE_URL}"
+
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: build/web
 
@@ -109,4 +147,4 @@ jobs:
     steps:
       - name: Deploy
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
