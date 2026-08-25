@@ -244,13 +244,13 @@ class _Compositions extends StatelessWidget {
   /// [filled] says the cards are about to be stretched to a shared height, so
   /// an empty one should centre its message rather than leave it stranded
   /// against the top of a box sized by a fuller neighbour.
+  ///
+  /// The cards colour their own rows — see [CompositionCard] — so nothing is
+  /// passed down here but the figures.
   List<Widget> _cards(BuildContext context, {required bool filled}) {
-    final colors = context.colors;
-
     return [
       CompositionCard(
         title: 'REMOVED BY CATEGORY',
-        color: colors.safe,
         filled: filled,
         emptyMessage:
             'Once Tidy has cleaned something up, what it was is broken down '
@@ -267,14 +267,12 @@ class _Compositions extends StatelessWidget {
       ),
       CompositionCard(
         title: 'TRASH BY KIND',
-        color: colors.review,
         filled: filled,
         emptyMessage: 'The Trash is empty.',
         rows: _trashRows(state),
       ),
       CompositionCard(
         title: 'APPS BY DEVELOPER',
-        color: colors.info,
         filled: filled,
         emptyMessage: 'Open Applications once to take stock.',
         rows: [

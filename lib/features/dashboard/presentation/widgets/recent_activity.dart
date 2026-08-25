@@ -137,20 +137,31 @@ class _OperationRow extends StatelessWidget {
 }
 
 /// Proportional bars for the things worth breaking down.
+///
+/// **A hue per row.** The rows are named right beside their bars, so colour is
+/// not what identifies them here — it is what separates them, and a column of
+/// one blue leaves the eye to find the boundaries from the labels alone. Hues
+/// come from [AppColorTokens.chartSeries] in its fixed order, which is what
+/// holds each row apart from the one under it for a colour-blind reader; past
+/// the eighth they fall back to the colourless remainder rather than wrapping
+/// onto a hue already in use.
+///
+/// The cost, stated plainly: a row's colour is its position, so a list that
+/// reorders repaints. These lists are always biggest-first and carry no sort
+/// control, so the order only moves when the figures do — and the label beside
+/// each bar is what the reader is reading anyway.
 class CompositionCard extends StatelessWidget {
   const CompositionCard({
     super.key,
     required this.title,
     required this.rows,
     this.emptyMessage = 'Nothing to show yet.',
-    this.color,
     this.filled = false,
   });
 
   final String title;
   final List<({String label, int bytes, String detail})> rows;
   final String emptyMessage;
-  final Color? color;
 
   /// Whether this card is being stretched to a height its own content did not
   /// ask for — true when it shares a row with fuller siblings.
@@ -169,7 +180,6 @@ class CompositionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final tone = color ?? colors.accent;
     final peak =
         rows.isEmpty
             ? 0
@@ -184,7 +194,7 @@ class CompositionCard extends StatelessWidget {
           if (rows.isEmpty)
             _emptyState(context)
           else
-            for (final row in rows)
+            for (final (index, row) in rows.indexed)
               Padding(
                 padding: const EdgeInsets.only(bottom: AppSpacing.sm),
                 child: Column(
@@ -209,7 +219,7 @@ class CompositionCard extends StatelessWidget {
                     const SizedBox(height: AppSpacing.xs),
                     SizeBar(
                       fraction: peak == 0 ? 0 : row.bytes / peak,
-                      color: tone,
+                      color: colors.seriesAt(index),
                       height: 4,
                     ),
                   ],

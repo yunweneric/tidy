@@ -89,18 +89,35 @@ class _StackedBarPainter extends CustomPainter {
   final double progress;
   final Color trackColor;
 
+  /// The sliver of track left between one segment and the next.
+  ///
+  /// Two touching fills read as one shape with a colour change in the middle,
+  /// and the eye has to work out where the boundary is from the hue alone —
+  /// which is exactly the job that fails first for a colour-blind reader. A gap
+  /// draws the boundary instead, so the count of segments survives the colours
+  /// being hard to tell apart.
+  static const double _gap = 2;
+
   @override
   void paint(Canvas canvas, Size size) {
     canvas.drawRect(Offset.zero & size, Paint()..color = trackColor);
 
+    final drawable = slices.where((slice) => slice.bytes > 0).toList();
     var x = 0.0;
-    for (final slice in slices) {
-      if (slice.bytes <= 0) continue;
+    for (var i = 0; i < drawable.length; i++) {
+      final slice = drawable[i];
       final width =
           (slice.bytes / whole).clamp(0.0, 1.0) * size.width * progress;
+
+      // The gap comes out of the segment's own width rather than being added
+      // between them, so the segments still sum to the proportion they stand
+      // for. The last one keeps its full width — there is nothing after it to
+      // be separated from but the remainder, which is already a different
+      // thing.
+      final trimmed = i == drawable.length - 1 ? width : width - _gap;
       // A slice too thin to see is still a slice that exists; a hairline says
       // so, where rounding it to nothing would silently drop it.
-      final drawn = width < 1 ? 1.0 : width;
+      final drawn = trimmed < 1 ? 1.0 : trimmed;
       canvas.drawRect(
         Rect.fromLTWH(x, 0, drawn, size.height),
         Paint()..color = slice.color,

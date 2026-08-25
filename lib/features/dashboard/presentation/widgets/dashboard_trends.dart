@@ -3,6 +3,7 @@ import 'package:tidy/core/design/design.dart';
 import 'package:tidy/core/utils/byte_format.dart';
 import 'package:tidy/core/widgets/widgets.dart';
 import 'package:tidy/features/dashboard/logic/dashboard_state.dart';
+import 'package:tidy/features/dashboard/presentation/widgets/dashboard_series.dart';
 
 /// The history charts — the part of the page that needs the store behind it.
 class DashboardTrends extends StatelessWidget {
@@ -108,8 +109,14 @@ class _ReclaimChart extends StatelessWidget {
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             Text('Removed', style: context.text.titleS),
-            _Legend(color: colors.safe, label: 'Deleted for good'),
-            _Legend(color: colors.review, label: 'Moved to Trash'),
+            _Legend(
+              color: DashboardSeries.reclaimable.of(context),
+              label: 'Deleted for good',
+            ),
+            _Legend(
+              color: DashboardSeries.trash.of(context),
+              label: 'Moved to Trash',
+            ),
             Text(
               '${formatBytes(totals.deletedBytes)} freed',
               style: context.text.caption.copyWith(color: colors.textPrimary),
@@ -128,8 +135,13 @@ class _ReclaimChart extends StatelessWidget {
                 secondary: bucket.trashedBytes.toDouble(),
               ),
           ],
-          primaryColor: colors.safe,
-          secondaryColor: colors.review,
+          // The removal chart's two halves are the same two subjects the disk
+          // bar names, so they wear the same two hues. Green and amber here
+          // were the status colours doing series work, which quietly told the
+          // reader that deleting for good is *safe* and trashing wants a
+          // *look* — a judgement the chart is not making.
+          primaryColor: DashboardSeries.reclaimable.of(context),
+          secondaryColor: DashboardSeries.trash.of(context),
           animationKey: state.range,
           height: 120,
         ),
@@ -153,7 +165,6 @@ class _FreeSpaceChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.colors;
     final buckets = state.diskFreeBuckets;
     final recorded = buckets.where((b) => b.recorded).toList();
 
@@ -183,7 +194,7 @@ class _FreeSpaceChart extends StatelessWidget {
                   ? ChartBucket(at: bucket.at, primary: bucket.average)
                   : ChartBucket.missing(bucket.at),
           ],
-          color: colors.info,
+          color: DashboardSeries.freeSpace.of(context),
           animationKey: state.range,
           height: 110,
         ),

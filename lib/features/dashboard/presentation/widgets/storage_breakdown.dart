@@ -3,6 +3,7 @@ import 'package:tidy/core/design/design.dart';
 import 'package:tidy/core/utils/byte_format.dart';
 import 'package:tidy/core/widgets/widgets.dart';
 import 'package:tidy/features/dashboard/logic/dashboard_state.dart';
+import 'package:tidy/features/dashboard/presentation/widgets/dashboard_series.dart';
 
 /// What is on the startup disk, as far as Tidy has actually measured it.
 class StorageBreakdown extends StatelessWidget {
@@ -32,15 +33,36 @@ class StorageBreakdown extends StatelessWidget {
     final measured = apps + junk + trash;
     final other = (disk.usedBytes - measured).clamp(0, disk.usedBytes);
 
+    // Three measured categories in their fixed slots, and the remainder in the
+    // colourless one. Fixed rather than handed out in the order the slices
+    // happen to survive the filter below: a scan finishing makes Junk appear,
+    // and slots assigned by position would repaint Everything else at the same
+    // moment — the reader would see two categories change when one arrived.
+    //
+    // Everything else takes no hue on purpose. Tidy has not looked at documents,
+    // photos or system files, so the segment is a subtraction, not a category,
+    // and a hue would present it as one of the measured three.
     final slices =
         [
-          BarSlice(label: 'Applications', bytes: apps, color: colors.info),
-          BarSlice(label: 'Junk', bytes: junk, color: colors.safe),
-          BarSlice(label: 'Trash', bytes: trash, color: colors.review),
+          BarSlice(
+            label: 'Applications',
+            bytes: apps,
+            color: DashboardSeries.applications.of(context),
+          ),
+          BarSlice(
+            label: 'Junk',
+            bytes: junk,
+            color: DashboardSeries.reclaimable.of(context),
+          ),
+          BarSlice(
+            label: 'Trash',
+            bytes: trash,
+            color: DashboardSeries.trash.of(context),
+          ),
           BarSlice(
             label: 'Everything else',
             bytes: other,
-            color: colors.textMuted,
+            color: colors.chartOther,
           ),
         ].where((slice) => slice.bytes > 0).toList();
 
@@ -51,12 +73,15 @@ class StorageBreakdown extends StatelessWidget {
           Row(
             children: [
               Text('STARTUP DISK', style: context.text.overline),
-              const Spacer(),
-              Flexible(
+              // One flex child, not a Spacer beside a Flexible: those split the
+              // free width between them, which left the figure floating near
+              // the middle instead of against the right edge.
+              Expanded(
                 child: Text(
                   '${formatBytes(disk.freeBytes)} free of '
                   '${formatBytes(disk.totalBytes)}',
                   style: context.text.caption,
+                  textAlign: TextAlign.right,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -95,10 +120,15 @@ class StorageBreakdown extends StatelessWidget {
             const SizedBox(height: AppSpacing.xl),
             Text('LARGEST APPLICATIONS', style: context.text.overline),
             const SizedBox(height: AppSpacing.md),
-            for (final app in state.apps.largest)
+            for (final (index, app) in state.apps.largest.indexed)
               Padding(
                 padding: const EdgeInsets.only(bottom: AppSpacing.sm),
                 child: _AppRow(
+                  // A hue per row, off the same fixed order the breakdowns
+                  // below use. The first is the blue the disk bar's
+                  // Applications segment wears, which is what these rows are
+                  // an itemisation of.
+                  color: colors.seriesAt(index),
                   name: app.name,
                   bytes: app.bytes,
                   fraction:
@@ -157,11 +187,13 @@ class _AppRow extends StatelessWidget {
     required this.name,
     required this.bytes,
     required this.fraction,
+    required this.color,
   });
 
   final String name;
   final int bytes;
   final double fraction;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
@@ -182,7 +214,7 @@ class _AppRow extends StatelessWidget {
         Expanded(
           child: SizeBar(
             fraction: fraction.clamp(0.0, 1.0),
-            color: context.colors.info,
+            color: color,
             height: 5,
           ),
         ),
