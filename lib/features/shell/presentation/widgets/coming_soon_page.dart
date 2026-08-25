@@ -23,6 +23,17 @@ class ComingSoonPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // The rail decides what to head with SOON from [NavGroup.soon], and the
+    // router decides what gets this page. Those are two lists of the same
+    // thing, so building one of these for a destination the sidebar advertises
+    // as working is a bug — and a quiet one, since the page renders fine.
+    assert(
+      destination.group == NavGroup.soon,
+      '${destination.name} routes to ComingSoonPage but is in '
+      'NavGroup.${destination.group.name}, so the sidebar lists it as built. '
+      'Move it to NavGroup.soon, or give it a real page.',
+    );
+
     final colors = context.colors;
 
     return ModuleScaffold(

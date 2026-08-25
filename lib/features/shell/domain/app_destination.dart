@@ -3,12 +3,22 @@ import 'package:tidy/core/design/tokens/app_color_tokens.dart';
 import 'package:flutter/material.dart';
 
 /// Where a sidebar entry sits.
+///
+/// The split that matters is [soon] against the rest: everything in the other
+/// three groups opens onto something that works, and everything in [soon]
+/// opens onto a [ComingSoonPage]. Keeping that visible in the rail means a
+/// user finds out what is built by reading the sidebar rather than by clicking
+/// six things that turn out to be a roadmap.
 enum NavGroup {
-  /// The six modules that do the work.
+  /// The modules that do the work.
   primary,
 
-  /// Supporting views.
+  /// Supporting views. Built, but somewhere you go to look rather than to act.
   secondary,
+
+  /// Not built yet. Every member routes to a [ComingSoonPage], and the rail
+  /// heads the group with a SOON badge so that is clear before the click.
+  soon,
 
   /// Pinned to the bottom, always reachable.
   footer,
@@ -55,7 +65,7 @@ enum AppDestination {
     path: '/protection',
     label: 'Protection',
     icon: AppIcons.protection,
-    group: NavGroup.primary,
+    group: NavGroup.soon,
     blurb: 'Check for known adware and unusual background items.',
     tone: ModuleTone.protection,
   ),
@@ -79,7 +89,7 @@ enum AppDestination {
     path: '/clutter',
     label: 'My Clutter',
     icon: AppIcons.clutter,
-    group: NavGroup.primary,
+    group: NavGroup.soon,
     blurb: 'Find duplicates, near-identical photos and forgotten files.',
     tone: ModuleTone.clutter,
   ),
@@ -87,7 +97,7 @@ enum AppDestination {
     path: '/space-lens',
     label: 'Space Lens',
     icon: AppIcons.spaceLens,
-    group: NavGroup.secondary,
+    group: NavGroup.soon,
     blurb: 'See what is actually filling your disk.',
     tone: ModuleTone.spaceLens,
   ),
@@ -95,21 +105,25 @@ enum AppDestination {
     path: '/all-tools',
     label: 'All Tools',
     icon: AppIcons.allTools,
-    group: NavGroup.secondary,
+    group: NavGroup.soon,
     blurb: 'Every scanner on its own, without the modules.',
   ),
   activity(
     path: '/activity',
     label: 'Activity',
     icon: AppIcons.activity,
-    group: NavGroup.secondary,
+    group: NavGroup.soon,
     blurb: 'What has been cleaned, and what to look at next.',
   ),
+
+  /// Under SOON rather than pinned to the footer beside Settings, which is
+  /// where it used to sit. The footer is for what is always one click away,
+  /// and a row that opens onto a roadmap is not that.
   assistant(
     path: '/assistant',
     label: 'Assistant',
     icon: AppIcons.assistant,
-    group: NavGroup.footer,
+    group: NavGroup.soon,
     blurb: 'How your Mac is doing, and what would help most.',
   ),
   settings(
@@ -146,9 +160,9 @@ enum AppDestination {
   /// Appended, like the two above it, because branch indices are positional.
   ///
   /// Listed under MORE rather than with the working modules, and toned anyway:
-  /// it is somewhere you go to *watch*, which is what Space Lens is, and both
-  /// earn a colour for the same reason — the window says which of the two you
-  /// are looking at before the title has been read.
+  /// it is somewhere you go to *watch* rather than to act, and it still earns
+  /// a colour — the window says which view you are looking at before the title
+  /// has been read.
   network(
     path: '/network',
     label: 'Network',
@@ -159,8 +173,8 @@ enum AppDestination {
   ),
 
   /// Appended, like everything since Recycle Bin, because branch indices are
-  /// positional. Under MORE with Space Lens and Network: it is the third place
-  /// you go to watch something rather than to change something.
+  /// positional. Under MORE with Network: somewhere you go to watch something
+  /// rather than to change something.
   aiUsage(
     path: '/ai-usage',
     label: 'AI Usage',
@@ -193,9 +207,9 @@ enum AppDestination {
   final String blurb;
 
   /// The colour of light this destination gives the window. Defaults to the
-  /// brand violet, which is what the supporting views (All Tools, Activity,
-  /// Settings) keep — a hue per module means something only while there are
-  /// six of them, not eleven.
+  /// brand violet, which is what the supporting views (Recycle Bin, Settings)
+  /// and the unbuilt ones keep — a hue per module means something only while
+  /// there are six of them, not eleven.
   final ModuleTone tone;
 
   static List<AppDestination> of(NavGroup group) =>

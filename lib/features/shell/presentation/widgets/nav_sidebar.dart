@@ -62,8 +62,14 @@ class NavSidebar extends StatelessWidget {
               children: [
                 ..._group(context, NavGroup.primary),
                 const SizedBox(height: AppSpacing.lg),
-                _SectionLabel(label: 'MORE'),
+                const _SectionLabel(label: 'MORE'),
                 ..._group(context, NavGroup.secondary),
+                const SizedBox(height: AppSpacing.lg),
+                // Everything below this heading opens onto a roadmap rather
+                // than a working page, which is worth saying once here instead
+                // of six times after the click.
+                const _SectionLabel(label: 'ON THE WAY', badge: 'SOON'),
+                ..._group(context, NavGroup.soon),
               ],
             ),
           ),
@@ -104,9 +110,16 @@ class NavSidebar extends StatelessWidget {
 }
 
 class _SectionLabel extends StatelessWidget {
-  const _SectionLabel({required this.label});
+  const _SectionLabel({required this.label, this.badge});
 
   final String label;
+
+  /// An optional pill beside the heading, for a group whose rows all share
+  /// something the rows themselves do not say — currently only SOON.
+  ///
+  /// On the heading rather than on every row: six identical badges down the
+  /// rail is noise, and the thing being labelled is the group.
+  final String? badge;
 
   @override
   Widget build(BuildContext context) {
@@ -117,7 +130,56 @@ class _SectionLabel extends StatelessWidget {
         AppSpacing.xl,
         AppSpacing.sm,
       ),
-      child: Text(label, style: context.text.overline),
+      child: Row(
+        children: [
+          Flexible(
+            child: Text(
+              label,
+              overflow: TextOverflow.ellipsis,
+              style: context.text.overline,
+            ),
+          ),
+          if (badge != null) ...[
+            const SizedBox(width: AppSpacing.sm),
+            _SoonBadge(label: badge!),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// The SOON pill.
+///
+/// Not [AppPill]: that one is sized for body text in a page, and at the rail's
+/// overline size it would be taller than the heading it sits beside. Muted
+/// accent rather than a warning colour — unbuilt is a statement of fact, not a
+/// problem the user has to deal with.
+class _SoonBadge extends StatelessWidget {
+  const _SoonBadge({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: 1,
+      ),
+      decoration: BoxDecoration(
+        color: colors.accentMuted,
+        borderRadius: AppRadii.pillAll,
+      ),
+      child: Text(
+        label,
+        style: context.text.overline.copyWith(
+          color: colors.accent,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
     );
   }
 }

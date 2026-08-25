@@ -10,6 +10,8 @@
   Clipboard history &nbsp;·&nbsp; disk cleanup &nbsp;·&nbsp; uninstalling apps properly
   <br />
   startup and process control &nbsp;·&nbsp; getting things back out of the Trash
+  <br />
+  live network traffic &nbsp;·&nbsp; what your AI coding tools have got through
 </p>
 
 <p align="center"><a href="https://tidy.yunweneric.com"><img height="28" alt="Visit the landing page" src="https://img.shields.io/badge/Landing_page-tidy.yunweneric.com-8B79FF?style=for-the-badge&labelColor=1B1440" /></a>&nbsp;&nbsp;<a href="https://github.com/yunweneric/tidy/releases/latest"><img height="28" alt="Download for macOS" src="https://img.shields.io/badge/Download_for_macOS-1B1440?style=for-the-badge&logo=apple&logoColor=white" /></a></p>
@@ -53,16 +55,18 @@ for the web from `lib/main_landing.dart`; see [The landing page](#the-landing-pa
 
 | Module | What it does | State |
 |---|---|---|
+| **Dashboard** | A health score, live vitals, storage, and what Tidy has done | ✅ Built |
 | **Smart Care** | Runs every built check in one pass, reviewed in one place | ✅ Built |
 | **Cleanup** | Caches, logs, saved window state, leftovers from apps that are gone | ✅ Built |
 | **Clipboard** | Searchable copy history with pins, images and a `⌘⇧V` hotkey | ✅ Built |
 | **Performance** | Login items, background agents, macOS maintenance, running processes | ✅ Built |
 | **Applications** | Uninstall apps and everything they left behind | ✅ Built |
 | **Recycle Bin** | Every trash on every volume, with working Put Back | ✅ Built |
+| **Network** | Live throughput per interface, and the history behind it | ✅ Built |
+| **AI Usage** | What Claude Code and Codex got through, at published API rates | ✅ Built |
 | **Protection** | Known adware, suspicious launch agents, privacy traces | ⏳ Planned |
 | **My Clutter** | Duplicates, similar photos, large and old files | ⏳ Planned |
-| **Space Lens** | A map of what is actually using the disk | ⏳ Planned |
-| **Network meter** | Live throughput, per-interface, in the menu bar | ⏳ Planned |
+| **Space Lens** | A map of what is actually filling the disk | ⏳ Planned |
 
 Planned modules are visible in the sidebar and say plainly that they are not
 built yet. None of them show a scan button that finds nothing — a cleaner
@@ -71,13 +75,28 @@ this app does not do that.
 
 ## The menu bar
 
-Click the icon for a popover with live vitals — CPU, memory, swap, thermal
-state, uptime — plus reclaimable junk, Trash size, your recent clips, and what
-is currently using the most CPU. Most of it is actionable without opening the
-window.
+Four surfaces live up there — **Overview**, **AI**, **Clipboard** and
+**Network** — in one of two layouts. *One item* is the default: a single Tidy
+icon whose popover has a tab per surface. *Separate items* gives each surface
+its own icon and its own switch.
 
-The popover runs a **second Flutter engine**, so it works with the main window
-closed. Closing the window leaves it running.
+The choice is about width, and it is real rather than cosmetic. A menu bar has
+only what is left after the frontmost app's menus, and on a notched Mac only
+what is left to the right of the notch. Past that macOS does not shrink
+anything — it hands out slots underneath the notch, where nothing is drawn, and
+icons you already had disappear.
+
+**Overview** is live vitals — CPU, memory, swap, thermal state, uptime — plus
+reclaimable junk, Trash size, your recent clips, and what is currently using the
+most CPU. Most of it is actionable without opening the window.
+
+**Network and AI Usage draw figures rather than a glyph**, which is what costs
+the room: current down and up rates (two lines, a small live graph, or one
+compact line), and today's AI spend (cost, cost and tokens, or cost with a bar
+showing how far into the current five-hour block you are).
+
+The popover runs a **second Flutter engine**, so all of it works with the main
+window closed. Closing the window leaves it running.
 
 ## Highlights
 
@@ -90,6 +109,52 @@ The global hotkey uses Carbon's `RegisterEventHotKey` rather than an `NSEvent`
 global monitor. The monitor route needs Accessibility permission and sees every
 keystroke you type — a large thing to ask for one shortcut. This route asks for
 nothing and only hears the combination it registered.
+
+**The network meter counts bytes, it does not look at them.** It reads the
+interfaces' cumulative counters once a second — the cadence Activity Monitor
+uses — and takes deltas. Three things there are easy to get wrong, and all three
+are handled where they happen: counters *reset*, not only at boot but on
+toggling Wi-Fi, unplugging an adapter or waking from sleep, and a naive
+subtraction underflows into a multi-exabyte "download"; tunnels *double-count*,
+because bytes through a VPN cross `utun0` **and** the physical link underneath
+it; and a rate is a delta over the time that actually elapsed, not over the
+interval that was asked for.
+
+The history is native and kept in three tiers from one file — per-minute rows
+for two days, hourly for three months, daily indefinitely — each fed from the
+same sample rather than rolled up out of the tier below, because a rollup is one
+more thing to get wrong at a period boundary. **A missing bucket means "not
+recorded", never zero.** Tidy counts only while Tidy is running, so every minute
+the app is up gets a row even when nothing moved; that is what lets the chart
+draw a gap instead of claiming you used nothing overnight, and why the page says
+which date the record actually starts at.
+
+**AI usage is read off your own disk.** Claude Code and Codex write JSONL
+session logs (`~/.claude/projects` and `~/.codex/sessions`, both overridable
+in Settings).
+Tidy sweeps them in a spawned isolate — a cold read is around 1.5 GB — sums
+tokens by model, project, day and hour, and caches per file so the next launch
+re-reads only what changed. Resuming a session replays its history into a fresh
+file, so turns are deduplicated on `messageId:requestId`; without that a
+long-running project would be counted once per resume. Two providers, not six:
+a parser that has never been run against a real file is not a feature, it is a
+claim.
+
+**The cost shown is what those tokens *would* have cost.** Both tools run on
+flat-fee subscriptions, so an API total is not a bill, and the page says so
+rather than burying it in a tooltip. Rates live in a table compiled into the app
+with the date they were last checked printed underneath — a cost figure with no
+date on it is a claim about today that quietly ages into a claim about nothing.
+Cache reads and writes are applied as fixed multiples of the base input rate,
+and tokens from a model with no published rate are counted and flagged, which
+makes the total a floor rather than a guess.
+
+**Five-hour blocks are inferred, and no percentage is invented.** Claude Code
+writes neither its limit nor its reset time into the logs, so the only thing
+reconstructable offline is where activity clusters — enough to answer "how much
+since I sat down", not enough for a denominator. Codex publishes its own
+`used_percent` and gets a real bar; Claude Code gets a total and no bar. The
+asymmetry is honest, and the two are labelled differently on screen.
 
 **Uninstalling shows you everything first.** Leftovers are matched by bundle id
 (`com.acme.Widget`, `com.acme.Widget.plist`, `com.acme.Widget.helper.plist`) and
@@ -127,7 +192,9 @@ Relaunch**. Settings → Updates has the controls, including the switch that tur
 the check off.
 
 That check is the only network request the app makes. It sends nothing but the
-question.
+question. The network meter counts bytes without ever opening a connection of
+its own, and AI usage is read from local logs and priced from a table inside the
+app — neither one talks to anything.
 
 Before anything is installed, the download is checked against the release
 checksum, unpacked, confirmed to be Tidy and to be *newer*, and verified against
@@ -379,10 +446,14 @@ lib/
     performance/      Launch items, maintenance, process monitor
     apps/             Uninstaller, leftover preview, app inventory
     recycle_bin/      Trash bins across volumes, restore
-    menubar/          The popover (second Flutter engine)
+    network/          Live rates per interface, and the history behind them
+    ai_usage/         Claude Code and Codex session logs, tokens, cost
+    dashboard/        Health score, vitals, storage, recent activity
+    menubar/          The popover, its tabs and its readouts
     onboarding/       First run, and the permission conversation
     settings/         Settings page
     shell/            Sidebar, destinations, window chrome
+    splash/           The gate that holds the first frame
   landing/            The marketing site — see "The landing page" above
   main.dart           The app
   main_landing.dart   The site
@@ -398,6 +469,11 @@ macos/Runner/
   ClipboardChannel.swift    Native clipboard store, monitor, preview panel
   PerformanceChannel.swift  Launch items, maintenance, processes, vitals
   RecycleBinChannel.swift   Trash bins and Put Back
+  NetworkMonitor.swift      Interface counters → rates, once a second
+  NetworkStore.swift        Three-tier traffic history, and the menu bar prefs
+  NetworkChannel.swift      Dart's window onto both, on both engines
+  AiUsageChannel.swift      Today's AI summary, for the status item and popover
+  AppDataAccess.swift       The other-apps' data grant, asked for in onboarding
   MenuBarController.swift   NSStatusItem + NSPopover + second Flutter engine
   HotKey.swift              Carbon global shortcut
   UpdateChannel.swift       The updater's native surface
@@ -434,6 +510,12 @@ scan → tiles → review → clean flow. Adding a scanner is a data source plus
 copy, not a new page. Smart Care takes this one step further — it is purely a
 composite that fans out to the other modules and merges their results,
 deduplicating paths two modules both claim.
+
+**Network and AI Usage are the deliberate exception.** Neither finds anything to
+delete, so neither goes through `ScanModule` — they are BLoC-backed pages over a
+service, a native sampler in one case and an isolate sweep over local logs in
+the other. What they share with the rest of the app is the tokens and the
+components, not the scan contract.
 
 Navigation is `go_router` with `StatefulShellRoute.indexedStack`, so every
 destination is a real route whose state survives being navigated away from. That
