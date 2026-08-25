@@ -19,7 +19,10 @@ Future<void> main() async {
   // than lost: `TidyStore.open` and `AppSettings.load` both survive their own
   // failures quietly, and the warning they log is the only sign it happened.
   setUpLogging();
-  AppLog.app.info('starting', fields: {'engine': 'main', 'level': Logger.level.name});
+  AppLog.app.info(
+    'starting',
+    fields: {'engine': 'main', 'level': Logger.level.name},
+  );
 
   await setUpLocator(includeUi: true);
   runApp(TidyApp(settings: locator<AppSettings>()));
@@ -101,7 +104,8 @@ class _TidyAppState extends State<TidyApp> {
           // Over the router rather than inside it: the splash is not a route,
           // and making it one would put it in the back stack.
           builder:
-              (context, child) => SplashGate(child: child ?? const SizedBox.shrink()),
+              (context, child) =>
+                  SplashGate(child: child ?? const SizedBox.shrink()),
         );
       },
     );

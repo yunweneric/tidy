@@ -283,7 +283,9 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
   /// reads "one of the rest" is honest; a row that reads as a category it is
   /// not is not.
   Color seriesAt(int index) =>
-      index >= 0 && index < chartSeries.length ? chartSeries[index] : chartOther;
+      index >= 0 && index < chartSeries.length
+          ? chartSeries[index]
+          : chartOther;
 
   /// The colour a [SafetyLevel]-style tier should use.
   Color statusFor(int tierIndex) => switch (tierIndex) {
