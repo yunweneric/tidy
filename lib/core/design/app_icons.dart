@@ -1,4 +1,4 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 /// Every glyph in the app, named by what it means rather than what it looks like.
@@ -106,6 +106,12 @@ class AppIcons {
   /// because the chip it sits in carries a bare number — and a mark and a
   /// count only read as "stars on GitHub" together.
   static const IconData github = HugeIcons.strokeRoundedGithub01;
+
+  /// The star badge pinned to [github], and the **one** Material glyph in this
+  /// file. It is drawn at ten points, and a stroke star that small is a grey
+  /// smudge — HugeIcons ships stroke weights only, so a filled star has to come
+  /// from somewhere else. Not for use at any size where the stroke family works.
+  static const IconData starFilled = Icons.star_rounded;
   static const IconData back = HugeIcons.strokeRoundedArrowLeft01;
   static const IconData forward = HugeIcons.strokeRoundedArrowRight01;
   static const IconData expand = HugeIcons.strokeRoundedArrowDown01;

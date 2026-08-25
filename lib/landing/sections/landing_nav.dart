@@ -212,39 +212,56 @@ class _CollapsedBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final height = touch ? _kTouchControlHeight : _kControlHeight;
 
+    final menu = LandingButton(
+      label: 'Menu',
+      icon: AppIcons.menu,
+      kind: LandingButtonKind.ghost,
+      height: height,
+      iconOnly: true,
+      onPressed:
+          () => _openNavSheet(
+            context,
+            controller: controller,
+            targets: targets,
+            activeId: activeId,
+            onDownload: onDownload,
+          ),
+    );
+
+    final download = LandingButton(
+      label: 'Download',
+      icon: AppIcons.downloads,
+      height: height,
+      iconOnly: touch,
+      onPressed: onDownload,
+    );
+
+    // Menu, mark, download — three zones rather than a wordmark pinned to one
+    // end and a pair of controls to the other with a hand's width of nothing
+    // between them. Both flanks are the same 44pt square, so the mark lands on
+    // the bar's true centre rather than near it, and the `Expanded` between
+    // them is what keeps it there when the wordmark changes width.
+    if (touch) {
+      return Row(
+        children: [
+          menu,
+          Expanded(child: Center(child: _Mark(compact: true))),
+          download,
+        ],
+      );
+    }
+
     return Row(
       children: [
-        _Mark(compact: touch),
+        const _Mark(),
         const Spacer(),
-        if (!touch) ...[
-          _ThemeToggle(controller: controller),
-          const SizedBox(width: AppSpacing.sm),
-          _GithubChip(count: controller.stars),
-          const SizedBox(width: AppSpacing.sm),
-        ],
-        LandingButton(
-          label: 'Download',
-          icon: AppIcons.downloads,
-          height: height,
-          iconOnly: touch,
-          onPressed: onDownload,
-        ),
-        SizedBox(width: touch ? AppSpacing.xs + 2 : AppSpacing.sm),
-        LandingButton(
-          label: 'Menu',
-          icon: AppIcons.menu,
-          kind: LandingButtonKind.ghost,
-          height: height,
-          iconOnly: true,
-          onPressed:
-              () => _openNavSheet(
-                context,
-                controller: controller,
-                targets: targets,
-                activeId: activeId,
-                onDownload: onDownload,
-              ),
-        ),
+        _ThemeToggle(controller: controller),
+        const SizedBox(width: AppSpacing.sm),
+        _GithubChip(count: controller.stars),
+        const SizedBox(width: AppSpacing.sm),
+        download,
+        const SizedBox(width: AppSpacing.sm),
+        menu,
       ],
     );
   }
@@ -472,12 +489,15 @@ class _ThemeToggle extends StatelessWidget {
 ///
 /// The mark is GitHub's rather than the brand sparkle this used to wear in the
 /// amber "worth a look" tone. A sparkle beside a number reads as a rating the
-/// page has awarded itself; GitHub's mark says where the number came from
-/// without a word of label.
+/// page has awarded itself; GitHub's mark says where the number came from.
+///
+/// The star did not disappear with the sparkle — it moved onto the mark as a
+/// badge. The mark alone says *which* site; the badge says *which number*, and
+/// between them the chip needs no label at all.
 ///
 /// The count is *added* when it arrives rather than the chip appearing with it.
-/// A chip reading "—" says the page is broken, but the bare mark is a link to
-/// the source, which is true whether or not the API answered.
+/// A chip reading "—" says the page is broken, but the badged mark is an
+/// invitation to go and star it, which stands whether or not the API answered.
 class _GithubChip extends StatelessWidget {
   const _GithubChip({required this.count, this.height = _kControlHeight});
 
@@ -520,7 +540,7 @@ class _GithubChip extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(AppIcons.github, size: 16, color: colors.textPrimary),
+                  _GithubStarMark(size: 18, ground: colors.surfaceHover),
                   if (count != null) ...[
                     const SizedBox(width: AppSpacing.sm),
                     Text(
@@ -535,6 +555,52 @@ class _GithubChip extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// GitHub's mark with a star pinned to its lower corner.
+///
+/// Filled rather than stroked, and that is the whole reason [AppIcons.starFilled]
+/// exists: the badge is eleven points across, and a stroke star that small
+/// reads as a smudge. It is punched out of the chip's own ground so it sits
+/// *on* the mark rather than getting lost inside it.
+class _GithubStarMark extends StatelessWidget {
+  const _GithubStarMark({required this.size, required this.ground});
+
+  final double size;
+
+  /// The chip's fill. The badge carries a ring of it, which is what separates
+  /// the star from the mark underneath without a stroke of its own.
+  final Color ground;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+
+    return SizedBox.square(
+      dimension: size,
+      child: Stack(
+        // The badge overhangs the mark's box on both axes; clipped, it would
+        // lose the two points that make it read as a badge.
+        clipBehavior: Clip.none,
+        children: [
+          Icon(AppIcons.github, size: size, color: colors.textPrimary),
+          Positioned(
+            right: -3,
+            bottom: -3,
+            child: Container(
+              padding: const EdgeInsets.all(1),
+              decoration: BoxDecoration(color: ground, shape: BoxShape.circle),
+              child: Icon(
+                AppIcons.starFilled,
+                size: size * 0.62,
+                color: colors.review,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
