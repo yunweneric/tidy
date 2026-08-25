@@ -32,3 +32,51 @@ String collapseHome(String path, String? home) {
   if (path.startsWith('$home/')) return '~${path.substring(home.length)}';
   return path;
 }
+
+const int _thousand = 1000;
+const int _million = _thousand * 1000;
+const int _billion = _million * 1000;
+
+/// Formats a plain count using decimal units, e.g. `1.2M`.
+///
+/// Separate from [formatBytes] because these are not bytes. Token counts run to
+/// billions and would come out of the binary formatter as `1.1 GiB`, which
+/// invites the reader to think they are looking at a file size.
+String formatCount(int count) {
+  if (count <= 0) return '0';
+  if (count >= _billion) return '${(count / _billion).toStringAsFixed(2)}B';
+  if (count >= _million) return '${(count / _million).toStringAsFixed(1)}M';
+  if (count >= _thousand) return '${(count / _thousand).toStringAsFixed(1)}K';
+  return '$count';
+}
+
+/// The number and its unit, split so a hero can render them at different sizes.
+({String value, String unit}) splitCount(int count) {
+  final formatted = formatCount(count);
+  final last = formatted.substring(formatted.length - 1);
+  if (last == 'K' || last == 'M' || last == 'B') {
+    return (value: formatted.substring(0, formatted.length - 1), unit: last);
+  }
+  return (value: formatted, unit: '');
+}
+
+/// A US dollar amount with thousands separators, e.g. `$1,204.30`.
+///
+/// Two decimal places above a dollar and four below it: a day can genuinely
+/// cost eight cents, and `$0.08` rounded to `$0.08` is fine while a single
+/// cache read rounded to `$0.00` reads as free when it was not.
+String formatUsd(double amount) {
+  if (amount <= 0) return r'$0.00';
+  final decimals = amount < 1 ? 4 : 2;
+  final text = amount.toStringAsFixed(decimals);
+  final dot = text.indexOf('.');
+  final whole = text.substring(0, dot);
+  final fraction = text.substring(dot);
+
+  final grouped = StringBuffer();
+  for (var i = 0; i < whole.length; i++) {
+    if (i > 0 && (whole.length - i) % 3 == 0) grouped.write(',');
+    grouped.write(whole[i]);
+  }
+  return '\$$grouped$fraction';
+}

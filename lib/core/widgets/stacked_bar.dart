@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:tidy/core/design/design.dart';
 
@@ -44,7 +46,13 @@ class StackedBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.colors;
     final measured = slices.fold<int>(0, (sum, slice) => sum + slice.bytes);
-    final whole = (total ?? measured).clamp(1, 1 << 62);
+    // `math.max` rather than `clamp(1, 1 << 62)`. On the web an int is a
+    // double and `<<` runs through JavaScript's 32-bit shift, so `1 << 62`
+    // does not come back as a large number — it comes back below the lower
+    // bound, and `clamp` throws `Invalid argument: 1`. The landing page draws
+    // this bar, so the guard has to hold on both targets. Only a floor was
+    // ever wanted here anyway.
+    final whole = math.max(1, total ?? measured);
 
     return LayoutBuilder(
       builder: (context, constraints) {

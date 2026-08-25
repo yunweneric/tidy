@@ -44,6 +44,12 @@ class AppSettings extends ChangeNotifier {
   static const String _networkStyleKey = 'networkMenuBarStyle';
   static const String _networkBitsKey = 'networkUseBits';
 
+  // AI usage. Dart-only, like the update keys below — nothing native reads a
+  // session log, so none of the cross-language key contract applies here.
+  static const String _aiClaudeKey = 'aiUsageIncludeClaude';
+  static const String _aiCodexKey = 'aiUsageIncludeCodex';
+  static const String _aiRootsKey = 'aiUsageRoots';
+
   // Updates. Dart-only, unlike the clipboard and network keys above: no Swift
   // file reads these, because nothing about updating has to be decided before
   // a Flutter engine exists.
@@ -273,6 +279,44 @@ class AppSettings extends ChangeNotifier {
 
   set networkUnits(NetworkUnits value) {
     _values[_networkBitsKey] = value.isBits;
+    _persist();
+  }
+
+  // ─── AI usage ──────────────────────────────────────────────────────────
+
+  /// Whether the AI Usage page reads `~/.claude/projects`.
+  ///
+  /// On by default. Unlike the clipboard recorder, nothing is being *captured*
+  /// here — these logs are written by Claude Code whether Tidy exists or not,
+  /// and reading them starts and ends on this Mac.
+  bool get aiUsageIncludeClaude => _values[_aiClaudeKey] as bool? ?? true;
+
+  set aiUsageIncludeClaude(bool value) {
+    _values[_aiClaudeKey] = value;
+    _persist();
+  }
+
+  /// Whether the AI Usage page reads `~/.codex/sessions`.
+  bool get aiUsageIncludeCodex => _values[_aiCodexKey] as bool? ?? true;
+
+  set aiUsageIncludeCodex(bool value) {
+    _values[_aiCodexKey] = value;
+    _persist();
+  }
+
+  /// Provider name → config root, for anyone whose CLI does not live in the
+  /// usual place. Absent entries fall back to `AiProvider.defaultRoot`.
+  Map<String, String> get aiUsageRoots {
+    final raw = _values[_aiRootsKey];
+    if (raw is! Map) return const {};
+    return {
+      for (final entry in raw.entries)
+        if (entry.value is String) '${entry.key}': entry.value as String,
+    };
+  }
+
+  set aiUsageRoots(Map<String, String> value) {
+    _values[_aiRootsKey] = value;
     _persist();
   }
 

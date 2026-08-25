@@ -1,20 +1,40 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-    "version": "0.2.0",
-    "configurations": [
-      
-      {
-        "name": "Prod",
-        "request": "launch",
-        "type": "dart",
-        "args": [
-          "-t",
-          "./lib/main.dart",
-        ]
-      },
-     
-    ]
-  }
-  
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Tidy (macOS)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "deviceId": "macos"
+    },
+    {
+      "name": "Tidy (macOS, profile)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "deviceId": "macos",
+      "flutterMode": "profile"
+    },
+    {
+      "name": "Landing page (Chrome)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main_landing.dart",
+      "deviceId": "chrome",
+      "flutterMode": "debug"
+    },
+    {
+      // What CI builds. Worth having as a launch config because the two
+      // failure modes this setup has — a wrong base href and a boot curtain
+      // that never lifts — only appear in a release build.
+      "name": "Landing page (Chrome, release)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main_landing.dart",
+      "deviceId": "chrome",
+      "flutterMode": "release",
+      "args": ["--base-href", "/", "--pwa-strategy", "none"]
+    }
+  ]
+}

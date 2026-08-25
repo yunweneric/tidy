@@ -60,6 +60,11 @@ dependencies:
   # left to get wrong. The cost is that queries are Dart rather than SQL; see
   # `lib/core/store/tidy_store.dart` for what that means in practice.
   hive: ^2.2.3
+  # The landing page's release lookup. `core/updates/github_release_client.dart`
+  # already does this for the app, but on `dart:io`'s HttpClient, which does not
+  # compile for web. Imported only from `lib/landing/`, so it is tree-shaken out
+  # of the macOS bundle.
+  http: ^1.2.2
   logger: ^2.7.0
 
 dev_dependencies:
@@ -80,6 +85,7 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg
@@ -164,7 +170,11 @@ flutter_native_splash:
 
   android: true
   ios: true
-  web: true
+  # Off, because `web/index.html` is hand-written for the landing page — a boot
+  # curtain, the Open Graph head, and a `<noscript>` block a crawler can read.
+  # `flutter_native_splash:create` rewrites that file wholesale, so leaving this
+  # on would silently throw the marketing site's head away on the next run.
+  web: false
 
   # Android 12+ ignores the classic splash entirely and draws its own masked
   # icon on a solid background, so it needs its own, larger source.

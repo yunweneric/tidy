@@ -156,6 +156,19 @@ enum AppDestination {
     group: NavGroup.secondary,
     blurb: 'What your Mac is sending and receiving, now and over time.',
     tone: ModuleTone.network,
+  ),
+
+  /// Appended, like everything since Recycle Bin, because branch indices are
+  /// positional. Under MORE with Space Lens and Network: it is the third place
+  /// you go to watch something rather than to change something.
+  aiUsage(
+    path: '/ai-usage',
+    label: 'AI Usage',
+    icon: AppIcons.aiUsage,
+    group: NavGroup.secondary,
+    blurb:
+        'What your AI coding tools have got through, and what it would cost.',
+    tone: ModuleTone.aiUsage,
   );
 
   const AppDestination({

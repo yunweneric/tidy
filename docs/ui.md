@@ -198,6 +198,7 @@ the page title:
 | Protection | magenta | | Dashboard | brand violet |
 | Performance | amber | | Clipboard | brand violet |
 | Applications | indigo-blue | | My Clutter | teal |
+| AI Usage | orchid | | | |
 
 Smart Care was violet until the Dashboard arrived above it in the rail wearing
 the same brand violet. Two adjacent rows opening into an identical window is
@@ -213,12 +214,26 @@ window never passes through a hue neither module owns.
 Supporting views (All Tools, Activity, Assistant, Settings, Recycle Bin) keep
 the brand tone. A hue per destination means nothing; a hue per *place you spend
 time in* means something, and that is the line — the six working modules, plus
-the two you go to in order to watch something (Space Lens, Network). If a ninth
-tone is ever proposed, the question to answer first is which of these it is.
+the ones you go to in order to watch something (Space Lens, Network, AI Usage).
+A proposed tone has to answer which of those it is before it gets a hue.
 
-Azure and indigo-blue are close, and deliberately not adjacent in the sidebar:
-Applications is a working module and Network is under MORE, so the two are never
-one click apart.
+AI Usage is the ninth, and it took what was left. By the time it was asked for,
+the wheel was occupied at 24° (Performance), 57° (Smart Care), 101° (Cleanup),
+173° (My Clutter), 197° (Network), 248° (brand and Applications), 267° (Space
+Lens) and 317° (Protection), with the status hues at 39° / 143° / 197° / 355°.
+Two arcs were left. **~137°** had the widest module clearance of anything
+available — 36°, against Smart Care's 37° — and sat 6° from the `safe` green;
+it was rejected not for the 6° but for what green *means* here, since a module
+with nothing to do with deletion wearing "safe to delete" edge to edge is a
+semantic collision rather than a hue one. **~290°** was taken instead: 23° from
+Space Lens and 27° from Protection, tighter than any existing pair, so its
+saturation is pulled well below Space Lens's (76% against 87% at the accent) to
+hold the two apart by weight as well as by hue.
+
+Blues and purples are close together, and deliberately not adjacent in the
+sidebar: Applications is a working module while Network and AI Usage are under
+MORE, and AI Usage sits four rows below Space Lens, so no two neighbouring rows
+open into the same-looking window.
 
 Status colours stay `safe`/`review`/`risky` on every module — those mean what
 they mean regardless of what colour the window is. Amber has to keep reading as

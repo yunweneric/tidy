@@ -96,6 +96,9 @@ class AppLog {
   /// The menu-bar popover and its second engine.
   static const AppLog menuBar = AppLog('menubar');
 
+  /// Reading the AI CLIs' session logs, and the isolate that does it.
+  static const AppLog aiUsage = AppLog('ai');
+
   // ─── Writing ──────────────────────────────────────────────────────────────
 
   /// Per-item detail inside a loop. Off unless the level is turned down.

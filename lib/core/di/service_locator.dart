@@ -5,6 +5,7 @@ import 'package:tidy/core/platform/system_bridge.dart';
 import 'package:tidy/core/settings/app_settings.dart';
 import 'package:tidy/core/store/metric_sampler.dart';
 import 'package:tidy/core/store/tidy_store.dart';
+import 'package:tidy/features/ai_usage/data/services/ai_usage_service.dart';
 import 'package:tidy/core/updates/update_service.dart';
 import 'package:tidy/features/apps/data/services/apps_service.dart';
 import 'package:tidy/features/apps/data/services/junk_scanner.dart';
@@ -121,6 +122,10 @@ Future<void> setUpLocator({required bool includeUi}) async {
     // popover must never start an install. That panel closes on the first click
     // outside it, and an update that quits the app from a window which has
     // already vanished is not something to offer.
+    locator.registerLazySingleton<AiUsageService>(
+      () => AiUsageService(settings: settings),
+    );
+
     locator.registerLazySingleton<UpdateService>(
       () => UpdateService(settings: settings),
     );

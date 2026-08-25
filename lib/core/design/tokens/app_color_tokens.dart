@@ -41,6 +41,30 @@ enum ModuleTone {
   /// whole point of the tone. An azure kept clear of Applications' indigo and My
   /// Clutter's teal, which are its two nearest neighbours.
   network,
+
+  /// AI Usage. The third view you go to in order to *watch* something, which
+  /// per ui.md §3 is the category that earns a tone at all.
+  ///
+  /// An orchid at ~290°, and the wheel was full by the time it was asked for.
+  /// The occupied hues are Performance 24°, Smart Care 57°, Cleanup 101°, My
+  /// Clutter 173°, Network 197°, brand and Applications 248°, Space Lens 267°
+  /// and Protection 317°, with the status hues at 39° / 143° / 197° / 355°.
+  /// Two arcs were left:
+  ///
+  /// - **~137°** has the widest module clearance of anything available (36°,
+  ///   against Smart Care's 37°) and sits 6° from the `safe` green. Rejected
+  ///   not for the 6° but for what green *means* here: in a cleaner it reads as
+  ///   "safe to delete", and a module with nothing to do with deletion wearing
+  ///   it edge to edge is a semantic collision, not just a hue one.
+  /// - **~290°**, taken. 23° from Space Lens and 27° from Protection — tighter
+  ///   than any existing pair, so the saturation is pulled well below Space
+  ///   Lens's (76% against 87% at the accent) to keep the two apart by weight
+  ///   as well as by hue. 65° from the nearest status hue, which is the most
+  ///   clearance any candidate had.
+  ///
+  /// Sidebar adjacency is clear either way: under MORE this lands below
+  /// Network's azure, four rows from Space Lens.
+  aiUsage,
 }
 
 /// One module's two backdrop colours.
@@ -397,6 +421,11 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
         lift: Color(0xFF0F6FA8),
         accent: Color(0xFF35B4E8),
       ),
+      ModuleTone.aiUsage: ModulePalette(
+        base: Color(0xFF340B3C),
+        lift: Color(0xFFAC2AC6),
+        accent: Color(0xFFD466EA),
+      ),
     },
     glowStrength: 1,
     pattern: Color(0x1FFFFFFF),
@@ -486,6 +515,11 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
         base: Color(0xFFD9EBF7),
         lift: Color(0xFF8FC4E6),
         accent: Color(0xFF0A6C9E),
+      ),
+      ModuleTone.aiUsage: ModulePalette(
+        base: Color(0xFFF5DBFB),
+        lift: Color(0xFFE0A2EC),
+        accent: Color(0xFFA324BC),
       ),
     },
     // A pale backdrop has less room before a pool of light reads as a stain,

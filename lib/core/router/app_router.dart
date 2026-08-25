@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:tidy/features/ai_usage/presentation/ai_usage_page.dart';
 import 'package:tidy/core/di/service_locator.dart';
 import 'package:tidy/core/platform/full_disk_access_service.dart';
 import 'package:tidy/core/settings/app_settings.dart';
@@ -100,6 +101,7 @@ Widget _pageFor(
   GoRouterState state,
 ) => switch (destination) {
   AppDestination.dashboard => const DashboardPage(),
+  AppDestination.aiUsage => const AiUsagePage(),
   AppDestination.cleanup => const CleanupPage(),
   AppDestination.applications => const ApplicationsPage(),
   AppDestination.settings => SettingsPage(

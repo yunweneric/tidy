@@ -1,114 +1,163 @@
-<!DOCTYPE html><html><head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- iOS meta tags & icons -->
+  <title>Tidy — Clean, tune and reclaim your Mac</title>
+  <meta name="description" content="Tidy is a free, open-source Mac utility toolkit: clipboard history, disk cleanup, uninstalling apps properly, startup and process control, and getting things back out of the Trash. Nothing leaves your Mac.">
+  <meta name="theme-color" content="#5B45E0">
+
+  <!-- Open Graph. A Flutter page renders to a canvas, so these tags and the
+       <noscript> block below are the whole of what a crawler or a link unfurl
+       ever sees. -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Tidy">
+  <meta property="og:url" content="https://tidy.yunweneric.com/">
+  <meta property="og:title" content="Tidy — Clean, tune and reclaim your Mac">
+  <meta property="og:description" content="One app for the small jobs macOS makes awkward. Free, open source, and nothing leaves your Mac.">
+  <!-- Absolute, because LinkedIn and X resolve og:image against nothing. The
+       ?v= is what makes them re-fetch a card they have already cached. -->
+  <meta property="og:image" content="https://tidy.yunweneric.com/og-image.png?v=1">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Tidy — a Mac utility toolkit. Clean, tune and reclaim your Mac.">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Tidy — Clean, tune and reclaim your Mac">
+  <meta name="twitter:description" content="One app for the small jobs macOS makes awkward. Free, open source, and nothing leaves your Mac.">
+  <meta name="twitter:image" content="https://tidy.yunweneric.com/og-image.png?v=1">
+  <meta name="twitter:image:alt" content="Tidy — a Mac utility toolkit. Clean, tune and reclaim your Mac.">
+
+  <!-- The app leaves fontFamily unset and gets San Francisco from macOS; on the
+       web that falls through to bundled Roboto, which is the one thing that
+       would stop a page built from the app's own tokens looking like the app. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="tidy">
-  <link rel="apple-touch-icon" href="icons/Icon-192.png">
-
-  <!-- Favicon -->
+  <meta name="apple-mobile-web-app-title" content="Tidy">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="icon" type="image/png" href="favicon.png">
-
-  <title>tidy</title>
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
   <link rel="manifest" href="manifest.json">
-  <style id="splash-screen-style">
-    html {
-      height: 100%
+
+  <style>
+    html, body { margin: 0; padding: 0; height: 100%; background: #15112E; }
+
+    /* Shown from the first byte and removed the moment Flutter paints, so
+       nobody watches a blank page load. The colours are AppColorTokens.dark(),
+       which is the appearance the page opens in. */
+    #boot {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 22px;
+      background: radial-gradient(60% 50% at 50% 30%, #241B54 0%, #15112E 70%);
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      transition: opacity 320ms ease-out;
+      z-index: 10;
+    }
+    #boot.done { opacity: 0; pointer-events: none; }
+    #boot .mark { width: 64px; height: 64px; }
+    #boot .name {
+      color: #FFFFFF;
+      font-size: 19px;
+      font-weight: 700;
+      letter-spacing: -0.2px;
+    }
+    #boot .bar {
+      width: 132px;
+      height: 3px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.14);
+      overflow: hidden;
+    }
+    #boot .bar span {
+      display: block;
+      width: 40%;
+      height: 100%;
+      border-radius: 999px;
+      background: #A593FF;
+      animation: slide 1.15s ease-in-out infinite;
+    }
+    @keyframes slide {
+      0%   { transform: translateX(-100%); }
+      100% { transform: translateX(250%); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      #boot .bar span { animation: none; width: 100%; }
     }
 
-    body {
-      margin: 0;
-      min-height: 100%;
-      background-color: #F3F1FD;
-          background-size: 100% 100%;
+    noscript .fallback {
+      max-width: 660px;
+      margin: 12vh auto;
+      padding: 0 24px;
+      color: #C4C0D8;
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.65;
     }
-
-    .center {
-      margin: 0;
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      -ms-transform: translate(-50%, -50%);
-      transform: translate(-50%, -50%);
-    }
-
-    .contain {
-      display:block;
-      width:100%; height:100%;
-      object-fit: contain;
-    }
-
-    .stretch {
-      display:block;
-      width:100%; height:100%;
-    }
-
-    .cover {
-      display:block;
-      width:100%; height:100%;
-      object-fit: cover;
-    }
-
-    .bottom {
-      position: absolute;
-      bottom: 0;
-      left: 50%;
-      -ms-transform: translate(-50%, 0);
-      transform: translate(-50%, 0);
-    }
-
-    .bottomLeft {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-    }
-
-    .bottomRight {
-      position: absolute;
-      bottom: 0;
-      right: 0;
-    }
-
-    @media (prefers-color-scheme: dark) {
-      body {
-        background-color: #15112E;
-          }
-    }
+    noscript h1 { color: #FFFFFF; letter-spacing: -0.8px; }
+    noscript a { color: #A593FF; }
   </style>
-  <script id="splash-screen-script">
-    function removeSplashFromWeb() {
-      document.getElementById("splash")?.remove();
-      document.getElementById("splash-branding")?.remove();
-      document.body.style.background = "transparent";
-    }
-  </script>
-  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
 </head>
 <body>
-  <picture id="splash">
-      <source srcset="splash/img/light-1x.png 1x, splash/img/light-2x.png 2x, splash/img/light-3x.png 3x, splash/img/light-4x.png 4x" media="(prefers-color-scheme: light)">
-      <source srcset="splash/img/dark-1x.png 1x, splash/img/dark-2x.png 2x, splash/img/dark-3x.png 3x, splash/img/dark-4x.png 4x" media="(prefers-color-scheme: dark)">
-      <img class="center" aria-hidden="true" src="splash/img/light-1x.png" alt="">
-  </picture>
-  <script src="flutter_bootstrap.js" async=""></script>
+  <div id="boot">
+    <svg class="mark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" aria-hidden="true">
+      <defs>
+        <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#D8CCFF"/>
+          <stop offset="0.34" stop-color="#9B7CF6"/>
+          <stop offset="1" stop-color="#5B21B6"/>
+        </linearGradient>
+      </defs>
+      <rect width="64" height="64" rx="14.4" fill="url(#tile)"/>
+      <g transform="translate(14.4 14.4) scale(0.733)" fill="none" stroke="#fff"
+         stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="7" y="10" width="34" height="23" rx="5"/>
+        <path d="M20.5 33 V37 H27.5 V33"/>
+        <path d="M16 39 H32"/>
+      </g>
+      <path transform="translate(14.4 14.4) scale(0.733)" fill="#fff"
+            d="M24 14.5c1.3 4.8 3.2 6.7 8 8-4.8 1.3-6.7 3.2-8 8-1.3-4.8-3.2-6.7-8-8 4.8-1.3 6.7-3.2 8-8z"/>
+    </svg>
+    <div class="name">Tidy</div>
+    <div class="bar"><span></span></div>
+  </div>
 
+  <noscript>
+    <div class="fallback">
+      <h1>Tidy — clean, tune and reclaim your Mac</h1>
+      <p>
+        Tidy is a free, open-source Mac utility toolkit. One app for the small jobs
+        macOS makes awkward — clipboard history, disk cleanup, uninstalling apps
+        properly, startup and process control, and getting things back out of the
+        Trash.
+      </p>
+      <ul>
+        <li>Findings are graded safe, worth a look, or your data — and only the first is pre-ticked</li>
+        <li>Removal goes to the Trash, so Put Back works; permanent deletion is a deliberate switch</li>
+        <li>Uninstalling shows every leftover, matched by bundle id and exact name rather than by substring</li>
+        <li>Clipboard history with a ⌘⇧V hotkey that needs no Accessibility permission</li>
+        <li>Login items, background agents, live process and network meters, in the menu bar</li>
+        <li>One network request, ever: a daily release check that sends nothing but the question</li>
+      </ul>
+      <p>
+        This page needs JavaScript, because it is itself the app compiled for the web.
+        Downloads and source are at
+        <a href="https://github.com/yunweneric/tidy">github.com/yunweneric/tidy</a>.
+      </p>
+    </div>
+  </noscript>
 
-</body></html>
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>

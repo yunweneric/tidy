@@ -47,6 +47,10 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
   private var channel: FlutterMethodChannel?
   private var appearanceObserver: Any?
 
+  /// See `forwardClicksIntoThePanel`. Held so it can be torn down with the
+  /// controller rather than outliving it.
+  private var clickForwarder: Any?
+
   // The panel is a dashboard now, not a menu: three vitals tiles across the
   // top and a live process table below them need room to be read at a glance,
   // which a menu-width strip does not have.
@@ -684,6 +688,7 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     popover.behavior = .transient
     popover.animates = true
     popover.delegate = self
+    forwardClicksIntoThePanel()
 
     // The popover engine is started headless, before any window exists, and
     // does not reliably pick up the system appearance the way the main window
@@ -696,6 +701,51 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
       queue: .main
     ) { [weak self] _ in
       self?.publishAppearance()
+    }
+  }
+
+  /// Hands clicks to the panel's view controller, because AppKit will not.
+  ///
+  /// A view nested inside an `NSPopover` does not get `mouseDown:`/`mouseUp:`
+  /// forwarded up its responder chain: the events arrive at the window, the
+  /// window hit-tests them to `FlutterView`, and there they stop — they never
+  /// reach `FlutterViewController`, which is the responder that turns them
+  /// into Flutter pointer events. The symptom is a panel that looks alive and
+  /// is not: hovering highlights rows, because hover comes in through the view
+  /// controller's own tracking area and skips the chain entirely, while not one
+  /// click in the panel does anything. Nothing in the app reports an error,
+  /// because nothing in the app is ever asked.
+  ///
+  /// It is an AppKit bug, and a known one — Flutter carried the same
+  /// workaround in `FlutterViewWrapper` (flutter/engine#40241) for the version
+  /// of it that "Reduce Transparency" triggered, and dropped it once Apple
+  /// called that fixed in 13.3.1. It is back, and it does not need Reduce
+  /// Transparency to reproduce on macOS 26.
+  ///
+  /// So the panel repairs the chain a layer further out: catch the events as
+  /// they pass through the app and deliver them where AppKit should have. Only
+  /// clicks inside the popover's own view are taken, and dragging comes along
+  /// with the click because a drag that never got its mouse-down is not a drag.
+  private func forwardClicksIntoThePanel() {
+    clickForwarder = NSEvent.addLocalMonitorForEvents(
+      matching: [.leftMouseDown, .leftMouseUp, .leftMouseDragged]
+    ) { [weak self] event in
+      guard let self,
+            let controller = self.popover.contentViewController,
+            let window = controller.view.window,
+            event.window === window,
+            let hit = window.contentView?.hitTest(event.locationInWindow),
+            hit.isDescendant(of: controller.view)
+      else { return event }
+
+      switch event.type {
+      case .leftMouseDown: controller.mouseDown(with: event)
+      case .leftMouseUp: controller.mouseUp(with: event)
+      default: controller.mouseDragged(with: event)
+      }
+      // Swallowed: it has been delivered by hand, and letting it carry on would
+      // be the same click twice on any macOS where AppKit does deliver it.
+      return nil
     }
   }
 
@@ -937,6 +987,9 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     }
     if let networkObserver {
       NetworkMonitor.shared.removeObserver(networkObserver)
+    }
+    if let clickForwarder {
+      NSEvent.removeMonitor(clickForwarder)
     }
   }
 }

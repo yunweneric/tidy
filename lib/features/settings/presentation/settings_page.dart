@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tidy/features/settings/presentation/sections/ai_usage_section.dart';
 import 'package:tidy/core/design/design.dart';
 import 'package:tidy/core/di/service_locator.dart';
 import 'package:tidy/core/platform/full_disk_access_service.dart';
@@ -101,6 +102,7 @@ class _SettingsPageState extends State<SettingsPage> {
     SettingsSection.appearance => AppearanceSection(settings: settings),
     SettingsSection.clipboard => ClipboardSection(settings: settings),
     SettingsSection.network => NetworkSection(settings: settings),
+    SettingsSection.aiUsage => AiUsageSection(settings: settings),
     SettingsSection.history => const HistorySection(),
     SettingsSection.permissions => PermissionsSection(
       service: locator<FullDiskAccessService>(),

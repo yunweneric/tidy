@@ -7,6 +7,10 @@ and getting things back out of the Trash.
 It started as an uninstaller. That is still in here, but it is one module of
 several now.
 
+**[tidy.yunweneric.com](https://tidy.yunweneric.com)** — the landing page, with
+the app itself running in it on invented data. It is this repository compiled
+for the web from `lib/main_landing.dart`; see [The landing page](#the-landing-page).
+
 ## What's in it
 
 | Module | What it does | State |
@@ -150,6 +154,59 @@ verifies downloads against the published checksum instead of a code signature.
 No Apple credentials are involved. See
 [.github/workflows/README.md](.github/workflows/README.md).
 
+## The landing page
+
+[tidy.yunweneric.com](https://tidy.yunweneric.com) is this repository, compiled
+for the web from a second entry point:
+
+```
+lib/main_landing.dart          the entry point — no DI, no router, no logging
+lib/landing/
+├── landing_app.dart           MaterialApp on TidyTheme.light() / .dark()
+├── landing_page.dart          one scroll view, a floating bar, a scroll spy
+├── state/                     LandingController — theme, release, anchors
+├── data/                      the public GitHub releases API
+├── sections/                  the page, band by band
+├── widgets/                   Reveal, PointerTilt, ScrollTilt, GlassPanel, frames
+└── preview/                   the app and the menu bar, on invented data
+```
+
+Run it with `flutter run -d chrome -t lib/main_landing.dart`, or the
+**Landing page (Chrome)** configuration in `.vscode/launch.json`.
+
+**The page imports the product.** Everything under `lib/core/design/` and
+`lib/core/widgets/` is free of `dart:io` and free of the service locator, as are
+`AppDestination` and `SidebarNavItem` — so the window in the middle of the page
+is the app's own `AmbientBackground`, `TidyCard`, `StatTile`, `GaugeRing`,
+`SparkChart` and `StackedBar`, handed constants instead of scan results. The
+module grid is generated from `AppDestination`, blurbs included. Adding a module
+adds a card; rewording a blurb rewords the page. A marketing site with its own
+copy of the feature list is a marketing site that will eventually be wrong.
+
+`lib/landing/preview/menu_bar_preview.dart` draws the menu bar and all three
+popovers the same way — the status items, the pointer, the 460pt dashboard panel
+and the two 320pt ones, at the widths `MenuBarController.swift` actually uses.
+
+`lib/landing/preview/preview_mac.dart` is the fiction behind the demo — a 512 GB
+disk, 66 apps, four junk categories, a Trash, a clipboard. It is a
+`ChangeNotifier` rather than a wall of constants because the demo has to add up:
+reclaiming junk puts it in the Recycle Bin pane, emptying the Trash is what
+actually moves the free-space bar, and uninstalling an app is undoable from
+another screen.
+
+Do **not** import `core/platform/`, `core/store/`, `core/settings/`,
+`core/updates/` or any feature's `logic/` or `data/` from `lib/landing/`. They
+reach `dart:io`, which does not compile for web.
+
+`.github/workflows/pages.yml` builds and publishes on every push to `main` that
+touches the landing sources. `web/CNAME` is what tells it to build with
+`--base-href /` rather than `/tidy/`; delete it and the workflow falls back to
+the project page without any other change. `web/index.html` is hand-written —
+the Open Graph head, the boot curtain and a `<noscript>` block are all a crawler
+ever sees of a page that renders to a canvas — which is why
+`flutter_native_splash` has `web: false`. Regenerate the social card with
+`python3 scripts/generate_og_image.py`.
+
 ## Updating
 
 Tidy updates itself, the way ChatGPT and Claude for Mac do. Once a day — and
@@ -202,6 +259,9 @@ lib/
     onboarding/       First run, and the permission conversation
     settings/         Settings page
     shell/            Sidebar, destinations, window chrome
+  landing/            The marketing site — see "The landing page" above
+  main.dart           The app
+  main_landing.dart   The site
 macos/Runner/
   DirectorySizer.swift      fts(3) tree walk, allocated sizes
   SystemChannel.swift       FileManager removal, disk, icons, path guards
@@ -219,6 +279,7 @@ scripts/
   add_swift_file.py         Register a Swift file with the Xcode target
   hooks/pre-commit          Format check on staged Dart, mirroring CI
   generate_icons.py         Regenerate the app icon and menu bar glyphs
+  generate_og_image.py      Regenerate the landing page's social card
 docs/
   feature.md                How to build a feature, and the safety rules
   ui.md                     Theming, tokens, components, copy
@@ -265,4 +326,9 @@ beside a fresh empty folder.
 
 ## License
 
-Private / unpublished.
+GPL-3.0. See [LICENSE](LICENSE).
+
+Copyleft rather than permissive, and for one reason: this app asks for Full
+Disk Access and then walks your Library. The argument for trusting it is that
+you can read what it does, and a modified Tidy has to keep that argument
+available to whoever runs *it*.

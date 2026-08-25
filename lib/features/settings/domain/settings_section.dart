@@ -31,6 +31,11 @@ enum SettingsSection {
     icon: AppIcons.network,
     blurb: 'The menu bar readout, and what the usage history keeps.',
   ),
+  aiUsage(
+    label: 'AI Usage',
+    icon: AppIcons.aiUsage,
+    blurb: 'Which AI coding tools ${Brand.name} reads usage from.',
+  ),
   history(
     label: 'Data & History',
     icon: AppIcons.analytics,

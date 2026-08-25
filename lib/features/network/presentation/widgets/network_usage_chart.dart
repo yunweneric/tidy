@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:tidy/core/design/design.dart';
 import 'package:tidy/core/utils/byte_format.dart';
@@ -206,7 +208,9 @@ class _BarsPainter extends CustomPainter {
 
       final height = (total / peak).clamp(0.0, 1.0) * size.height;
       final downHeight =
-          height * (bucket.downBytes / bucket.totalBytes.clamp(1, 1 << 62));
+          // See the note in `core/widgets/stacked_bar.dart`: `1 << 62` is not
+          // a large number on the web, and `clamp` throws against it.
+          height * (bucket.downBytes / math.max(1, bucket.totalBytes));
       final upHeight = height - downHeight;
 
       // Upload stacked on top of download, so the taller half is the one

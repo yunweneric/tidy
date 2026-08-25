@@ -5,8 +5,8 @@
     "display": "standalone",
     "background_color": "#15112E",
     "theme_color": "#5B45E0",
-    "description": "Clean, tune and reclaim your Mac.",
-    "orientation": "portrait-primary",
+    "description": "Clean, tune and reclaim your Mac. A free, open-source Mac utility toolkit.",
+    "orientation": "any",
     "prefer_related_applications": false,
     "icons": [
         {

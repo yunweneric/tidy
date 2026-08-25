@@ -35,6 +35,12 @@ class AppIcons {
   static const IconData clipboard = HugeIcons.strokeRoundedClipboard;
   static const IconData network = HugeIcons.strokeRoundedWifi01;
 
+  /// AI Usage. A brain rather than a chart or a coin: Space Lens already wears
+  /// a ring chart and Data & History a pie, and the subject here is the tools
+  /// doing the thinking, not the money — which the page is careful not to
+  /// claim it is measuring.
+  static const IconData aiUsage = HugeIcons.strokeRoundedAiBrain01;
+
   // ─── Modules ─────────────────────────────────────────────────────────────
   static const IconData developerJunk = HugeIcons.strokeRoundedCpu;
   static const IconData trash = HugeIcons.strokeRoundedDelete02;

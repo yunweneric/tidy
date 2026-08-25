@@ -1,7 +1,11 @@
 # CI / CD
 
-One workflow, `ci.yml`, driven by the Flutter version pinned in `.fvmrc`. It
-runs on pushes to `main`, PRs into `main`, `v*` tags, and manual dispatch:
+Two workflows, both driven by the Flutter version pinned in `.fvmrc`: `ci.yml`
+builds and releases the macOS app, and `pages.yml` deploys the landing page.
+
+## `ci.yml` — the app
+
+Runs on pushes to `main`, PRs into `main`, `v*` tags, and manual dispatch:
 
 | Job | Runner | Does |
 | --- | --- | --- |
@@ -92,3 +96,41 @@ the tag parses as three numbers, the release is not a draft, it is not marked
 prerelease (invisible unless the app was built with
 `--dart-define=TIDY_UPDATE_PRERELEASE=true`), and the zip is named
 `Tidy-<version>-macos.zip`.
+
+## `pages.yml` — the landing page
+
+Builds `lib/main_landing.dart` for the web and publishes it to GitHub Pages at
+[tidy.yunweneric.com](https://tidy.yunweneric.com), through
+`actions/upload-pages-artifact` + `actions/deploy-pages` — the official route,
+not a `gh-pages` branch.
+
+| Job | Runner | Does |
+| --- | --- | --- |
+| `build` | ubuntu | Resolves the SDK and the base href, analyzes `lib/landing`, `flutter build web` |
+| `deploy` | ubuntu | Publishes the artifact to the `github-pages` environment |
+
+It triggers only on pushes to `main` that touch what it actually compiles:
+`lib/landing/**`, `lib/main_landing.dart`, `web/**`, `pubspec.yaml`, this
+workflow — and `lib/core/**`, `lib/features/shell/domain/**` and
+`lib/features/menubar/presentation/widgets/**`, because the page is built out
+of the app's own tokens, components, navigation model and popover rows.
+
+Three details that matter:
+
+- **The base href is derived, not hard-coded.** A custom domain serves from `/`;
+  a bare project page serves from `/<repo>/`. Getting it wrong 404s every asset
+  including `flutter_bootstrap.js`, which leaves the page stuck on its boot
+  curtain with no error anywhere. The step reads `web/CNAME` and picks. Delete
+  that file and the site falls back to `yunweneric.github.io/tidy` correctly.
+- **`--pwa-strategy none`.** No service worker. A marketing page must never
+  serve a cached previous version after a deploy.
+- **`flutter analyze` is scoped to `lib/landing` and `lib/main_landing.dart`.**
+  This bundle does not contain the product — no platform channels, no Hive
+  store, no updater — and a failure in code it never compiles should not stop
+  the site deploying. `ci.yml` analyzes the whole tree.
+
+### Repository settings this needs
+
+Once, by hand: **Settings → Pages → Source → GitHub Actions**, and **Settings →
+Pages → Custom domain → `tidy.yunweneric.com`** with *Enforce HTTPS* on. DNS
+side: a `CNAME` record for `tidy` pointing at `yunweneric.github.io`.
