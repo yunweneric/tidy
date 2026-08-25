@@ -25,7 +25,10 @@ class DashboardTrends extends StatelessWidget {
         children: [
           Row(
             children: [
-              Flexible(
+              // One flex child, not a Flexible beside a Spacer: those split the
+              // free width between them, which left the tabs floating near the
+              // middle rather than sitting against the right edge.
+              Expanded(
                 child: Text(
                   'OVER TIME',
                   style: context.text.overline,
@@ -33,7 +36,6 @@ class DashboardTrends extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              const Spacer(),
               SegmentedTabs(
                 labels: [for (final r in TrendRange.values) r.label],
                 selectedIndex: TrendRange.values.indexOf(state.range),

@@ -17,6 +17,7 @@ export 'size_bar.dart';
 export 'spark_chart.dart';
 export 'stacked_bar.dart';
 export 'stat_tile.dart';
+export 'table_footer.dart';
 export 'status_chip.dart';
 export 'tidy_card.dart';
 

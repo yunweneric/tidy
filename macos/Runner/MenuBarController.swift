@@ -921,11 +921,7 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
   }
 
   @objc private func openMainWindow() {
-    NSApp.activate(ignoringOtherApps: true)
-
-    if let window = NSApp.windows.first(where: { $0 is MainFlutterWindow }) {
-      window.makeKeyAndOrderFront(nil)
-    }
+    MainFlutterWindow.present()
   }
 
   @objc private func quit() {

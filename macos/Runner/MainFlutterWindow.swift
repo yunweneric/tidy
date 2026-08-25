@@ -1,7 +1,7 @@
 import Cocoa
 import FlutterMacOS
 
-class MainFlutterWindow: NSWindow {
+class MainFlutterWindow: NSWindow, NSWindowDelegate {
   override func awakeFromNib() {
     // The nib can load before applicationWillFinishLaunching, and creating the
     // view controller starts the Dart isolate that reads settings.json.
@@ -37,6 +37,9 @@ class MainFlutterWindow: NSWindow {
     // window must survive being closed and be reopenable.
     self.isReleasedWhenClosed = false
 
+    // Closing hides the window instead — see `windowShouldClose`.
+    self.delegate = self
+
     RegisterGeneratedPlugins(registry: flutterViewController)
     SystemChannel.register(with: flutterViewController.engine.binaryMessenger)
     // Only the main window: the menu-bar popover shows metrics, not launchd
@@ -57,5 +60,42 @@ class MainFlutterWindow: NSWindow {
     UpdateChannel.register(with: flutterViewController.engine.binaryMessenger)
 
     super.awakeFromNib()
+  }
+
+  /// The red button hides the window rather than closing it.
+  ///
+  /// Tidy is a menu bar app that happens to have a window: the clipboard
+  /// recorder, the network sampler and the three status items all keep running
+  /// after the window goes away, and closing it is "put this away", not "quit".
+  /// `applicationShouldTerminateAfterLastWindowClosed` already says as much,
+  /// but that only decides whether the *app* survives — the window itself would
+  /// still be torn down, and with it the first-responder chain, the view's
+  /// place in the engine, and everything the user had on screen. Reopening then
+  /// costs a rebuild, and any scan running at the time is gone.
+  ///
+  /// Ordering it out instead means the window is never closed at all. Nothing
+  /// is deallocated, the Flutter engine keeps rendering into a view that simply
+  /// is not on screen, and reopening is one `makeKeyAndOrderFront` with the
+  /// user's place kept — the same thing the window does when the app is hidden.
+  ///
+  /// Quit is still quit. ⌘Q and "Quit Tidy" in the menu bar both terminate, and
+  /// that is the only thing that should.
+  func windowShouldClose(_ sender: NSWindow) -> Bool {
+    orderOut(nil)
+    return false
+  }
+
+  /// Brings the window back from [windowShouldClose].
+  ///
+  /// Here rather than at the three call sites — the Dock icon, the menu bar's
+  /// "Open Tidy", and the popover handing over a route — because "show the
+  /// window" has to mean the same thing in all three, and one of them forgetting
+  /// to activate is a window that comes back behind whatever the user was
+  /// already looking at.
+  static func present() {
+    NSApp.activate(ignoringOtherApps: true)
+    guard let window = NSApp.windows.first(where: { $0 is MainFlutterWindow })
+    else { return }
+    window.makeKeyAndOrderFront(nil)
   }
 }

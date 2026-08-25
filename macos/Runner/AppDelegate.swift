@@ -36,6 +36,37 @@ class AppDelegate: FlutterAppDelegate {
       // folder beside the app. This app in particular should not leave litter.
       DispatchQueue.global(qos: .utility).async { Updater.sweepLeftovers() }
     }
+
+    addCloseWindowItem()
+  }
+
+  /// Adds "Close Window" (⌘W) to the Window menu.
+  ///
+  /// Flutter's stock `MainMenu.xib` ships no File menu, and Close lives in File
+  /// on macOS — so out of the box this app has no ⌘W at all, and the only way
+  /// to put the window away is the red button. The Window menu is where it goes
+  /// for an app with no documents to close.
+  ///
+  /// It sends `performClose:` down the responder chain rather than naming a
+  /// window, which is what routes it through `windowShouldClose` and therefore
+  /// hides rather than quits — the same path the red button takes.
+  private func addCloseWindowItem() {
+    guard let windowMenu = NSApp.windowsMenu else { return }
+    // `applicationWillFinishLaunching` can run more than once in a relaunch, and
+    // a second ⌘W in the same menu would be a duplicate row with an ambiguous
+    // shortcut.
+    guard !windowMenu.items.contains(where: { $0.action == #selector(NSWindow.performClose(_:)) })
+    else { return }
+
+    let item = NSMenuItem(
+      title: "Close Window",
+      action: #selector(NSWindow.performClose(_:)),
+      keyEquivalent: "w"
+    )
+    // No target: the responder chain finds the key window, so the item greys
+    // itself out when there is no window to close.
+    windowMenu.insertItem(item, at: 0)
+    windowMenu.insertItem(.separator(), at: 1)
   }
 
   /// The clipboard index is written on a debounce, so a quit between a copy and
@@ -63,14 +94,16 @@ class AppDelegate: FlutterAppDelegate {
     return false
   }
 
-  /// Clicking the dock icon after closing the window brings it back.
+  /// Clicking the Dock icon after hiding the window brings it back.
+  ///
+  /// Also the path for opening the app a second time while it is already
+  /// running — with no window on screen macOS does not launch a new copy, it
+  /// sends this instead, and without it the click would appear to do nothing.
   override func applicationShouldHandleReopen(
     _ sender: NSApplication,
     hasVisibleWindows flag: Bool
   ) -> Bool {
-    if !flag, let window = sender.windows.first(where: { $0 is MainFlutterWindow }) {
-      window.makeKeyAndOrderFront(nil)
-    }
+    if !flag { MainFlutterWindow.present() }
     return true
   }
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:tidy/core/utils/paged.dart';
 import 'package:tidy/core/design/design.dart';
 import 'package:tidy/core/di/service_locator.dart';
 import 'package:tidy/core/store/metric_sampler.dart';
@@ -58,6 +59,17 @@ class _RecycleBinView extends StatefulWidget {
 class _RecycleBinViewState extends State<_RecycleBinView>
     with WidgetsBindingObserver {
   final TextEditingController _search = TextEditingController();
+
+  /// A Downloads folder emptied in one go can put several thousand rows in
+  /// here, and finding one of them by scrolling is not finding it.
+  static const int _pageSize = 15;
+
+  int _page = 1;
+
+  /// Narrowing the list invalidates where you were in it.
+  void _resetPage() {
+    if (_page != 1) setState(() => _page = 1);
+  }
 
   @override
   void initState() {
@@ -250,12 +262,14 @@ class _RecycleBinViewState extends State<_RecycleBinView>
                           (location) => location.id == state.locationId,
                         ) +
                         1,
-            onChanged:
-                (index) => bloc.add(
-                  BinLocationChanged(
-                    index == 0 ? null : state.locations[index - 1].id,
-                  ),
+            onChanged: (index) {
+              _resetPage();
+              bloc.add(
+                BinLocationChanged(
+                  index == 0 ? null : state.locations[index - 1].id,
                 ),
+              );
+            },
           ),
         if (state.onlyOld) ...[
           if (state.hasMultipleLocations) const SizedBox(width: AppSpacing.md),
@@ -269,7 +283,10 @@ class _RecycleBinViewState extends State<_RecycleBinView>
           width: 260,
           hintText: 'Search the bin…',
           controller: _search,
-          onChanged: (value) => bloc.add(BinSearchChanged(value)),
+          onChanged: (value) {
+            _resetPage();
+            bloc.add(BinSearchChanged(value));
+          },
         ),
       ],
     );
@@ -279,8 +296,14 @@ class _RecycleBinViewState extends State<_RecycleBinView>
     final colors = context.colors;
     final bloc = context.read<RecycleBinBloc>();
     final visible = state.visibleItems;
+    final paged = Paged.of(visible, page: _page, pageSize: _pageSize);
 
-    final selectedOnScreen =
+    // Counted over everything the filters leave standing, not over the page.
+    // Select-all here means "every row this filter matches", so that a bin
+    // holding four hundred files can be emptied of them in one gesture rather
+    // than fifteen rows at a time — and the header's checkbox has to describe
+    // the same set it acts on.
+    final selectedVisible =
         visible.where((item) => state.selected.contains(item.path)).length;
 
     return Container(
@@ -302,9 +325,9 @@ class _RecycleBinViewState extends State<_RecycleBinView>
             trailingWidth: TrashTableLayout.actions,
             showSelectAll: true,
             selectAllValue:
-                selectedOnScreen == 0
+                selectedVisible == 0
                     ? false
-                    : (selectedOnScreen == visible.length ? true : null),
+                    : (selectedVisible == visible.length ? true : null),
             onSelectAll: (_) => bloc.add(const BinSelectAllToggled()),
             columns: [
               TableColumn(
@@ -345,18 +368,19 @@ class _RecycleBinViewState extends State<_RecycleBinView>
                               : 'Search looks at the name and where it came '
                                   'from.',
                     )
-                    // Built lazily: a Downloads folder emptied in one go can put
-                    // several thousand rows in here.
+                    // Still a builder, not a Column: a page is short enough
+                    // to build eagerly, but the list keeps scrolling for the
+                    // case where the window is too short to hold a whole page.
                     : ListView.builder(
-                      itemCount: visible.length,
+                      itemCount: paged.items.length,
                       itemBuilder: (context, index) {
-                        final item = visible[index];
+                        final item = paged.items[index];
                         return TrashTableRow(
                           key: ValueKey(item.path),
                           item: item,
                           selected: state.selected.contains(item.path),
                           enabled: !state.busy,
-                          isLast: index == visible.length - 1,
+                          isLast: index == paged.items.length - 1,
                           onSelectionChanged:
                               (_) => bloc.add(BinSelectionToggled(item.path)),
                           onRestore: () => bloc.add(RestoreItems([item])),
@@ -366,6 +390,20 @@ class _RecycleBinViewState extends State<_RecycleBinView>
                         );
                       },
                     ),
+          ),
+          TableFooter(
+            divider: true,
+            currentPage: paged.page,
+            totalPages: paged.totalPages,
+            onPageChanged: (page) => setState(() => _page = page),
+            summary: TableSummary(
+              count: paged.totalItems,
+              countNoun: paged.totalItems == 1 ? 'item' : 'items',
+              total: formatBytes(
+                visible.fold<int>(0, (sum, item) => sum + item.sizeBytes),
+              ),
+              totalNoun: 'in the bin',
+            ),
           ),
           BinActionBar(
             state: state,

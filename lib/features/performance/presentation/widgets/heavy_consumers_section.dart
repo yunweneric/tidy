@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:tidy/core/design/design.dart';
 import 'package:tidy/core/feedback/feedback.dart';
 import 'package:tidy/core/utils/byte_format.dart';
+import 'package:tidy/core/utils/paged.dart';
 import 'package:tidy/core/widgets/widgets.dart';
 import 'package:tidy/core/vitals/process_sample.dart';
 import 'package:tidy/features/performance/logic/process_monitor_bloc.dart';
@@ -24,15 +25,31 @@ class _Columns {
 }
 
 /// What is using the machine right now.
-class HeavyConsumersSection extends StatelessWidget {
+class HeavyConsumersSection extends StatefulWidget {
   const HeavyConsumersSection({super.key});
+
+  @override
+  State<HeavyConsumersSection> createState() => _HeavyConsumersSectionState();
+}
+
+class _HeavyConsumersSectionState extends State<HeavyConsumersSection> {
+  /// A Mac with a browser open runs a couple of hundred processes. The point of
+  /// this table is the handful at the top, so a page is sized to hold more than
+  /// the handful and less than the noise.
+  static const int _pageSize = 15;
+
+  /// Held here rather than in the bloc: which page is being read is a property
+  /// of this view, and the bloc's state is replaced wholesale every two seconds
+  /// by the next sample.
+  int _page = 1;
 
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<ProcessMonitorBloc, ProcessMonitorState>(
       builder: (context, state) {
         final bloc = context.read<ProcessMonitorBloc>();
-        final processes = state.ordered;
+        final paged = Paged.of(state.ordered, page: _page, pageSize: _pageSize);
+        final processes = paged.items;
 
         if (!state.sampled) {
           return const Center(child: CircularProgressIndicator());
@@ -59,10 +76,12 @@ class HeavyConsumersSection extends StatelessWidget {
                               state.sort == ProcessSort.name
                                   ? SortDirection.ascending
                                   : SortDirection.none,
-                          onTap:
-                              () => bloc.add(
-                                const ProcessSortChanged(ProcessSort.name),
-                              ),
+                          onTap: () {
+                            setState(() => _page = 1);
+                            bloc.add(
+                              const ProcessSortChanged(ProcessSort.name),
+                            );
+                          },
                         ),
                         TableColumn(
                           'CPU',
@@ -72,10 +91,10 @@ class HeavyConsumersSection extends StatelessWidget {
                               state.sort == ProcessSort.cpu
                                   ? SortDirection.descending
                                   : SortDirection.none,
-                          onTap:
-                              () => bloc.add(
-                                const ProcessSortChanged(ProcessSort.cpu),
-                              ),
+                          onTap: () {
+                            setState(() => _page = 1);
+                            bloc.add(const ProcessSortChanged(ProcessSort.cpu));
+                          },
                         ),
                         TableColumn(
                           'Memory',
@@ -85,10 +104,12 @@ class HeavyConsumersSection extends StatelessWidget {
                               state.sort == ProcessSort.memory
                                   ? SortDirection.descending
                                   : SortDirection.none,
-                          onTap:
-                              () => bloc.add(
-                                const ProcessSortChanged(ProcessSort.memory),
-                              ),
+                          onTap: () {
+                            setState(() => _page = 1);
+                            bloc.add(
+                              const ProcessSortChanged(ProcessSort.memory),
+                            );
+                          },
                         ),
                       ],
                     ),
@@ -119,6 +140,17 @@ class HeavyConsumersSection extends StatelessWidget {
                                       isLast: index == processes.length - 1,
                                     ),
                               ),
+                    ),
+                    TableFooter(
+                      divider: true,
+                      currentPage: paged.page,
+                      totalPages: paged.totalPages,
+                      onPageChanged: (page) => setState(() => _page = page),
+                      summary: TableSummary(
+                        count: paged.totalItems,
+                        countNoun:
+                            paged.totalItems == 1 ? 'process' : 'processes',
+                      ),
                     ),
                   ],
                 ),

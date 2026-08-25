@@ -5,6 +5,7 @@ import 'package:tidy/core/design/design.dart';
 import 'package:tidy/core/di/service_locator.dart';
 import 'package:tidy/core/feedback/feedback.dart';
 import 'package:tidy/core/settings/app_settings.dart';
+import 'package:tidy/core/utils/paged.dart';
 import 'package:tidy/core/widgets/widgets.dart';
 import 'package:tidy/core/models/clipboard_entry.dart';
 import 'package:tidy/features/clipboard/data/services/clipboard_service.dart';
@@ -46,6 +47,19 @@ class _ClipboardView extends StatefulWidget {
 class _ClipboardViewState extends State<_ClipboardView> {
   final TextEditingController _search = TextEditingController();
 
+  /// A week of ordinary use is several hundred clips, and scrolling a list
+  /// that long to find the thing from Tuesday is worse than paging to it.
+  static const int _pageSize = 15;
+
+  int _page = 1;
+
+  /// Narrowing the list invalidates where you were in it. Clamping alone would
+  /// leave a search that yields two pages showing page two, which is a strange
+  /// place for a result set to open.
+  void _resetPage() {
+    if (_page != 1) setState(() => _page = 1);
+  }
+
   @override
   void dispose() {
     _search.dispose();
@@ -80,10 +94,12 @@ class _ClipboardViewState extends State<_ClipboardView> {
                       width: 260,
                       hintText: 'Search what you have copied…',
                       controller: _search,
-                      onChanged:
-                          (value) => context.read<ClipboardBloc>().add(
-                            SearchClipboard(value),
-                          ),
+                      onChanged: (value) {
+                        _resetPage();
+                        context.read<ClipboardBloc>().add(
+                          SearchClipboard(value),
+                        );
+                      },
                     ),
                     OutlinedButton.icon(
                       onPressed: () => _confirmClear(context, state),
@@ -154,9 +170,10 @@ class _ClipboardViewState extends State<_ClipboardView> {
         const SizedBox(height: AppSpacing.lg),
         ClipboardFilterBar(
           state: state,
-          onChanged:
-              (kind) =>
-                  context.read<ClipboardBloc>().add(FilterClipboard(kind)),
+          onChanged: (kind) {
+            _resetPage();
+            context.read<ClipboardBloc>().add(FilterClipboard(kind));
+          },
         ),
         const SizedBox(height: AppSpacing.md),
         Expanded(child: _table(context, state)),
@@ -193,7 +210,18 @@ class _ClipboardViewState extends State<_ClipboardView> {
 
   Widget _table(BuildContext context, ClipboardState state) {
     final colors = context.colors;
-    final lines = _lines(state);
+
+    // Paged over the entries, not over the flattened lines: a page boundary
+    // that lands between a day heading and the first row under it would show a
+    // heading with nothing beneath it, and the page after it would open on rows
+    // belonging to a day it never names. Headings are rebuilt per page instead,
+    // from whatever that page actually holds.
+    final paged = Paged.of(
+      [...state.pinned, ...state.unpinned],
+      page: _page,
+      pageSize: _pageSize,
+    );
+    final lines = _lines(paged.items);
 
     return Container(
       clipBehavior: Clip.antiAlias,
@@ -231,7 +259,9 @@ class _ClipboardViewState extends State<_ClipboardView> {
             child:
                 lines.isEmpty
                     ? _nothingMatches(context, state)
-                    // Built lazily: a week of ordinary use is several hundred rows.
+                    // Still a builder, not a Column: a page is short enough to
+                    // build eagerly, but the list keeps scrolling for the case
+                    // where the window is short enough that a page does not fit.
                     : ListView.builder(
                       itemCount: lines.length,
                       itemBuilder: (context, index) {
@@ -247,6 +277,18 @@ class _ClipboardViewState extends State<_ClipboardView> {
                         );
                       },
                     ),
+          ),
+          TableFooter(
+            divider: true,
+            currentPage: paged.page,
+            totalPages: paged.totalPages,
+            onPageChanged: (page) => setState(() => _page = page),
+            summary: TableSummary(
+              count: paged.totalItems,
+              countNoun: paged.totalItems == 1 ? 'clip' : 'clips',
+              total: '${state.pinned.length}',
+              totalNoun: 'pinned',
+            ),
           ),
         ],
       ),
@@ -302,14 +344,19 @@ class _ClipboardViewState extends State<_ClipboardView> {
     );
   }
 
-  /// Flattens the list into headings and rows so it can still be built lazily.
+  /// Flattens one page of entries into headings and rows.
   ///
   /// Pinned first under their own heading, then the rest grouped by day. A day
   /// is a better handle on "the thing I copied this morning" than a timestamp.
-  List<Object> _lines(ClipboardState state) {
+  ///
+  /// Takes the entries rather than the state because it is given a page, and a
+  /// page's headings are whatever that page contains — a day that ends on the
+  /// previous page is named again at the top of this one, which is what makes
+  /// a page readable on its own.
+  List<Object> _lines(List<ClipboardEntry> entries) {
     final lines = <Object>[];
 
-    final pinned = state.pinned;
+    final pinned = entries.where((entry) => entry.pinned);
     if (pinned.isNotEmpty) {
       lines
         ..add('Pinned')
@@ -317,7 +364,7 @@ class _ClipboardViewState extends State<_ClipboardView> {
     }
 
     String? heading;
-    for (final entry in state.unpinned) {
+    for (final entry in entries.where((entry) => !entry.pinned)) {
       final day = _dayLabel(entry.lastCopiedAt);
       if (day != heading) {
         heading = day;

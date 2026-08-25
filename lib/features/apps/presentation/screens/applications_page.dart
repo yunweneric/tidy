@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:tidy/core/utils/paged.dart';
 import 'package:tidy/core/design/design.dart';
 import 'package:tidy/core/feedback/feedback.dart';
 import 'package:tidy/core/widgets/widgets.dart';
@@ -232,12 +233,8 @@ class _ApplicationsPageState extends State<ApplicationsPage>
     if (state is! AppsLoaded) return const SizedBox(height: 200);
 
     final filtered = _visibleApps(state);
-    final totalPages = (filtered.length / _pageSize).ceil().clamp(1, 9999);
-    final page = _currentPage.clamp(1, totalPages);
-    final start = (page - 1) * _pageSize;
-    final end = (start + _pageSize).clamp(0, filtered.length);
-    final pageApps =
-        filtered.isEmpty ? <MacApp>[] : filtered.sublist(start, end);
+    final paged = Paged.of(filtered, page: _currentPage, pageSize: _pageSize);
+    final pageApps = paged.items;
 
     final selectable = pageApps.where((app) => !app.isSystem).toList();
     final selectedOnPage =
@@ -323,8 +320,8 @@ class _ApplicationsPageState extends State<ApplicationsPage>
         app_widgets.AppTableFooter(
           itemCount: filtered.length,
           totalSize: formatAppsTotalSize(filtered.where((a) => !a.isSystem)),
-          currentPage: page,
-          totalPages: totalPages,
+          currentPage: paged.page,
+          totalPages: paged.totalPages,
           onPageChanged: (p) => setState(() => _currentPage = p),
         ),
       ],

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:tidy/core/design/design.dart';
 import 'package:tidy/core/utils/byte_format.dart';
+import 'package:tidy/core/utils/paged.dart';
 import 'package:tidy/core/widgets/widgets.dart';
 import 'package:tidy/features/network/data/models/network_sample.dart';
 import 'package:tidy/core/models/network_series.dart';
@@ -10,7 +11,7 @@ import 'package:tidy/core/models/network_series.dart';
 /// Worth its own table rather than a line of text: a laptop that moves between
 /// Wi-Fi and a dock is two very different bills if one of them is tethered, and
 /// "which of these was the hotspot" is the question a data cap makes people ask.
-class NetworkInterfaceTable extends StatelessWidget {
+class NetworkInterfaceTable extends StatefulWidget {
   const NetworkInterfaceTable({
     super.key,
     required this.totals,
@@ -26,9 +27,28 @@ class NetworkInterfaceTable extends StatelessWidget {
   final List<NetworkInterfaceRate> live;
 
   @override
+  State<NetworkInterfaceTable> createState() => _NetworkInterfaceTableState();
+}
+
+class _NetworkInterfaceTableState extends State<NetworkInterfaceTable> {
+  /// A Mac usually has a handful of links, but a laptop that has met a few
+  /// docks, VPNs and hotspots accumulates `utun`s and `bridge`s until the list
+  /// is longer than the answer anyone came for. The footer stays out of the way
+  /// until there are more than this.
+  static const int _pageSize = 10;
+
+  int _page = 1;
+
+  @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final totals = widget.totals;
     final grandTotal = totals.fold<int>(0, (sum, row) => sum + row.totalBytes);
+
+    // Shares stay proportions of the whole period, not of the page — a link
+    // that carried 3% of the traffic did not carry 40% of it because it landed
+    // on a page with three quiet neighbours.
+    final paged = Paged.of(totals, page: _page, pageSize: _pageSize);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -37,7 +57,7 @@ class NetworkInterfaceTable extends StatelessWidget {
           columnLabels: ['Interface', 'Down', 'Up', 'Share'],
           flexValues: [3, 2, 2, 2],
         ),
-        for (final row in totals)
+        for (final row in paged.items)
           _Row(
             label: _labelFor(row.name),
             name: row.name,
@@ -53,13 +73,25 @@ class NetworkInterfaceTable extends StatelessWidget {
               'Nothing recorded for this period yet.',
               style: context.text.caption,
             ),
+          )
+        else
+          TableFooter(
+            currentPage: paged.page,
+            totalPages: paged.totalPages,
+            onPageChanged: (page) => setState(() => _page = page),
+            summary: TableSummary(
+              count: paged.totalItems,
+              countNoun: paged.totalItems == 1 ? 'interface' : 'interfaces',
+              total: formatBytes(grandTotal),
+              totalNoun: 'carried',
+            ),
           ),
       ],
     );
   }
 
   String _labelFor(String name) {
-    for (final rate in live) {
+    for (final rate in widget.live) {
       if (rate.name == name) return rate.label;
     }
     return name;

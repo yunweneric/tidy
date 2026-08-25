@@ -251,8 +251,18 @@ class TidyDialog extends StatelessWidget {
       ),
       child: Row(
         children: [
-          if (actionsLeading != null) Flexible(child: actionsLeading!),
-          const Spacer(),
+          // Whatever sits on the left claims the whole gap, so the actions land
+          // against the right edge. A Flexible beside a Spacer would share the
+          // free width with it and leave them short of it.
+          if (actionsLeading != null)
+            Expanded(
+              child: Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: actionsLeading!,
+              ),
+            )
+          else
+            const Spacer(),
           for (var i = 0; i < actions.length; i++) ...[
             if (i > 0) const SizedBox(width: AppSpacing.sm),
             actions[i],
