@@ -1,4 +1,4 @@
-## 🧹 Tidy v1.0.9
+## 🧹 Tidy v1.0.10
 
 | Download | For |
 | --- | --- |
