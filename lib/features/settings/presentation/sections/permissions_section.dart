@@ -143,9 +143,22 @@ class _AppDataState extends State<_AppData> {
   @override
   void initState() {
     super.initState();
-    // Silent: a no-op until macOS has already been asked, because the probe is
-    // the request. Opening this tab must not be what springs the dialog.
-    widget.service.refresh();
+    // After the frame rather than during it. This card is built inside the
+    // `AnimatedBuilder` that listens to the same service, and `refresh` sets
+    // `isChecking` and notifies before it reaches its first `await` — so
+    // calling it here notifies a listener that is *currently building*, which
+    // is an assertion in debug and a dropped rebuild in release.
+    //
+    // Only ever fired once the question has already been put to macOS, which
+    // is why it went unseen for so long: until then `refresh` returns without
+    // touching anything.
+    //
+    // Silent either way: a no-op until macOS has already been asked, because
+    // the probe is the request. Opening this tab must not be what springs the
+    // dialog.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) widget.service.refresh();
+    });
   }
 
   @override
