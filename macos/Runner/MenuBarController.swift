@@ -530,28 +530,98 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
 
     guard let summary = AiUsageStore.shared.current() else {
       button.image = Self.aiUsageImage()
-      // Back to a glyph, so the pinned text width has to go with it.
+      // Back to a glyph, so the pinned text width has to go with it — and so
+      // does any tooltip written for figures that are no longer on the bar.
+      button.toolTip = MenuBarSurface.aiUsage.tooltip
       itemWidths[.aiUsage] = nil
       item.length = NSStatusItem.squareLength
       return
     }
 
-    let style = MenuBarStore.shared.prefs.aiStyle
-    let cost = Self.formatUsd(summary.costToday)
+    let prefs = MenuBarStore.shared.prefs
+    let style = prefs.aiStyle
+    let scope = prefs.aiScope
+    let shares = Self.aiShares(summary.readouts(in: scope), scope: scope)
+    let cost = Self.formatUsd(summary.cost(in: scope))
     let readout = Self.aiReadout(
       cost: cost,
-      tokens: Self.formatCount(summary.tokensToday),
+      tokens: Self.formatCount(summary.tokens(in: scope)),
       style: style,
-      blockElapsed: summary.blockElapsed()
+      shares: shares
     )
-    // Ink in an image, so the figure has to be said out loud somewhere else —
+    // Ink in an image, so the figures have to be said out loud somewhere else —
     // and said honestly, since the bar has no room for the caveat.
     readout.accessibilityDescription =
-      "\(cost) of AI usage today, at published API rates"
+      style == .percentAndBlock && !shares.isEmpty
+      ? shares.map(\.spoken).joined(separator: ", ")
+      : "\(cost) of AI usage today, at published API rates"
+    // The one figure that cannot say what it is a share of. The tooltip is
+    // where that gets said, so it is written per render rather than left as the
+    // surface's standing line.
+    button.toolTip =
+      style == .percentAndBlock && !shares.isEmpty
+      ? shares.map(\.spoken).joined(separator: "\n")
+      : MenuBarSurface.aiUsage.tooltip
     button.image = readout
 
     item.length = NSStatusItem.variableLength
     pin(item, for: .aiUsage, to: readout.size.width)
+  }
+
+  /// What the percentage style draws: one bar and one figure per provider that
+  /// has a share worth drawing.
+  ///
+  /// A provider with no share is left out rather than drawn empty — Claude Code
+  /// between blocks, or Codex before its first reading — because an empty track
+  /// reads as "none of it used", which is a claim about an allowance nothing
+  /// here knows.
+  private static func aiShares(
+    _ readouts: [AiProviderReadout],
+    scope: AiReadoutScope
+  ) -> [AiShare] {
+    let now = Date()
+    let drawable = readouts.compactMap { readout -> (AiProviderReadout, Double)? in
+      guard let share = readout.share(at: now) else { return nil }
+      return (readout, share)
+    }
+
+    // A tag only when position cannot say which provider a figure belongs to:
+    // the scope asked for both and only one of them turned out to have a share.
+    // With both drawn, bar order says it; with one asked for, the setting does.
+    let tagged = scope.providers.count > 1 && drawable.count == 1
+
+    return drawable.map { readout, share in
+      let percent = percentText(share)
+      return AiShare(
+        share: share,
+        label: tagged ? "\(readout.provider.tag) \(percent)" : percent,
+        // Two different claims, and this is the only place either gets to say
+        // which it is out loud.
+        spoken: readout.isMeasured
+          ? "\(readout.provider.label) has used \(percent) of its published limit"
+          : "\(percent) into \(readout.provider.label)'s five-hour block — elapsed time, not an allowance"
+      )
+    }
+  }
+
+  /// A share as text, in whole numbers, and never rounded into a lie.
+  ///
+  /// `100%` says a window is spent and `0%` says it is untouched, so neither is
+  /// allowed to be the result of rounding towards it: the two ends are held back
+  /// until the reading really is there.
+  private static func percentText(_ share: Double) -> String {
+    let value = min(max(share * 100, 0), 100)
+    if value > 0, value < 1 { return "<1%" }
+    if value > 99, value < 100 { return "99%" }
+    return "\(Int(value.rounded()))%"
+  }
+
+  /// One provider's share, ready to draw: how full its bar is, what the figure
+  /// beside it says, and what that figure means when there is room to say it.
+  private struct AiShare {
+    let share: Double
+    let label: String
+    let spoken: String
   }
 
   /// The AI item's glyph, for when there is no figure to draw.
@@ -682,12 +752,22 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     cost: String,
     tokens: String,
     style: AiMenuBarStyle,
-    blockElapsed: Double?
+    shares: [AiShare]
   ) -> NSImage {
+    // The percentage style is the only one that draws more than one figure, and
+    // a bar for each, so it composes its own pieces rather than sharing the
+    // single bar-then-text layout the other three use.
+    if style == .percentAndBlock, !shares.isEmpty {
+      return aiSharesImage(shares)
+    }
+
     let text: NSAttributedString
     switch style {
-    case .cost, .block:
-      text = aiCostTitle(cost)
+    // A percentage style with nothing to be a percentage of — no open block and
+    // no published reading — falls back to the cost rather than to a dash: a
+    // figure that is true beats a placeholder that is only honest.
+    case .cost, .block, .percentAndBlock:
+      text = aiFigureTitle(cost)
     case .costAndTokens:
       text = aiStackedTitle(cost: cost, tokens: tokens)
     }
@@ -704,8 +784,10 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
       height: measured.height.rounded(.up)
     )
 
-    // Only the block style carries a bar, and only while a block is open.
-    let bar = style == .block ? blockElapsed.map(blockImage) : nil
+    // Only the block style carries a bar here, and only while there is a share
+    // to fill it with. The first in scope, which with both providers on is
+    // Claude Code's five-hour block — the window this style was built for.
+    let bar = style == .block ? shares.first.map { blockImage($0.share) } : nil
     let barWidth = bar.map { $0.size.width + networkGap } ?? 0
 
     let image = NSImage(
@@ -741,11 +823,72 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     return image
   }
 
-  /// One line: the cost. Black for the same reason `stackedTitle` is — the
-  /// composited image is templated, so the menu bar supplies the ink.
-  private static func aiCostTitle(_ cost: String) -> NSAttributedString {
+  /// The gap between one provider's readout and the next.
+  ///
+  /// Wider than the gap between a bar and its own figure, which is what keeps
+  /// `▮▮▯▯ 47%  ▮▯▯▯ 27%` reading as two pairs rather than four things.
+  private static let aiShareGap: CGFloat = 8
+
+  /// Every share in the scope, laid out left to right in provider order.
+  private static func aiSharesImage(_ shares: [AiShare]) -> NSImage {
+    let pieces = shares.map { share -> (bar: NSImage, text: NSAttributedString, size: NSSize) in
+      let text = aiFigureTitle(share.label)
+      let measured = text.boundingRect(
+        with: NSSize(
+          width: CGFloat.greatestFiniteMagnitude,
+          height: CGFloat.greatestFiniteMagnitude
+        ),
+        options: [.usesLineFragmentOrigin]
+      )
+      return (
+        blockImage(share.share),
+        text,
+        NSSize(width: measured.width.rounded(.up), height: measured.height.rounded(.up))
+      )
+    }
+
+    let width =
+      pieces.reduce(0) { $0 + $1.bar.size.width + networkGap + $1.size.width }
+      + aiShareGap * CGFloat(max(pieces.count - 1, 0))
+
+    let image = NSImage(
+      size: NSSize(width: width, height: NSStatusBar.system.thickness),
+      flipped: false
+    ) { rect in
+      var x = rect.minX
+      for piece in pieces {
+        piece.bar.draw(
+          in: NSRect(
+            x: x,
+            y: rect.midY - piece.bar.size.height / 2,
+            width: piece.bar.size.width,
+            height: piece.bar.size.height
+          )
+        )
+        x += piece.bar.size.width + networkGap
+        piece.text.draw(
+          with: NSRect(
+            x: x,
+            y: rect.midY - piece.size.height / 2,
+            width: piece.size.width,
+            height: piece.size.height
+          ),
+          options: [.usesLineFragmentOrigin]
+        )
+        x += piece.size.width + aiShareGap
+      }
+      return true
+    }
+
+    image.isTemplate = true
+    return image
+  }
+
+  /// One line: a cost, or a share. Black for the same reason `stackedTitle` is
+  /// — the composited image is templated, so the menu bar supplies the ink.
+  private static func aiFigureTitle(_ figure: String) -> NSAttributedString {
     NSAttributedString(
-      string: cost,
+      string: figure,
       attributes: [
         .font: NSFont.monospacedDigitSystemFont(ofSize: 11, weight: .regular),
         .foregroundColor: NSColor.black,
@@ -770,35 +913,50 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     )
   }
 
-  /// How far into the five-hour block, as a small bar.
+  /// A share, as a small bar of segments.
   ///
-  /// **Elapsed time, not an allowance.** Claude Code writes no limit into its
-  /// logs, so there is no denominator to fill against; this says how long you
-  /// have been in the current block, which is a fact this Mac holds. Drawing it
-  /// as "how much is left" would be inventing the other number.
+  /// **What the share is depends on who it is for**, and this cannot tell:
+  /// Codex publishes a portion of its own allowance, while Claude Code
+  /// publishes nothing and gets a portion of the clock instead. Both fill the
+  /// same track. Which one a figure is comes from the tooltip, not from here.
   ///
-  /// An outline with a fill inside it rather than a bare fill, so an empty
-  /// block still reads as a bar at 0% instead of vanishing.
-  private static func blockImage(_ elapsed: Double) -> NSImage {
-    let size = NSSize(width: 22, height: 6)
-    let image = NSImage(size: size, flipped: false) { rect in
-      let radius = rect.height / 2
-      let track = NSBezierPath(roundedRect: rect.insetBy(dx: 0.5, dy: 0.5),
-                               xRadius: radius,
-                               yRadius: radius)
-      track.lineWidth = 1
-      NSColor.black.withAlphaComponent(0.45).setStroke()
-      track.stroke()
+  /// Segments rather than a continuous fill, matching the panel's own bars. A
+  /// solid bar 24pt wide moves half a point between 47% and 49%, which is not a
+  /// difference anybody reads at menu bar size; six blocks quantise it into
+  /// something countable at a glance. Every segment is drawn either way — an
+  /// unlit one at low alpha — so a bar at 0% is still visibly a bar.
+  private static func blockImage(_ share: Double) -> NSImage {
+    let segments = 6
+    let gap: CGFloat = 1
+    let size = NSSize(width: 24, height: 6)
+    // Rounded, not ceiled: ceiling lights a sixth of the bar for a window that
+    // is 2% used, which over-reports by more than the reading itself.
+    let filled = Int((Double(segments) * min(max(share, 0), 1)).rounded())
 
-      let width = (rect.width - 2) * CGFloat(min(max(elapsed, 0), 1))
-      guard width > 0.5 else { return true }
-      let filled = NSRect(x: rect.minX + 1, y: rect.minY + 1,
-                          width: width, height: rect.height - 2)
-      let fill = NSBezierPath(roundedRect: filled,
-                              xRadius: filled.height / 2,
-                              yRadius: filled.height / 2)
-      NSColor.black.setFill()
-      fill.fill()
+    let image = NSImage(size: size, flipped: false) { rect in
+      let width =
+        (rect.width - gap * CGFloat(segments - 1)) / CGFloat(segments)
+      for index in 0..<segments {
+        let box = NSRect(
+          x: rect.minX + (width + gap) * CGFloat(index),
+          y: rect.minY,
+          width: width,
+          height: rect.height
+        )
+        let path = NSBezierPath(
+          roundedRect: box,
+          xRadius: box.width / 3,
+          yRadius: box.width / 3
+        )
+        // Lit at full strength, unlit at a third of it. The whole bar is 24pt
+        // in a menu bar that gets a fraction of a second's attention; anything
+        // subtler than this is not a reading, it is a smudge. Kept in step with
+        // `_ReadoutBar` in the settings preview.
+        (index < filled
+          ? NSColor.black
+          : NSColor.black.withAlphaComponent(0.32)).setFill()
+        path.fill()
+      }
       return true
     }
     image.isTemplate = true
@@ -1183,10 +1341,13 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
   ///
   /// Never nil now: the layout has to reach Dart even when the section does
   /// not, because it decides whether the panel draws a tab strip and this
-  /// engine has no `AppSettings` of its own to look it up in.
+  /// engine has no `AppSettings` of its own to look it up in. The AI window
+  /// style travels the same road for the same reason — nothing native draws
+  /// with it; it is the popover's to apply.
   private func arguments(for section: String?) -> [String: Any] {
     var arguments: [String: Any] = [
-      "layout": MenuBarStore.shared.prefs.layout.rawValue
+      "layout": MenuBarStore.shared.prefs.layout.rawValue,
+      "aiWindowStyle": MenuBarStore.shared.prefs.aiWindowStyle.rawValue,
     ]
     if let section { arguments["section"] = section }
     return arguments

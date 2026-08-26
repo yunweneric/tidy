@@ -11,6 +11,81 @@ import Foundation
 /// difference matters on a menu bar: a missing summary must draw nothing, where
 /// a zeroed one would draw `$0.00` and claim a day you spent nothing. Only
 /// `generatedAt` is required — a summary with no timestamp cannot be aged.
+/// One AI tool whose usage can be drawn.
+///
+/// Raw values match the Dart `AiProvider`.
+enum AiProvider: String, CaseIterable {
+  case claudeCode
+  case codex
+
+  /// Spelled out, for the tooltip and for VoiceOver — the two places with room.
+  var label: String {
+    switch self {
+    case .claudeCode: "Claude Code"
+    case .codex: "Codex"
+    }
+  }
+
+  /// Two letters, for the one place the bar has to say which provider a figure
+  /// belongs to and has no room to spell it out.
+  var tag: String {
+    switch self {
+    case .claudeCode: "CC"
+    case .codex: "CX"
+    }
+  }
+}
+
+/// What one provider contributes to the readout.
+///
+/// The two are not the same kind of reading and the type keeps them apart:
+/// Codex publishes `usedPercent`, a share of its own allowance, while Claude
+/// Code publishes nothing and gets a window with a start and a length — a share
+/// of the *clock*. Whichever it is, [share] is what the bar fills to.
+struct AiProviderReadout {
+  let provider: AiProvider
+  var tokensToday = 0
+  var costToday = 0.0
+  var usedPercent: Double?
+  var blockStartsAt: Date?
+  var windowMinutes: Int?
+
+  /// True where the share is a share of an allowance somebody published.
+  var isMeasured: Bool { usedPercent != nil }
+
+  /// What the bar fills to, 0–1, or nil when there is nothing honest to fill it
+  /// to — no published reading, and no open window to be part-way through.
+  ///
+  /// Recomputed at draw time rather than sent as a fraction: the summary is
+  /// republished once a minute and the clock is not, so a fraction from Dart
+  /// would be up to a minute stale every time and the bar would tick in jumps.
+  func share(at now: Date = Date()) -> Double? {
+    if let usedPercent { return min(max(usedPercent / 100, 0), 1) }
+    guard let blockStartsAt, let windowMinutes, windowMinutes > 0 else {
+      return nil
+    }
+    let elapsed =
+      now.timeIntervalSince(blockStartsAt) / (Double(windowMinutes) * 60)
+    return min(max(elapsed, 0), 1)
+  }
+
+  static func fromMap(_ map: [String: Any]) -> AiProviderReadout? {
+    guard let raw = map["provider"] as? String,
+          let provider = AiProvider(rawValue: raw)
+    else { return nil }
+
+    var readout = AiProviderReadout(provider: provider)
+    readout.tokensToday = map["tokens_today"] as? Int ?? 0
+    readout.costToday = map["cost_today"] as? Double ?? 0
+    readout.usedPercent = map["used_percent"] as? Double
+    if let stamp = map["block_starts_at"] as? String {
+      readout.blockStartsAt = AiUsageSummary.date(from: stamp)
+    }
+    readout.windowMinutes = map["window_minutes"] as? Int
+    return readout
+  }
+}
+
 struct AiUsageSummary {
   /// Bumped when the shape changes. A summary written by an older build is
   /// discarded rather than half-read.
@@ -23,7 +98,11 @@ struct AiUsageSummary {
   /// 2 added `windows`, the per-provider limit rows the popover draws. Nothing
   /// here reads them: they cross this channel on their way to the second
   /// Flutter engine, which is what `raw` is for.
-  static let version = 2
+  ///
+  /// 3 added `providers`. Those *are* read here — the readout can be pointed at
+  /// one provider or at both, and the totals below are every provider added
+  /// together.
+  static let version = 3
 
   var generatedAt: Date
   var tokensToday = 0
@@ -44,9 +123,30 @@ struct AiUsageSummary {
   /// Some of the tokens above have no published rate, so the cost is a floor.
   var hasUnpricedModels = false
 
+  /// One entry per provider whose logs were found, in bar order.
+  var providers: [AiProviderReadout] = []
+
   /// The raw map, kept so the popover can be handed exactly what arrived
   /// without this struct having to model the parts only Dart reads.
   var raw: [String: Any] = [:]
+
+  /// The providers a scope covers *and* this summary knows about, in bar order.
+  func readouts(in scope: AiReadoutScope) -> [AiProviderReadout] {
+    providers.filter { scope.covers($0.provider) }
+  }
+
+  /// Today's cost for a scope. Falls back to the whole day's when the summary
+  /// carries no per-provider breakdown, which is a summary from a build that
+  /// did not write one rather than a day that cost nothing.
+  func cost(in scope: AiReadoutScope) -> Double {
+    guard !providers.isEmpty else { return costToday }
+    return readouts(in: scope).reduce(0) { $0 + $1.costToday }
+  }
+
+  func tokens(in scope: AiReadoutScope) -> Int {
+    guard !providers.isEmpty else { return tokensToday }
+    return readouts(in: scope).reduce(0) { $0 + $1.tokensToday }
+  }
 
   static func fromMap(_ map: [String: Any]) -> AiUsageSummary? {
     guard map["version"] as? Int == version,
@@ -66,6 +166,8 @@ struct AiUsageSummary {
     summary.blockCost = map["block_cost"] as? Double ?? 0
     summary.costLastSevenDays = map["cost_last_seven_days"] as? Double ?? 0
     summary.hasUnpricedModels = map["has_unpriced_models"] as? Bool ?? false
+    summary.providers = (map["providers"] as? [[String: Any]] ?? [])
+      .compactMap(AiProviderReadout.fromMap)
     summary.raw = map
     return summary
   }
@@ -81,13 +183,6 @@ struct AiUsageSummary {
     return !Calendar.current.isDate(generatedAt, inSameDayAs: now)
   }
 
-  /// How far into the current block, 0–1, or nil when not inside one.
-  func blockElapsed(at now: Date = Date()) -> Double? {
-    guard let start = blockStartsAt else { return nil }
-    let elapsed = now.timeIntervalSince(start) / AiUsageStore.blockLength
-    return min(max(elapsed, 0), 1)
-  }
-
   private static let formatter: ISO8601DateFormatter = {
     let formatter = ISO8601DateFormatter()
     // Dart's `toIso8601String` emits fractional seconds; the default options do
@@ -96,7 +191,7 @@ struct AiUsageSummary {
     return formatter
   }()
 
-  private static func date(from raw: String) -> Date? {
+  static func date(from raw: String) -> Date? {
     if let parsed = formatter.date(from: raw) { return parsed }
     // Dart omits the fraction when it happens to be zero.
     let plain = ISO8601DateFormatter()
@@ -113,10 +208,6 @@ struct AiUsageSummary {
 /// is a bug the user can see.
 final class AiUsageStore {
   static let shared = AiUsageStore()
-
-  /// Matches `kBlockLength` in
-  /// `lib/features/ai_usage/data/models/usage_window.dart`.
-  static let blockLength: TimeInterval = 5 * 60 * 60
 
   /// Posted when a fresh summary lands, so the menu bar item can redraw itself
   /// without the channel needing to know it exists.

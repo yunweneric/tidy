@@ -10,7 +10,9 @@ import 'package:tidy/features/apps/data/services/scan_cache.dart';
 import 'package:tidy/core/models/clipboard_entry.dart';
 import 'package:tidy/features/clipboard/data/services/clipboard_service.dart';
 import 'package:tidy/core/insights/health_insight.dart';
+import 'package:tidy/core/widgets/usage_window_row.dart';
 import 'package:tidy/features/ai_usage/data/models/ai_usage_summary.dart';
+import 'package:tidy/features/ai_usage/data/models/ai_window_style.dart';
 import 'package:tidy/features/ai_usage/data/services/ai_usage_bridge.dart';
 import 'package:tidy/features/menubar/domain/menu_bar_surface.dart';
 import 'package:tidy/features/menubar/platform/popover_bridge.dart';
@@ -22,7 +24,6 @@ import 'package:tidy/features/menubar/presentation/widgets/menu_bar_network.dart
 import 'package:tidy/features/menubar/presentation/widgets/menu_bar_process_row.dart';
 import 'package:tidy/features/menubar/presentation/widgets/menu_bar_reclaim_row.dart';
 import 'package:tidy/features/menubar/presentation/widgets/menu_bar_section.dart';
-import 'package:tidy/features/menubar/presentation/widgets/menu_bar_usage_window.dart';
 import 'package:tidy/features/menubar/presentation/widgets/menu_bar_tabs.dart';
 import 'package:tidy/features/menubar/presentation/widgets/menu_bar_vitals.dart';
 import 'package:tidy/features/network/data/models/network_sample.dart';
@@ -159,6 +160,11 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
   /// that acted on the preference anyway — asking it what it did is a shorter
   /// path to the truth than reading the file it read.
   MenuBarLayout _layout = MenuBarLayout.consolidated;
+
+  /// How to draw a usage window. Arrives with every open for the same reason
+  /// the layout does — this engine has no `AppSettings` to read it from, and
+  /// the native side is holding the value the user last chose.
+  AiWindowStyle _windowStyle = AiWindowStyle.expanded;
 
   /// The menu bar's slice of the AI usage report, or null when there is none.
   ///
@@ -301,9 +307,12 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
 
   /// The clipboard icon and ⌘⇧V both open the panel asking for "clipboard";
   /// the vitals icon asks for nothing. Each gets a whole panel of its own.
-  void _onPopoverOpened(String? section, String? layout) {
-    _layout = MenuBarLayout.fromName(layout);
-    _showSurface(MenuBarSurface.tryParse(section) ?? MenuBarSurface.fallback);
+  void _onPopoverOpened(PopoverOpening opening) {
+    _layout = MenuBarLayout.fromName(opening.layout);
+    _windowStyle = AiWindowStyle.fromName(opening.aiWindowStyle);
+    _showSurface(
+      MenuBarSurface.tryParse(opening.section) ?? MenuBarSurface.fallback,
+    );
   }
 
   /// A tab click in the consolidated layout.
@@ -799,7 +808,7 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
             ),
           ),
           for (final window in summary.windowsFor(provider))
-            MenuBarUsageWindow(window: window, now: now),
+            UsageWindowRow(window: window, now: now, style: _windowStyle),
           const SizedBox(height: AppSpacing.xs),
         ],
         if (summary.windows.any((window) => !window.isMeasured))

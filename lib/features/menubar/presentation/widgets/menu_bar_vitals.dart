@@ -150,7 +150,20 @@ class _VitalTile extends StatelessWidget {
             children: [
               Icon(icon, size: 12, color: context.colors.textSecondary),
               const SizedBox(width: AppSpacing.xs + 1),
-              Text(label.toUpperCase(), style: context.text.overline),
+              // Flexible, because a third of the panel is not a fixed width.
+              // The popover engine lays this out once before macOS has told it
+              // how wide the panel is, and `MEMORY` at 11pt is five points
+              // wider than the tile gets in that first pass — which is a
+              // console full of overflow before anything is on screen.
+              Flexible(
+                child: Text(
+                  label.toUpperCase(),
+                  maxLines: 1,
+                  softWrap: false,
+                  overflow: TextOverflow.ellipsis,
+                  style: context.text.overline,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: AppSpacing.xs + 2),

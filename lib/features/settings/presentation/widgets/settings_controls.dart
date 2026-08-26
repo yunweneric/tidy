@@ -161,6 +161,7 @@ class SettingsChoiceRow<T> extends StatelessWidget {
     required this.value,
     required this.onChanged,
     this.enabled = true,
+    this.stacked,
   });
 
   final String title;
@@ -170,26 +171,69 @@ class SettingsChoiceRow<T> extends StatelessWidget {
   final ValueChanged<T> onChanged;
   final bool enabled;
 
+  /// Put the control on a line of its own instead of beside the label.
+  ///
+  /// Null decides by how much text the options carry, which is the thing that
+  /// actually breaks the row: a segmented button sizes *every* segment to its
+  /// widest label, so four options averaging fourteen characters is some six
+  /// hundred points of control. Beside it the explanation gets a column three
+  /// words wide and eight lines tall, and the row ends up taller than the card
+  /// it sits in. Past that much text the control has outgrown the row, and the
+  /// fix is a line of its own rather than a smaller font.
+  final bool? stacked;
+
+  /// Total characters across every option label, past which the control moves
+  /// down. Two or three short options stay on the line; four long ones do not.
+  static const int _stackAbove = 34;
+
+  /// A comfortable measure for the explanation once it is no longer boxed in by
+  /// the control. Full width would be 130 characters a line.
+  static const double _detailWidth = 560;
+
+  bool get _isStacked =>
+      stacked ??
+      options.values.fold<int>(0, (sum, label) => sum + label.length) >
+          _stackAbove;
+
   @override
   Widget build(BuildContext context) {
-    return SettingsRow(
-      title: title,
-      detail: detail,
-      enabled: enabled,
-      control: SegmentedButton<T>(
-        segments: [
-          for (final entry in options.entries)
-            ButtonSegment(
-              value: entry.key,
-              label: Text(entry.value),
-              enabled: enabled,
-            ),
-        ],
-        selected: {value},
-        showSelectedIcon: false,
-        onSelectionChanged:
-            enabled ? (selection) => onChanged(selection.first) : null,
-      ),
+    final control = SegmentedButton<T>(
+      segments: [
+        for (final entry in options.entries)
+          ButtonSegment(
+            value: entry.key,
+            label: Text(entry.value),
+            enabled: enabled,
+          ),
+      ],
+      selected: {value},
+      showSelectedIcon: false,
+      onSelectionChanged:
+          enabled ? (selection) => onChanged(selection.first) : null,
+    );
+
+    if (!_isStacked) {
+      return SettingsRow(
+        title: title,
+        detail: detail,
+        enabled: enabled,
+        control: control,
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: _detailWidth),
+          child: SettingsLabel(title: title, detail: detail, enabled: enabled),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        // At its own width, not the card's. Stretched across the row, four
+        // options would put two hundred points of nothing between one and the
+        // next, and the group of them would stop reading as one control.
+        Align(alignment: Alignment.centerLeft, child: control),
+      ],
     );
   }
 }

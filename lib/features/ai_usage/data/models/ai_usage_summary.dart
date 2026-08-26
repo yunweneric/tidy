@@ -29,9 +29,11 @@ class AiUsageSummary {
     this.topModels = const [],
     this.hasUnpricedModels = false,
     this.windows = const [],
+    this.providers = const [],
   });
 
-  static const int version = 2;
+  /// 3 added `providers`, the per-provider slice the bar's readout scope needs.
+  static const int version = 3;
 
   final DateTime generatedAt;
 
@@ -70,6 +72,21 @@ class AiUsageSummary {
   /// Empty when neither CLI has been used inside a window worth drawing, which
   /// the panel renders as nothing rather than as a row of zeroes.
   final List<AiUsageWindow> windows;
+
+  /// One entry per provider whose logs were found, in bar order.
+  ///
+  /// The bar can be pointed at one provider or at both, and the totals above
+  /// are every provider added together — so a scoped readout needs the parts,
+  /// not the sum. Native reads these; the panel goes on drawing [windows].
+  final List<AiProviderReadout> providers;
+
+  /// What one provider contributes, or null when its logs were not found.
+  AiProviderReadout? readoutFor(AiProvider provider) {
+    for (final entry in providers) {
+      if (entry.provider == provider) return entry;
+    }
+    return null;
+  }
 
   /// The windows belonging to one provider, in the order they should be drawn.
   List<AiUsageWindow> windowsFor(AiProvider provider) => [
@@ -114,6 +131,7 @@ class AiUsageSummary {
     'top_models': [for (final model in topModels) model.toJson()],
     'has_unpriced_models': hasUnpricedModels,
     'windows': [for (final window in windows) window.toJson()],
+    'providers': [for (final entry in providers) entry.toJson()],
   };
 
   static AiUsageSummary? fromJson(Object? raw) {
@@ -146,6 +164,79 @@ class AiUsageSummary {
           for (final window in raw['windows'] as List)
             if (AiUsageWindow.fromJson(window) case final parsed?) parsed,
       ],
+      providers: [
+        if (raw['providers'] is List)
+          for (final entry in raw['providers'] as List)
+            if (AiProviderReadout.fromJson(entry) case final parsed?) parsed,
+      ],
+    );
+  }
+}
+
+/// What one provider contributes to the menu bar's readout.
+///
+/// Deliberately not a second copy of [AiUsageWindow]: that type is the panel's
+/// row, and carries a label and a token count it draws. This is the bar's, and
+/// carries only what fits in it — today's figures, and the one share the bar
+/// can fill a five-pixel track with.
+class AiProviderReadout {
+  const AiProviderReadout({
+    required this.provider,
+    this.tokensToday = 0,
+    this.costToday = 0,
+    this.usedPercent,
+    this.blockStartsAt,
+    this.windowMinutes,
+  });
+
+  final AiProvider provider;
+  final int tokensToday;
+  final double costToday;
+
+  /// The provider's own published reading, 0–100, or null where there is none.
+  ///
+  /// Only Codex writes one. Where it is null the share is the clock's — see
+  /// [blockStartsAt] — and the two are not the same claim.
+  final double? usedPercent;
+
+  /// When the window the share is measured against opened, for the provider
+  /// that publishes no reading of its own.
+  ///
+  /// Sent as an instant rather than as a fraction because the native side
+  /// redraws between publishes: a fraction computed here would be up to a
+  /// minute stale every time, and the bar would tick in jumps.
+  final DateTime? blockStartsAt;
+
+  /// How long that window runs. Null with [blockStartsAt].
+  final int? windowMinutes;
+
+  Map<String, dynamic> toJson() => {
+    'provider': provider.name,
+    'tokens_today': tokensToday,
+    'cost_today': costToday,
+    if (usedPercent != null) 'used_percent': usedPercent,
+    if (blockStartsAt != null)
+      'block_starts_at': blockStartsAt!.toUtc().toIso8601String(),
+    if (windowMinutes != null) 'window_minutes': windowMinutes,
+  };
+
+  static AiProviderReadout? fromJson(Object? raw) {
+    if (raw is! Map) return null;
+    final provider = AiProvider.tryParse('${raw['provider']}');
+    if (provider == null) return null;
+    return AiProviderReadout(
+      provider: provider,
+      tokensToday: _int(raw['tokens_today']),
+      costToday: _double(raw['cost_today']),
+      usedPercent:
+          raw['used_percent'] is num
+              ? (raw['used_percent'] as num).toDouble()
+              : null,
+      blockStartsAt: DateTime.tryParse('${raw['block_starts_at']}')?.toLocal(),
+      windowMinutes:
+          raw['window_minutes'] is num
+              ? (raw['window_minutes'] as num).toInt()
+              : null,
     );
   }
 }
@@ -313,7 +404,47 @@ extension AiUsageReportSummary on AiUsageReport {
       ],
       hasUnpricedModels: unpricedModels.isNotEmpty,
       windows: _windows(at, block),
+      providers: _readouts(at, block),
     );
+  }
+
+  /// The per-provider slice the bar's readout scope needs.
+  ///
+  /// A provider that was not found contributes nothing at all, for the reason
+  /// [_windows] gives: zeroes for a CLI that is not installed read as a fact
+  /// about how little you used it.
+  List<AiProviderReadout> _readouts(DateTime at, UsageBlock? block) {
+    final day = today;
+    final readouts = <AiProviderReadout>[];
+
+    for (final provider in AiProvider.values) {
+      if (!providersFound.contains(provider)) continue;
+
+      // The provider's own reading, and only while it still describes the
+      // window we are in — the same test the windows apply. Past its reset it
+      // is a percentage of a window that has already rolled over.
+      final limit = rateLimits[provider];
+      final measured =
+          limit != null && !limit.isStaleAt(at) ? limit.usedPercent : null;
+
+      // Where nobody publishes a reading, the clock is the only share there is,
+      // and the five-hour block is the only window this Mac can reconstruct.
+      final inferred = measured == null && provider == AiProvider.claudeCode;
+
+      readouts.add(
+        AiProviderReadout(
+          provider: provider,
+          tokensToday: day?.byProvider[provider]?.total ?? 0,
+          costToday: day?.costFor(provider) ?? 0,
+          usedPercent: measured,
+          blockStartsAt: inferred ? block?.startsAt : null,
+          windowMinutes:
+              inferred && block != null ? kBlockLength.inMinutes : null,
+        ),
+      );
+    }
+
+    return readouts;
   }
 
   /// The limit windows, provider order, session before week.

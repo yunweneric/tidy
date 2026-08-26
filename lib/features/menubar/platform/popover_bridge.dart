@@ -1,6 +1,15 @@
 import 'package:tidy/core/logging/logging.dart';
 import 'package:flutter/services.dart';
 
+/// What arrives with `popoverDidOpen`.
+///
+/// A record rather than three loose positional strings: every field in it is a
+/// nullable `String?`, so the day two of them get swapped at a call site
+/// nothing would fail — the panel would open on the wrong tab in the wrong
+/// style, and go on doing it.
+typedef PopoverOpening =
+    ({String? section, String? layout, String? aiWindowStyle});
+
 /// Talks to `macos/Runner/MenuBarController.swift`, which owns the status item
 /// and the popover this engine is rendered into.
 ///
@@ -23,10 +32,13 @@ class PopoverBridge {
           // The layout rides along for the same reason: whether there is a
           // tab strip is part of what opened, and this engine has no
           // `AppSettings` of its own to look it up in.
-          onPopoverOpened?.call(
-            arguments?['section'] as String?,
-            arguments?['layout'] as String?,
-          );
+          // The AI window style travels the same road for the same reason:
+          // it is a preference this engine has no `AppSettings` to read.
+          onPopoverOpened?.call((
+            section: arguments?['section'] as String?,
+            layout: arguments?['layout'] as String?,
+            aiWindowStyle: arguments?['aiWindowStyle'] as String?,
+          ));
         case 'popoverDidClose':
           onPopoverClosed?.call();
         case 'appearanceChanged':
@@ -44,10 +56,10 @@ class PopoverBridge {
   /// Set by whoever owns the panel's data — the popover is only worth sampling
   /// while it is on screen.
   ///
-  /// The arguments are the section the popover was opened for — null from the
-  /// vitals icon, "clipboard" from the clipboard icon and from ⌘⇧V — and the
-  /// layout the bar is currently in.
-  void Function(String? section, String? layout)? onPopoverOpened;
+  /// The argument carries the section the popover was opened for — null from
+  /// the vitals icon, "clipboard" from the clipboard icon and from ⌘⇧V — the
+  /// layout the bar is currently in, and how the AI usage windows draw.
+  ValueChanged<PopoverOpening>? onPopoverOpened;
   VoidCallback? onPopoverClosed;
 
   /// The system switched between light and dark.

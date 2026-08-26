@@ -6,6 +6,7 @@ import 'package:tidy/core/widgets/permission_banner.dart';
 import 'package:tidy/features/shell/domain/app_destination.dart';
 import 'package:tidy/features/shell/presentation/widgets/sidebar_nav_item.dart';
 import 'package:tidy/features/shell/presentation/widgets/storage_summary.dart';
+import 'package:tidy/features/shell/presentation/widgets/update_chip.dart';
 
 /// The app's permanent left rail.
 class NavSidebar extends StatelessWidget {
@@ -89,6 +90,10 @@ class NavSidebar extends StatelessWidget {
           const SizedBox(height: AppSpacing.md),
           Divider(height: 1, color: colors.border),
           const SizedBox(height: AppSpacing.sm),
+          // Above Settings rather than inside the footer group: it is a
+          // prompt, not a destination, and the row it sits on top of is where
+          // the rest of the update controls are.
+          const SidebarUpdateChip(),
           ..._group(context, NavGroup.footer),
           const SizedBox(height: AppSpacing.md),
         ],

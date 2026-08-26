@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' show ThemeMode;
 import 'package:tidy/features/ai_usage/data/models/ai_menu_bar_style.dart';
+import 'package:tidy/features/ai_usage/data/models/ai_readout_scope.dart';
+import 'package:tidy/features/ai_usage/data/models/ai_window_style.dart';
 import 'package:tidy/features/menubar/domain/menu_bar_surface.dart';
 import 'package:tidy/core/logging/logging.dart';
 import 'package:tidy/core/design/brand.dart';
@@ -53,6 +55,8 @@ class AppSettings extends ChangeNotifier {
   static const String _menuBarAiKey = 'menuBarShowAiUsage';
   static const String _menuBarClipboardKey = 'menuBarShowClipboard';
   static const String _aiMenuBarStyleKey = 'aiMenuBarStyle';
+  static const String _aiWindowStyleKey = 'aiWindowStyle';
+  static const String _aiReadoutScopeKey = 'aiMenuBarScope';
 
   // Network. Read directly by `NetworkStore.swift` at launch, so the menu bar
   // readout is already in the right style — or already absent — before any
@@ -403,6 +407,29 @@ class AppSettings extends ChangeNotifier {
 
   set aiMenuBarStyle(AiMenuBarStyle value) {
     _values[_aiMenuBarStyleKey] = value.name;
+    _persist();
+  }
+
+  /// Whose usage the bar's AI readout is about. The panel behind it draws every
+  /// provider it found either way.
+  AiReadoutScope get aiReadoutScope =>
+      AiReadoutScope.fromName(_values[_aiReadoutScopeKey] as String?);
+
+  set aiReadoutScope(AiReadoutScope value) {
+    _values[_aiReadoutScopeKey] = value.name;
+    _persist();
+  }
+
+  /// How the popover draws each AI limit window.
+  ///
+  /// Not gated on the AI icon being on the bar, unlike [aiMenuBarStyle]: the
+  /// usage rows are also a tab of the consolidated panel, so the choice still
+  /// has something on the other end of it when there is no AI icon at all.
+  AiWindowStyle get aiWindowStyle =>
+      AiWindowStyle.fromName(_values[_aiWindowStyleKey] as String?);
+
+  set aiWindowStyle(AiWindowStyle value) {
+    _values[_aiWindowStyleKey] = value.name;
     _persist();
   }
 

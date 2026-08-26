@@ -46,6 +46,17 @@ class _ShellScaffoldState extends State<ShellScaffold>
   late final FullDiskAccessService _fullDiskAccess =
       locator<FullDiskAccessService>();
 
+  /// Held as a field rather than built inside the provider below, so the
+  /// lifecycle hook can nudge it: a Mac that was asleep at the timer's slot
+  /// wakes up with a stale answer, and coming back to the window is the
+  /// cheapest moment to ask again. The service still gates the real request to
+  /// once a day, so an app that is activated twenty times an hour makes no
+  /// requests at all.
+  late final UpdateBloc _updates = UpdateBloc(
+    locator<UpdateService>(),
+    settings: locator<AppSettings>(),
+  )..add(const CheckForUpdates());
+
   @override
   void initState() {
     super.initState();
@@ -57,6 +68,8 @@ class _ShellScaffoldState extends State<ShellScaffold>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    // Provided by value, so nothing else closes it.
+    _updates.close();
     super.dispose();
   }
 
@@ -67,6 +80,7 @@ class _ShellScaffoldState extends State<ShellScaffold>
     if (state == AppLifecycleState.resumed) {
       _refreshDisk();
       _fullDiskAccess.refresh();
+      _updates.add(const CheckForUpdates());
     }
   }
 
@@ -114,14 +128,9 @@ class _ShellScaffoldState extends State<ShellScaffold>
         ),
         // Hoisted for the same reason from the other direction: the check runs
         // at launch whether or not anyone opens Settings, and the toast below
-        // is the shell's, while the controls are the Settings page's.
-        BlocProvider(
-          create:
-              (_) => UpdateBloc(
-                locator<UpdateService>(),
-                settings: locator<AppSettings>(),
-              )..add(const CheckForUpdates()),
-        ),
+        // is the shell's, while the rail's chip and the controls belong to the
+        // sidebar and the Settings page.
+        BlocProvider.value(value: _updates),
       ],
       child: BlocListener<UpdateBloc, UpdateState>(
         // Only the arrival of an update is announced, and only once — the

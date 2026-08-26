@@ -20,6 +20,7 @@ export 'stat_tile.dart';
 export 'table_footer.dart';
 export 'status_chip.dart';
 export 'tidy_card.dart';
+export 'usage_window_row.dart';
 
 // Still on the AppTheme shim; migrating as each is touched.
 export 'action_button.dart';

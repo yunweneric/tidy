@@ -48,6 +48,18 @@ class _SettingsPageState extends State<SettingsPage> {
   /// section scrolled past its own top.
   final ScrollController _scroll = ScrollController();
 
+  /// The Settings branch stays mounted once visited, so a second
+  /// `?section=…` navigation rebuilds this widget rather than creating it —
+  /// without this, the rail's update chip and the toast's View button would
+  /// land on whichever tab was last open.
+  @override
+  void didUpdateWidget(SettingsPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialSection != oldWidget.initialSection) {
+      _select(widget.initialSection);
+    }
+  }
+
   @override
   void dispose() {
     _scroll.dispose();

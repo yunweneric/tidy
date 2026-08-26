@@ -82,6 +82,40 @@ enum AiMenuBarStyle: String {
   case cost
   case costAndTokens
   case block
+  case percentAndBlock
+}
+
+/// Whose usage the AI readout is about.
+///
+/// The bar has no room to label what it is showing, so it shows one thing and
+/// this is where that is chosen. Raw values cross the channel and land in the
+/// Dart `AiReadoutScope`. The popover behind the item is unaffected: it has
+/// room for a section per provider and draws every one it found.
+enum AiReadoutScope: String {
+  case both
+  case claudeCode
+  case codex
+
+  /// The providers this covers, in bar order.
+  var providers: [AiProvider] {
+    switch self {
+    case .both: AiProvider.allCases
+    case .claudeCode: [.claudeCode]
+    case .codex: [.codex]
+    }
+  }
+
+  func covers(_ provider: AiProvider) -> Bool { providers.contains(provider) }
+}
+
+/// How the popover draws one AI limit window.
+///
+/// Raw values cross the channel and land in the Dart `AiWindowStyle`. Nothing
+/// native draws with this — it is carried so `MenuBarController` can hand it to
+/// the popover engine on open, which has no `AppSettings` to read it from.
+enum AiWindowStyle: String {
+  case expanded
+  case compact
 }
 
 /// The menu bar preferences, as the Dart side last wrote them to `settings.json`.
@@ -107,6 +141,14 @@ struct MenuBarPrefs: Equatable {
 
   var aiStyle = AiMenuBarStyle.cost
 
+  /// Keep this default in step with `AiReadoutScope.fromName`'s fallback on the
+  /// Dart side.
+  var aiScope = AiReadoutScope.both
+
+  /// Keep this default in step with `AiWindowStyle.fromName`'s fallback on the
+  /// Dart side.
+  var aiWindowStyle = AiWindowStyle.expanded
+
   /// Which items belong on the bar right now.
   ///
   /// In `.consolidated` that is exactly one, whatever the switches say — the
@@ -128,6 +170,18 @@ struct MenuBarPrefs: Equatable {
     return wanted.isEmpty ? [.dashboard] : wanted
   }
 
+  /// This preference set with everything the *popover* alone cares about
+  /// normalised away, so two sets that differ only there compare equal.
+  ///
+  /// `aiWindowStyle` is the only such field and the reason this exists: nothing
+  /// on the bar draws with it, and rebuilding the status items for it would
+  /// flicker the bar for a change the bar cannot show.
+  var barIdentity: MenuBarPrefs {
+    var copy = self
+    copy.aiWindowStyle = .expanded
+    return copy
+  }
+
   static func fromMap(_ map: [String: Any]) -> MenuBarPrefs {
     var prefs = MenuBarPrefs()
     if let raw = map["menuBarLayout"] as? String,
@@ -144,6 +198,14 @@ struct MenuBarPrefs: Equatable {
     if let raw = map["aiMenuBarStyle"] as? String,
        let style = AiMenuBarStyle(rawValue: raw) {
       prefs.aiStyle = style
+    }
+    if let raw = map["aiMenuBarScope"] as? String,
+       let scope = AiReadoutScope(rawValue: raw) {
+      prefs.aiScope = scope
+    }
+    if let raw = map["aiWindowStyle"] as? String,
+       let style = AiWindowStyle(rawValue: raw) {
+      prefs.aiWindowStyle = style
     }
     return prefs
   }
@@ -175,7 +237,12 @@ final class MenuBarStore {
   func configure(_ prefs: MenuBarPrefs) {
     load()
     guard prefs != self.prefs else { return }
+    // Held either way — the popover asks for the current value on every open —
+    // but only announced when the *bar* would look different for it. See
+    // `barIdentity`.
+    let rebuild = prefs.barIdentity != self.prefs.barIdentity
     self.prefs = prefs
+    guard rebuild else { return }
     NotificationCenter.default.post(name: Self.prefsChanged, object: nil)
   }
 
