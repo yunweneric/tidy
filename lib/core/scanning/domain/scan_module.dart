@@ -45,6 +45,7 @@ enum ModuleId {
   ),
   appLeftovers('App Leftovers', 'Files from apps that are already gone.'),
   appUpdater('App Updater', 'Apps with a newer version available.'),
+  myClutter('My Clutter', 'Duplicates, similar photos, and forgotten files.'),
   largeAndOld(
     'Large & Old Files',
     'Big files you have not opened in a long time.',
