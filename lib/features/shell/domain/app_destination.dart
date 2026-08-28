@@ -89,7 +89,7 @@ enum AppDestination {
     path: '/clutter',
     label: 'My Clutter',
     icon: AppIcons.clutter,
-    group: NavGroup.soon,
+    group: NavGroup.primary,
     blurb: 'Find duplicates, near-identical photos and forgotten files.',
     tone: ModuleTone.clutter,
   ),
