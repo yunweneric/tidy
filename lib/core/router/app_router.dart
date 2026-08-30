@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:tidy/features/activity/presentation/activity_page.dart';
 import 'package:tidy/features/ai_usage/presentation/ai_usage_page.dart';
 import 'package:tidy/core/di/service_locator.dart';
 import 'package:tidy/core/platform/app_data_access_service.dart';
@@ -148,13 +149,7 @@ Widget _pageFor(
       'Every scanner listed on its own, for when the modules get in the way',
     ],
   ),
-  AppDestination.activity => const ComingSoonPage(
-    destination: AppDestination.activity,
-    planned: [
-      'A record of what was removed, and when',
-      'What is worth looking at next',
-    ],
-  ),
+  AppDestination.activity => const ActivityPage(),
   AppDestination.assistant => const ComingSoonPage(
     destination: AppDestination.assistant,
     planned: [

@@ -108,12 +108,18 @@ enum AppDestination {
     group: NavGroup.soon,
     blurb: 'Every scanner on its own, without the modules.',
   ),
+
+  /// Moved out of [NavGroup.soon] when it stopped opening onto a roadmap.
+  ///
+  /// Under MORE rather than with the working modules, for the reason Network
+  /// and AI Usage are: it is somewhere you go to look at what happened, not
+  /// somewhere you go to make something happen.
   activity(
     path: '/activity',
     label: 'Activity',
     icon: AppIcons.activity,
-    group: NavGroup.soon,
-    blurb: 'What has been cleaned, and what to look at next.',
+    group: NavGroup.secondary,
+    blurb: 'Every cleanup Tidy has run, and every file it removed.',
   ),
 
   /// Under SOON rather than pinned to the footer beside Settings, which is
