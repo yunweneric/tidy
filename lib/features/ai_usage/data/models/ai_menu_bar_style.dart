@@ -35,12 +35,46 @@ enum AiMenuBarStyle {
     'A bar filled to the share used, and the share beside it. Codex shows its '
         'own published reading; Claude Code shows how far through the '
         'five-hour block you are, because it publishes no limit.',
+  ),
+
+  /// The same share the bar styles draw, as a ring rather than six segments.
+  ///
+  /// A different shape for the same fact, for a bar that is already crowded:
+  /// a ring reads at a glance at 14pt where a 24pt row of segments needs the
+  /// width. It degrades the same way, which is why it is grouped with them by
+  /// [needsShare].
+  ring(
+    'Ring and percentage',
+    'A round gauge filled to the same share, with the figure beside it. The '
+        'narrowest way to show a share.',
+  ),
+
+  /// The one style with no denominator anywhere in it.
+  ///
+  /// Tokens are counted from logs that are already on this Mac, so unlike
+  /// every share style this one can always draw what it promises — which is
+  /// the reason it exists.
+  tokens(
+    'Tokens only',
+    'How many tokens went through today, and nothing else. Always available: '
+        'it is counted from the logs rather than published by anyone.',
   );
 
   const AiMenuBarStyle(this.label, this.blurb);
 
   final String label;
   final String blurb;
+
+  /// Whether this style needs a share to draw, and so can fall back to the
+  /// cost when no provider in scope publishes one.
+  ///
+  /// The settings preview asks this before promising a bar. Claude Code has a
+  /// share only while a five-hour block is open or a plan reading is in hand,
+  /// and Codex only after a request in the current window — so a style picked
+  /// here can be a style that draws nothing different, and the preview has to
+  /// say so rather than showing a bar that will not appear.
+  bool get needsShare =>
+      this == block || this == percentAndBlock || this == ring;
 
   static AiMenuBarStyle fromName(String? name) =>
       values.firstWhere((style) => style.name == name, orElse: () => cost);

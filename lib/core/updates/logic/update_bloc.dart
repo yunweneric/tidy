@@ -28,12 +28,17 @@ class UpdateBloc extends Bloc<UpdateEvent, UpdateState> {
     on<UpdateProgressed>(_onProgress);
     on<UpdateBootstrapped>(_onBootstrapped);
 
-    // Six hours rather than twenty-four. The service enforces the real daily
-    // interval; checking more often than that just means a Mac that was asleep
-    // at its slot picks it up within a few hours of waking, instead of waiting
-    // for the next full day.
+    // Ten minutes, against a thirty-minute interval in the service. The timer
+    // is deliberately the faster of the two: it only *offers* a check, and the
+    // service decides whether enough time has passed to take it up. Ticking
+    // faster than the gate is what stops a tick that lands a minute early from
+    // being swallowed and pushing the real check out by a whole period — and it
+    // is how a Mac that was asleep through its slot picks the check up within
+    // minutes of waking rather than hours.
+    //
+    // The cost of a tick that the gate declines is a comparison of two dates.
     _timer = Timer.periodic(
-      const Duration(hours: 6),
+      const Duration(minutes: 10),
       (_) => add(const CheckForUpdates()),
     );
 
@@ -66,6 +71,18 @@ class UpdateBloc extends Bloc<UpdateEvent, UpdateState> {
     // A download or an install in flight outranks a timer waking up.
     if (state.isBusy || state.status == UpdateStatus.readyToInstall) return;
 
+    // An update already on offer is not re-asked for in the background.
+    //
+    // Nothing a second answer could add — the release is known and the chip is
+    // up — and running the check anyway would take the chip away twice over:
+    // once for the `checking` emit below, which `hasUpdate` does not cover, and
+    // again if the interval gate declined and answered `skipped`. On a
+    // ten-minute timer that is a prompt that blinks out of the sidebar every
+    // ten minutes. A manual check still runs: pressing the button is asking.
+    if (!event.manual && state.hasUpdate) return;
+
+    // What to fall back to for an outcome that establishes nothing.
+    final before = state.status;
     emit(state.copyWith(status: UpdateStatus.checking, clearError: true));
     final result = await _service.check(manual: event.manual);
 
@@ -99,9 +116,10 @@ class UpdateBloc extends Bloc<UpdateEvent, UpdateState> {
           ),
         );
       case UpdateCheckOutcome.skipped:
-        emit(
-          state.copyWith(status: UpdateStatus.idle, lastCheckedAt: checkedAt),
-        );
+        // Nothing was asked, so nothing is known that was not known a moment
+        // ago. Only the `checking` status set above is undone — forcing `idle`
+        // here would throw away whatever the last real check had established.
+        emit(state.copyWith(status: before, lastCheckedAt: checkedAt));
       case UpdateCheckOutcome.unreachable:
         // Only a check someone asked for reports a failure. A background check
         // that could not reach GitHub is not news.
@@ -114,10 +132,9 @@ class UpdateBloc extends Bloc<UpdateEvent, UpdateState> {
                     'Check your connection and try again.',
                 lastCheckedAt: checkedAt,
               )
-              : state.copyWith(
-                status: UpdateStatus.idle,
-                lastCheckedAt: checkedAt,
-              ),
+              // Nor does it undo what was already known: back to whatever
+              // the status was before this check started, not to `idle`.
+              : state.copyWith(status: before, lastCheckedAt: checkedAt),
         );
     }
   }

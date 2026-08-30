@@ -83,6 +83,22 @@ enum AiMenuBarStyle: String {
   case costAndTokens
   case block
   case percentAndBlock
+  case ring
+  case tokens
+
+  /// Whether the style needs a share to draw what it promises.
+  ///
+  /// These three fall back to the cost when no provider in scope publishes a
+  /// reading and none has an open window, which is a silent change of subject —
+  /// the settings preview reads the same predicate through Dart's
+  /// `AiMenuBarStyle.needsShare` so it can say so rather than drawing a bar
+  /// that will not appear.
+  var needsShare: Bool {
+    switch self {
+    case .block, .percentAndBlock, .ring: true
+    case .cost, .costAndTokens, .tokens: false
+    }
+  }
 }
 
 /// Whose usage the AI readout is about.

@@ -211,6 +211,27 @@ class AiProviderReadout {
   /// How long that window runs. Null with [blockStartsAt].
   final int? windowMinutes;
 
+  /// How full this provider's bar would be, or null when there is nothing
+  /// honest to fill it with.
+  ///
+  /// Mirrors `AiProviderReadout.share(at:)` in `AiUsageChannel.swift`, which is
+  /// what the menu bar actually draws — the settings preview reads this so it
+  /// promises a bar only where the bar will really appear. A published reading
+  /// wins; failing that the clock through an open window; failing both there is
+  /// no share, and a style that needs one falls back to the cost.
+  double? shareAt(DateTime now) {
+    final measured = usedPercent;
+    if (measured != null) return (measured / 100).clamp(0.0, 1.0);
+
+    final start = blockStartsAt;
+    final minutes = windowMinutes;
+    if (start == null || minutes == null || minutes <= 0) return null;
+
+    final elapsed =
+        now.difference(start).inSeconds / Duration(minutes: minutes).inSeconds;
+    return elapsed.clamp(0.0, 1.0);
+  }
+
   Map<String, dynamic> toJson() => {
     'provider': provider.name,
     'tokens_today': tokensToday,

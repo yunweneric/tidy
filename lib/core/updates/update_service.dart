@@ -49,7 +49,16 @@ class UpdateService {
   final GitHubReleaseClient _client;
 
   /// How stale a check has to be before a background trigger repeats it.
-  static const Duration checkInterval = Duration(hours: 24);
+  ///
+  /// Half an hour, not a day. A day meant that a release published at 10am was
+  /// invisible until the following morning if the app had happened to check at
+  /// 9am — so in practice the only thing that ever surfaced an update was
+  /// pressing the button in Settings, which bypasses this gate.
+  ///
+  /// The cost of the shorter window is one conditional GET against the GitHub
+  /// releases API at most twice an hour. The unauthenticated limit is sixty an
+  /// hour per address, so this spends about three per cent of it.
+  static const Duration checkInterval = Duration(minutes: 30);
 
   AppBundleInfo? _bundle;
   StreamSubscription<List<int>>? _download;
@@ -92,10 +101,19 @@ class UpdateService {
     final current = await currentVersion();
     final release = await _client.latest(currentVersion: current.display);
 
-    // Recorded whether or not anything was found, but not when the request
-    // failed: a failed check has not checked, and stamping it would suppress
-    // the retry for a day over one flaky minute.
-    if (release != null || !manual) {
+    // Recorded only when the request actually came back with something.
+    //
+    // This is what the comment here always claimed and what the condition did
+    // not do: `|| !manual` made *every* background check stamp the clock,
+    // including one that could not reach GitHub at all. So a single failure —
+    // launching on a train, DNS not up yet at login, a flaky minute — recorded
+    // "checked just now" and shut every later background check out for the
+    // whole interval, however long that interval was. Nothing recovered it but
+    // the button in Settings.
+    //
+    // A failed check has not checked. Leaving the clock alone lets the next
+    // trigger try again.
+    if (release != null) {
       _settings.lastUpdateCheckAt = DateTime.now();
     }
 

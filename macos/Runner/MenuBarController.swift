@@ -563,9 +563,20 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     // where that gets said, so it is written per render rather than left as the
     // surface's standing line.
     button.toolTip =
-      style == .percentAndBlock && !shares.isEmpty
-      ? shares.map(\.spoken).joined(separator: "\n")
-      : MenuBarSurface.aiUsage.tooltip
+      if !shares.isEmpty, style == .percentAndBlock || style == .ring {
+        shares.map(\.spoken).joined(separator: "\n")
+      } else if shares.isEmpty, style.needsShare {
+        // The one case where the item is not drawing what its setting names.
+        // Without this the bar simply shows a cost and the setting looks
+        // broken, which is what it was reported as.
+        """
+        No share to draw yet, so this is today's cost instead.
+        Codex publishes a reading after its first request in the current window; \
+        Claude Code has one while a five-hour block is open.
+        """
+      } else {
+        MenuBarSurface.aiUsage.tooltip
+      }
     button.image = readout
 
     item.length = NSStatusItem.variableLength
@@ -767,11 +778,17 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
 
     let text: NSAttributedString
     switch style {
-    // A percentage style with nothing to be a percentage of — no open block and
-    // no published reading — falls back to the cost rather than to a dash: a
-    // figure that is true beats a placeholder that is only honest.
+    // A share style with nothing to be a share of — no open block and no
+    // published reading — falls back to the cost rather than to a dash: a
+    // figure that is true beats a placeholder that is only honest. It looks
+    // from the bar like the setting did nothing, which is why Settings says so
+    // in words; see `_Caveat` in `menu_bar_section.dart`.
     case .cost, .block, .percentAndBlock:
       text = aiFigureTitle(cost)
+    case .ring:
+      text = aiFigureTitle(shares.first?.label ?? cost)
+    case .tokens:
+      text = aiFigureTitle(tokens)
     case .costAndTokens:
       text = aiStackedTitle(cost: cost, tokens: tokens)
     }
@@ -788,10 +805,14 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
       height: measured.height.rounded(.up)
     )
 
-    // Only the block style carries a bar here, and only while there is a share
-    // to fill it with. The first in scope, which with both providers on is
-    // Claude Code's five-hour block — the window this style was built for.
-    let bar = style == .block ? shares.first.map { blockImage($0.share) } : nil
+    // The gauge in front of the figure, and only while there is a share to
+    // fill it with. The first in scope, which with both providers on is Claude
+    // Code's five-hour block — the window these styles were built for.
+    let bar: NSImage? = switch style {
+    case .block: shares.first.map { blockImage($0.share) }
+    case .ring: shares.first.map { ringImage($0.share) }
+    default: nil
+    }
     let barWidth = bar.map { $0.size.width + networkGap } ?? 0
 
     let image = NSImage(
@@ -929,6 +950,53 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
   /// difference anybody reads at menu bar size; six blocks quantise it into
   /// something countable at a glance. Every segment is drawn either way — an
   /// unlit one at low alpha — so a bar at 0% is still visibly a bar.
+  /// The same share as a ring: a 12pt track with the used arc drawn over it,
+  /// clockwise from twelve.
+  ///
+  /// Kept in step with `_Ring` in the settings preview, the way `blockImage` is
+  /// with `_ReadoutBar`. A ring rather than segments because the bar is a
+  /// crowded 22pt strip: this reads at a glance in half the width, at the cost
+  /// of being harder to read a precise value off — which is why the figure
+  /// stays beside it.
+  private static func ringImage(_ share: Double) -> NSImage {
+    let size = NSSize(width: 12, height: 12)
+    let width: CGFloat = 2.5
+    let filled = min(max(share, 0), 1)
+
+    let image = NSImage(size: size, flipped: false) { rect in
+      let centre = NSPoint(x: rect.midX, y: rect.midY)
+      let radius = (rect.width - width) / 2
+
+      let track = NSBezierPath()
+      track.appendArc(withCenter: centre, radius: radius, startAngle: 0, endAngle: 360)
+      track.lineWidth = width
+      // The same third-strength unlit tone the segmented bar uses, so the two
+      // styles read as the same reading in two shapes.
+      NSColor.black.withAlphaComponent(0.32).setStroke()
+      track.stroke()
+
+      // Nothing to draw at zero, and `appendArc` with equal angles draws a
+      // full circle rather than none — which would read as completely used.
+      if filled > 0 {
+        let used = NSBezierPath()
+        used.appendArc(
+          withCenter: centre,
+          radius: radius,
+          startAngle: 90,
+          endAngle: 90 - 360 * filled,
+          clockwise: true
+        )
+        used.lineWidth = width
+        used.lineCapStyle = .round
+        NSColor.black.setStroke()
+        used.stroke()
+      }
+      return true
+    }
+    image.isTemplate = true
+    return image
+  }
+
   private static func blockImage(_ share: Double) -> NSImage {
     let segments = 6
     let gap: CGFloat = 1
