@@ -27,6 +27,10 @@
 		331C80D8294CF71000263BE5 /* RunnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 331C80D7294CF71000263BE5 /* RunnerTests.swift */; };
 		335BBD1B22A9A15E00E9071D /* GeneratedPluginRegistrant.swift in Sources */ = {isa = PBXBuildFile; fileRef = 335BBD1A22A9A15E00E9071D /* GeneratedPluginRegistrant.swift */; };
 		33CC10F12044A3C60003C045 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC10F02044A3C60003C045 /* AppDelegate.swift */; };
+		574380E33FB227748667E28D /* ProtectionChannel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E11401DE094CE19882F333D /* ProtectionChannel.swift */; };
+		1C260F905190A4CB8F59630B /* Provenance.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4CF78BE8ED7BDF7A58E4C5D /* Provenance.swift */; };
+		6BA1F0FFD1D3B1FFDB2CB6D7 /* CodeSignature.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCB3CB740AC527A1826EA32D /* CodeSignature.swift */; };
+		463D77C00356310D07018A31 /* ChannelSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACDA0A355BE0A34368A6205E /* ChannelSupport.swift */; };
 		FFB9F99DFF4835E2BED013B8 /* AppearancePrefs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 175732E1A57DEBAB88B3048E /* AppearancePrefs.swift */; };
 		DD643380694ADE69E7E369CD /* AppDataAccess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 681BA85FE1686A6F6817437F /* AppDataAccess.swift */; };
 		33CC10F32044A3C60003C045 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 33CC10F22044A3C60003C045 /* Assets.xcassets */; };
@@ -99,6 +103,10 @@
 		335BBD1A22A9A15E00E9071D /* GeneratedPluginRegistrant.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GeneratedPluginRegistrant.swift; sourceTree = "<group>"; };
 		33CC10ED2044A3C60003C045 /* Tidy.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Tidy.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		33CC10F02044A3C60003C045 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		2E11401DE094CE19882F333D /* ProtectionChannel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProtectionChannel.swift; sourceTree = "<group>"; };
+		C4CF78BE8ED7BDF7A58E4C5D /* Provenance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Provenance.swift; sourceTree = "<group>"; };
+		BCB3CB740AC527A1826EA32D /* CodeSignature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodeSignature.swift; sourceTree = "<group>"; };
+		ACDA0A355BE0A34368A6205E /* ChannelSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChannelSupport.swift; sourceTree = "<group>"; };
 		175732E1A57DEBAB88B3048E /* AppearancePrefs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppearancePrefs.swift; sourceTree = "<group>"; };
 		681BA85FE1686A6F6817437F /* AppDataAccess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDataAccess.swift; sourceTree = "<group>"; };
 		33CC10F22044A3C60003C045 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = Runner/Assets.xcassets; sourceTree = "<group>"; };
@@ -269,6 +277,10 @@
 			isa = PBXGroup;
 			children = (
 				33CC10F02044A3C60003C045 /* AppDelegate.swift */,
+				2E11401DE094CE19882F333D /* ProtectionChannel.swift */,
+				C4CF78BE8ED7BDF7A58E4C5D /* Provenance.swift */,
+				BCB3CB740AC527A1826EA32D /* CodeSignature.swift */,
+				ACDA0A355BE0A34368A6205E /* ChannelSupport.swift */,
 				175732E1A57DEBAB88B3048E /* AppearancePrefs.swift */,
 				681BA85FE1686A6F6817437F /* AppDataAccess.swift */,
 				A582E94BA157B8C02B040738 /* UpdateChannel.swift */,
@@ -546,6 +558,10 @@
 				A1B2C3D007AA000000000104 /* MenuBarPrefs.swift in Sources */,
 				A1B2C3D007AA000000000006 /* NetworkChannel.swift in Sources */,
 				33CC10F12044A3C60003C045 /* AppDelegate.swift in Sources */,
+				574380E33FB227748667E28D /* ProtectionChannel.swift in Sources */,
+				1C260F905190A4CB8F59630B /* Provenance.swift in Sources */,
+				6BA1F0FFD1D3B1FFDB2CB6D7 /* CodeSignature.swift in Sources */,
+				463D77C00356310D07018A31 /* ChannelSupport.swift in Sources */,
 				FFB9F99DFF4835E2BED013B8 /* AppearancePrefs.swift in Sources */,
 				DD643380694ADE69E7E369CD /* AppDataAccess.swift in Sources */,
 				D9258076458BE66ECFF7AA80 /* UpdateChannel.swift in Sources */,

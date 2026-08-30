@@ -10,7 +10,10 @@ export 'package:tidy/core/platform/action_outcome.dart';
 /// Thin wrapper over `macos/Runner/PerformanceChannel.swift`.
 ///
 /// Separate from [SystemBridge] because the two speak about different things:
-/// that one is files, this one is launchd, libproc and Apple's own tools. Every
+/// that one is files, this one is libproc, maintenance and Apple's own tools.
+/// The launchd half moved to `core/platform/launch_items_bridge.dart` when
+/// Protection needed to read the same items — same channel, same native side.
+/// Every
 /// call degrades to an empty result rather than throwing — a Performance page
 /// that crashes because `launchctl` moved is worse than one missing a section.
 class PerformanceBridge {
@@ -19,54 +22,6 @@ class PerformanceBridge {
   static const MethodChannel _channel = MethodChannel(
     'com.yunweneric.tidy/performance',
   );
-
-  // ─── Launch items ─────────────────────────────────────────────────────────
-
-  /// Every launchd job in the user's and the machine's agent/daemon folders.
-  /// Apple's own under `/System` are deliberately not included.
-  static Future<List<Map<String, dynamic>>> launchItems() async {
-    try {
-      final result = await _channel.invokeListMethod<dynamic>('launchItems');
-      if (result == null) return const [];
-      return result.map((raw) => (raw as Map).cast<String, dynamic>()).toList();
-    } catch (e) {
-      AppLog.performance.failed('read the launch items', e);
-      return const [];
-    }
-  }
-
-  static Future<ActionOutcome> setLaunchItemEnabled({
-    required String label,
-    required String scope,
-    required String path,
-    required bool enabled,
-  }) => _act('setLaunchItemEnabled', {
-    'label': label,
-    'scope': scope,
-    'path': path,
-    'enabled': enabled,
-  });
-
-  /// Stops a job before its plist is removed, so launchd is not left holding a
-  /// definition that has gone.
-  static Future<ActionOutcome> unloadLaunchItem({
-    required String label,
-    required String scope,
-  }) => _act('unloadLaunchItem', {'label': label, 'scope': scope});
-
-  /// Removes a machine-wide item behind macOS's own authorization prompt.
-  ///
-  /// The prompt is shown by the system, not by us, and cancelling it is a
-  /// normal outcome that leaves everything where it was.
-  static Future<ActionOutcome> removeLaunchItemElevated({
-    required String path,
-    required String label,
-    required String kind,
-  }) => _act('removeLaunchItemElevated', {
-    'path': path,
-    'label': label,
-    'kind': kind,
-  });
 
   // ─── Processes ────────────────────────────────────────────────────────────
 

@@ -18,12 +18,12 @@ import 'package:tidy/features/cleanup/data/cleanup_scan_module.dart';
 import 'package:tidy/features/cleanup/data/scanners/developer_junk_module.dart';
 import 'package:tidy/features/clipboard/data/services/clipboard_service.dart';
 import 'package:tidy/features/network/data/services/network_service.dart';
-import 'package:tidy/features/performance/data/services/launch_items_service.dart';
+import 'package:tidy/core/services/launch_items_service.dart';
 import 'package:tidy/features/performance/data/services/maintenance_service.dart';
 import 'package:tidy/features/performance/data/services/process_monitor_service.dart';
 import 'package:tidy/features/space_lens/data/services/space_lens_service.dart';
 import 'package:tidy/features/recycle_bin/data/services/recycle_bin_service.dart';
-import 'package:tidy/features/performance/data/models/launch_item.dart';
+import 'package:tidy/core/models/launch_item.dart';
 import 'package:tidy/features/performance/data/services/performance_bridge.dart';
 import 'package:tidy/features/recycle_bin/data/services/recycle_bin_service.dart'
     show RecycleBinService;

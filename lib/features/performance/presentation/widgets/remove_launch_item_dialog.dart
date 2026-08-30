@@ -3,7 +3,7 @@ import 'package:tidy/core/design/design.dart';
 import 'package:tidy/core/feedback/feedback.dart';
 import 'package:tidy/core/utils/byte_format.dart';
 import 'package:tidy/core/utils/home_dir.dart';
-import 'package:tidy/features/performance/data/models/launch_item.dart';
+import 'package:tidy/core/models/launch_item.dart';
 
 /// Confirms removing one launch item, and says what removal actually means.
 ///
