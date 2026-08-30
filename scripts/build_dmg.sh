@@ -95,7 +95,12 @@ echo "==> Building $APP_NAME $VERSION"
 # which exist in a fresh checkout. It stops short of calling xcodebuild.
 if [[ "$SKIP_BUILD" == false ]]; then
   flutter pub get
-  flutter build macos --release --config-only "${FLUTTER_FLAVOR_ARGS[@]}"
+  # `${a[@]+"${a[@]}"}` rather than a plain `"${a[@]}"`: macOS ships bash 3.2,
+  # where an empty array under `set -u` is an *unset* variable and expanding it
+  # aborts the script — so the unflavoured build, which is the one CI and every
+  # release use, was the one path that could not run.
+  flutter build macos --release --config-only \
+    ${FLUTTER_FLAVOR_ARGS[@]+"${FLUTTER_FLAVOR_ARGS[@]}"}
   xcrun xcodebuild \
     -workspace macos/Runner.xcworkspace \
     -configuration "$CONFIGURATION" \
