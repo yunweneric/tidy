@@ -1,9 +1,9 @@
-## 🧹 Tidy v1.0.13
+## 🧹 Tidy v1.0.14
 
 | Download | For |
 | --- | --- |
-| `Tidy-1.0.13.dmg` | A first install — drag Tidy to Applications |
-| `Tidy-1.0.13-macos.zip` | What the in-app updater downloads |
+| `Tidy-1.0.14.dmg` | A first install — drag Tidy to Applications |
+| `Tidy-1.0.14-macos.zip` | What the in-app updater downloads |
 
 > **Unsigned build.** Tidy is not signed with a Developer ID and not
 > notarized, so the first launch is blocked: open **System Settings →
@@ -21,37 +21,37 @@ Verify your download against `SHA256SUMS.txt`:
 
 ---
 
-### Space Lens
+### One sweep
 
-The sidebar's last big gap is filled. **Space Lens** draws your disk as packed
-circles — one folder at a time, each circle sized by *area* from the bytes it
-actually occupies, so a sparse 64 GB `Docker.raw` draws the 8 GB that removing
-it would really give back. Click a bubble to select it, double-click a folder
-to open it, and reveal anything in Finder or move it to the Trash without
-leaving the map.
+**Cleanup is gone from the sidebar, and Smart Care now runs everything.** The
+two pages were always overlapping — Smart Care ran Cleanup's checks and then
+some — but each owned its own scan, so `~/Library` was swept twice to produce
+two different answers to "how much can I get back", and the smaller one had a
+page of its own. There is one sweep now: caches, logs and saved window state,
+the build output and package caches your developer tools leave behind, and the
+applications you have not opened in months, all in a single pass and a single
+list.
 
-It never walks the whole disk. Each folder is measured when you open it and
-then kept, so drilling in costs one subtree, walking back out costs nothing,
-and **Rescan** re-walks only the folder in front of you.
-
-- Starts at **Home** or **Applications**. Not the boot volume: `/` descends into
-  `/System`, which nobody may remove, and into `/Volumes`, where an attached
-  backup drive turns the map into a twenty-minute stall.
-- The map draws the forty largest and gathers the rest into one labelled bubble,
-  so the panel beside it is where everything is listed exactly and unrounded.
-- Folders macOS will not let Tidy read are counted and said out loud, rather
-  than quietly making a total look smaller than it is.
+- **The rail quotes what is actually ticked.** The sweep now finds
+  applications as well as junk, and an application is never pre-selected — so
+  the sidebar's reclaim figure and the Dashboard's counter changed from "every
+  byte we found" to "what one click on Clean would remove". A rail promising
+  60 GB when the button frees 8 was overstating it.
+- **The page says what it walks past.** pnpm's store, Docker's disk image, your
+  simulator devices and installed SDKs are deliberately left alone — deleting
+  any of them breaks projects that are still using it — and the page now names
+  them, with the command each tool provides for doing it safely.
 
 ### Also in this release
 
-- The menu bar popover's clipboard list now **scrolls** instead of growing.
-  The popover has a hard height cap, so rows past it were simply cut off with
-  nothing to say they existed. The list holds sixty clips rather than fourteen,
-  and still shrink-wraps so a short history stays short.
+- **Release notes are set in the app's own type.** The Updates card was showing
+  the GitHub release body as raw text: readers were handed `## 🧹 Tidy v1.0.13`,
+  a row of `| --- |`, and every asterisk that was meant to make a word bold.
+  The page you are reading now renders properly inside the app.
 
-### What changed since v1.0.12
+### What changed since v1.0.13
 
-- Build Space Lens: the disk drawn as packed circles, one folder at a time, each sized by area from the allocated bytes it occupies. Never walks the whole disk — a level is measured on demand and kept, so drilling in costs one subtree, walking back up costs nothing and Rescan re-walks only the folder in front of you. Starts at Home or Applications, caps the map at forty bubbles with the tail gathered into one, lists everything exactly in the panel beside it, and can reveal in Finder or move to the Trash, recorded in Activity like every other removal. ([`e5f8016`](https://github.com/yunweneric/tidy/commit/e5f80169b37b40a8a37ec4bb2064db6fa099f161))
-- Scroll the menu bar's clipboard list instead of growing the panel. The popover has a hard height cap, so rows past it were cut off with nothing to say they existed; the list is now bounded and scrollable and holds sixty clips rather than fourteen, still shrink-wrapping so a short history stays short. ([`9c1f3ee`](https://github.com/yunweneric/tidy/commit/9c1f3eee75bceafd8fc0e3437f2eebd0d994176b))
+- Set release notes in the app's own type instead of printing their source ([`ebdd35d`](https://github.com/yunweneric/tidy/commit/ebdd35da259547ce7d528e6b2d2e443375de75d9))
+- Refactor Cleanup module into Smart Care, consolidating functionality for a single sweep ([`85c0451`](https://github.com/yunweneric/tidy/commit/85c0451826f44d9a8490aa0b8d32622913364dd7))
 
-**Full changelog:** https://github.com/yunweneric/tidy/compare/v1.0.12...v1.0.13
+**Full changelog:** https://github.com/yunweneric/tidy/compare/v1.0.13...v1.0.14
