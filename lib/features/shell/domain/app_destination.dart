@@ -189,7 +189,8 @@ enum AppDestination {
     label: 'AI Usage',
     icon: AppIcons.aiUsage,
     group: NavGroup.secondary,
-    blurb: 'What your AI coding tools have got through, and what it would cost.',
+    blurb:
+        'What your AI coding tools have got through, and what it would cost.',
     tone: ModuleTone.aiUsage,
   );
 
