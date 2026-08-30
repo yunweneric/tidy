@@ -114,9 +114,22 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
   /// thing before the thing I have now", short enough that it stays a glance.
   static const int _clipCount = 6;
 
-  /// How many the clipboard panel lists. Longer, because there the clips are
-  /// not a teaser — they are what the user came for.
-  static const int _clipboardPanelCount = 14;
+  /// How many the clipboard panel lists.
+  ///
+  /// Fourteen was the number that fit before the list scrolled — any more and
+  /// the panel ran past the popover's cap and the extra rows were simply cut
+  /// off. With a scroller under them the limit is about how far back anyone
+  /// reaches for a clip, not about how tall the panel can be.
+  static const int _clipboardPanelCount = 60;
+
+  /// How tall the scrolling clip list is allowed to get.
+  ///
+  /// Sized against `MenuBarController.maxPanelHeight` (760) less the panel's
+  /// own chrome — header, tab strip, section heading, footer and their
+  /// dividers, which come to roughly 260. Staying under the cap is what keeps
+  /// the list scrolling *inside* a panel that fits, rather than the panel
+  /// growing until Swift clamps it and clips the bottom rows off.
+  static const double _clipListMaxHeight = 440;
 
   /// Matches the Performance page's cadence. Faster reads as noise, slower
   /// stops feeling live.
@@ -141,6 +154,10 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
   /// Access. An unreadable bin reported as an empty one tells the user there is
   /// nothing to reclaim when there may be gigabytes.
   bool _trashReadable = true;
+
+  /// The clip list's scroller. Held rather than implicit so the scrollbar can
+  /// be attached to the same position the list reads.
+  final ScrollController _clipScroll = ScrollController();
 
   ProcessSort _sort = ProcessSort.cpu;
   Timer? _ticker;
@@ -223,6 +240,7 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
     _network.stopLive();
     _bridge.onPopoverOpened = null;
     _bridge.onPopoverClosed = null;
+    _clipScroll.dispose();
     super.dispose();
   }
 
@@ -992,13 +1010,42 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
                   _bridge.openMainWindow(route: AppDestination.clipboard.path),
         ),
       ),
-      for (final entry in _clips)
-        MenuBarClipRow(
-          key: ValueKey(entry.id),
-          entry: entry,
-          onCopy: () => _copyClip(entry),
-          onHover: (top) => _previewClip(entry, top),
+      // Bounded and scrollable, rather than every row laid out at once and the
+      // panel growing to match. The popover has a hard height cap, so a taller
+      // panel did not mean a taller list — it meant the rows past the cap were
+      // cut off with nothing to say they existed.
+      //
+      // `shrinkWrap` so a short history still sizes to its own content: three
+      // clips should be three rows tall, not 440 points of mostly nothing.
+      ConstrainedBox(
+        constraints: const BoxConstraints(maxHeight: _clipListMaxHeight),
+        child: Scrollbar(
+          controller: _clipScroll,
+          // Always drawn rather than fading in on scroll. The panel is
+          // transient and closes the moment you look away from it, so a
+          // scrollbar that only appears once you have already started
+          // scrolling is a hint arriving after the thing it hints at.
+          thumbVisibility: true,
+          child: ListView.builder(
+            controller: _clipScroll,
+            shrinkWrap: true,
+            padding: EdgeInsets.zero,
+            itemCount: _clips.length,
+            itemBuilder: (context, index) {
+              final entry = _clips[index];
+              return MenuBarClipRow(
+                key: ValueKey(entry.id),
+                entry: entry,
+                onCopy: () => _copyClip(entry),
+                // Still correct once the list scrolls: the row reports its own
+                // position in the view's coordinates rather than its index, so
+                // the native preview follows it up and down.
+                onHover: (top) => _previewClip(entry, top),
+              );
+            },
+          ),
         ),
+      ),
     ];
   }
 

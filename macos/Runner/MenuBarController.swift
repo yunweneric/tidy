@@ -1151,7 +1151,8 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     }
   }
 
-  /// Hands clicks to the panel's view controller, because AppKit will not.
+  /// Hands clicks and scrolls to the panel's view controller, because AppKit
+  /// will not.
   ///
   /// A view nested inside an `NSPopover` does not get `mouseDown:`/`mouseUp:`
   /// forwarded up its responder chain: the events arrive at the window, the
@@ -1175,7 +1176,15 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
   /// with the click because a drag that never got its mouse-down is not a drag.
   private func forwardClicksIntoThePanel() {
     clickForwarder = NSEvent.addLocalMonitorForEvents(
-      matching: [.leftMouseDown, .leftMouseUp, .leftMouseDragged]
+      // `.scrollWheel` for the same reason as the clicks, and it went unnoticed
+      // for as long as it did because nothing in the panel scrolled: the panel
+      // resized itself to its content instead. The clipboard list is the first
+      // thing here with more rows than the popover's height cap allows, and
+      // without this it would be a list that cannot be scrolled to the bottom
+      // of. `FlutterViewController` implements `scrollWheel(with:)` just as it
+      // implements `mouseDown(with:)`, so it is stranded by the same broken
+      // responder chain.
+      matching: [.leftMouseDown, .leftMouseUp, .leftMouseDragged, .scrollWheel]
     ) { [weak self] event in
       guard let self,
             let controller = self.popover.contentViewController,
@@ -1188,6 +1197,7 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
       switch event.type {
       case .leftMouseDown: controller.mouseDown(with: event)
       case .leftMouseUp: controller.mouseUp(with: event)
+      case .scrollWheel: controller.scrollWheel(with: event)
       default: controller.mouseDragged(with: event)
       }
       // Swallowed: it has been delivered by hand, and letting it carry on would
