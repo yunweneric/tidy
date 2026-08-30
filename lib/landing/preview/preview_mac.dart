@@ -18,7 +18,6 @@ const int _gb = _mb * 1024;
 const Set<AppDestination> kPlannedDestinations = {
   AppDestination.protection,
   AppDestination.clutter,
-  AppDestination.spaceLens,
   AppDestination.allTools,
   AppDestination.activity,
   AppDestination.assistant,

@@ -93,11 +93,17 @@ enum AppDestination {
     blurb: 'Find duplicates, near-identical photos and forgotten files.',
     tone: ModuleTone.clutter,
   ),
+
+  /// Moved out of [NavGroup.soon] when it stopped opening onto a roadmap.
+  ///
+  /// With the working modules rather than under MORE, unlike Network and AI
+  /// Usage: those are somewhere you go to watch something, and this is
+  /// somewhere you go to find something and then do something about it.
   spaceLens(
     path: '/space-lens',
     label: 'Space Lens',
     icon: AppIcons.spaceLens,
-    group: NavGroup.soon,
+    group: NavGroup.primary,
     blurb: 'See what is actually filling your disk.',
     tone: ModuleTone.spaceLens,
   ),

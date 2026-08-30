@@ -22,6 +22,7 @@ import 'package:tidy/features/network/data/services/network_service.dart';
 import 'package:tidy/features/performance/data/services/launch_items_service.dart';
 import 'package:tidy/features/performance/data/services/maintenance_service.dart';
 import 'package:tidy/features/performance/data/services/process_monitor_service.dart';
+import 'package:tidy/features/space_lens/data/services/space_lens_service.dart';
 import 'package:tidy/features/recycle_bin/data/services/recycle_bin_service.dart';
 import 'package:tidy/features/performance/data/models/launch_item.dart';
 import 'package:tidy/features/performance/data/services/performance_bridge.dart';
@@ -105,6 +106,14 @@ Future<void> setUpLocator({required bool includeUi}) async {
   );
   locator.registerLazySingleton<ProcessMonitorService>(
     ProcessMonitorService.new,
+  );
+
+  // ─── Space Lens ──────────────────────────────────────────────────────────
+  // A singleton for the cache, which is the whole point of it: the folders you
+  // have already looked at stay measured, so walking back up the trail costs
+  // nothing and leaving the page does not throw the map away.
+  locator.registerLazySingleton<SpaceLensService>(
+    () => SpaceLensService(store: locator<TidyStore>()),
   );
 
   // ─── Recycle Bin ─────────────────────────────────────────────────────────

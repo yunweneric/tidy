@@ -17,6 +17,7 @@ import 'package:tidy/features/network/presentation/network_page.dart';
 import 'package:tidy/features/recycle_bin/presentation/recycle_bin_page.dart';
 import 'package:tidy/features/settings/domain/settings_section.dart';
 import 'package:tidy/features/settings/presentation/settings_page.dart';
+import 'package:tidy/features/space_lens/presentation/space_lens_page.dart';
 import 'package:tidy/features/shell/domain/app_destination.dart';
 import 'package:tidy/features/shell/presentation/shell_scaffold.dart';
 import 'package:tidy/features/smart_care/presentation/smart_care_page.dart';
@@ -135,14 +136,7 @@ Widget _pageFor(
       'Clear one-time installers out of Downloads',
     ],
   ),
-  AppDestination.spaceLens => const ComingSoonPage(
-    destination: AppDestination.spaceLens,
-    planned: [
-      'Map the disk as nested bubbles sized by what they actually occupy',
-      'Drill into any folder and remove from the map',
-      'Cache results so a rescan is incremental, not a full walk',
-    ],
-  ),
+  AppDestination.spaceLens => const SpaceLensPage(),
   AppDestination.allTools => const ComingSoonPage(
     destination: AppDestination.allTools,
     planned: [

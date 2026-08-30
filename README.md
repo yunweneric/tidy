@@ -64,9 +64,9 @@ for the web from `lib/main_landing.dart`; see [The landing page](#the-landing-pa
 | **Recycle Bin** | Every trash on every volume, with working Put Back | ✅ Built |
 | **Network** | Live throughput per interface, and the history behind it | ✅ Built |
 | **AI Usage** | What Claude Code and Codex got through, at published API rates | ✅ Built |
+| **Space Lens** | A map of what is filling the disk, a folder at a time | ✅ Built |
 | **Protection** | Known adware, suspicious launch agents, privacy traces | ⏳ Planned |
 | **My Clutter** | Duplicates, similar photos, large and old files | ⏳ Planned |
-| **Space Lens** | A map of what is actually filling the disk | ⏳ Planned |
 
 Planned modules are visible in the sidebar and say plainly that they are not
 built yet. None of them show a scan button that finds nothing — a cleaner
