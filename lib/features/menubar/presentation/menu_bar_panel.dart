@@ -823,8 +823,13 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
               // Said once, at the bottom, rather than on every row it applies
               // to. The rows already differ — a percentage against tokens — and
               // this is the sentence that explains why they do.
-              'Claude Code publishes no limit, so its windows show what went '
-              'through them rather than a share of an allowance.',
+              //
+              // Phrased by row rather than by provider: Claude's windows carry
+              // a real percentage once plan limits are switched on, so naming
+              // Claude here would be wrong for anyone who has.
+              'A row without a percentage shows what went through the window '
+              'rather than a share of an allowance, because no limit is '
+              'published for it.',
               style: text.caption,
             ),
           ),

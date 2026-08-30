@@ -1,5 +1,6 @@
 import 'package:tidy/features/ai_usage/data/models/ai_provider.dart';
 import 'package:tidy/features/ai_usage/data/models/ai_usage_report.dart';
+import 'package:tidy/features/ai_usage/data/models/claude_plan_usage.dart';
 import 'package:tidy/features/ai_usage/data/models/model_pricing.dart';
 import 'package:tidy/features/ai_usage/data/models/usage_totals.dart';
 import 'package:tidy/features/ai_usage/data/models/usage_window.dart';
@@ -424,8 +425,15 @@ extension AiUsageReportSummary on AiUsageReport {
       // window we are in — the same test the windows apply. Past its reset it
       // is a percentage of a window that has already rolled over.
       final limit = rateLimits[provider];
-      final measured =
+      var measured =
           limit != null && !limit.isStaleAt(at) ? limit.usedPercent : null;
+
+      // Claude publishes no limit into its logs, but it does publish one to the
+      // account. Where that reading is in hand the bar shows the session share
+      // like Codex's, rather than the clock it had to settle for before.
+      if (provider == AiProvider.claudeCode) {
+        measured ??= claudePlanAt(at)?.session?.utilization;
+      }
 
       // Where nobody publishes a reading, the clock is the only share there is,
       // and the five-hour block is the only window this Mac can reconstruct.
@@ -456,28 +464,12 @@ extension AiUsageReportSummary on AiUsageReport {
     final windows = <AiUsageWindow>[];
 
     if (providersFound.contains(AiProvider.claudeCode)) {
-      // Inferred, and only while inside one. Between blocks there is no window
-      // to be a fraction of, so the row is absent rather than empty.
-      if (block != null) {
-        windows.add(
-          AiUsageWindow(
-            provider: AiProvider.claudeCode,
-            label: 'Session (5h)',
-            tokens: block.tokens.total,
-            cost: block.cost,
-            resetsAt: block.endsAt,
-            elapsed:
-                at.difference(block.startsAt).inSeconds /
-                kBlockLength.inSeconds,
-          ),
-        );
-      }
-      windows.add(_week(AiProvider.claudeCode));
+      windows.addAll(_claudeWindows(at, block));
     }
 
     if (providersFound.contains(AiProvider.codex)) {
       final limit = rateLimits[AiProvider.codex];
-      final week = _week(AiProvider.codex);
+      final week = _week(AiProvider.codex, at);
       // Codex's own reading, but only while it still describes the window we
       // are in. Past its reset it is a fact about a window that has rolled
       // over, and the row falls back to the tokens it can still stand behind.
@@ -498,13 +490,98 @@ extension AiUsageReportSummary on AiUsageReport {
     return windows;
   }
 
+  /// Claude's rows: the session, the week, and any per-model week.
+  ///
+  /// Two sources, and which one is in play decides what a row is allowed to
+  /// claim. When the plan reading is present these are *measured* — the
+  /// percentage and the reset are Anthropic's own, so the week finally has a
+  /// bar instead of a bare token count. Without it they fall back to what this
+  /// Mac can prove on its own: a session row that is a clock, and a week that
+  /// is a total. The tokens are local either way; only the denominator is
+  /// remote, so a failed fetch costs the bar and never the count.
+  List<AiUsageWindow> _claudeWindows(DateTime at, UsageBlock? block) {
+    const provider = AiProvider.claudeCode;
+    final plan = claudePlanAt(at);
+    final week = _week(provider, at);
+    final windows = <AiUsageWindow>[];
+
+    final session = plan?.session;
+    if (session != null) {
+      windows.add(
+        AiUsageWindow(
+          provider: provider,
+          label: 'Session (5h)',
+          tokens: block?.tokens.total ?? 0,
+          cost: block?.cost ?? 0,
+          // The published reset, not the inferred block end. They disagree
+          // whenever the block was inferred from a gap in activity, and only
+          // one of them is when the allowance actually comes back.
+          resetsAt: session.resetsAt ?? block?.endsAt,
+          usedPercent: session.utilization,
+        ),
+      );
+    } else if (block != null) {
+      // Inferred, and only while inside one. Between blocks there is no window
+      // to be a fraction of, so the row is absent rather than empty.
+      windows.add(
+        AiUsageWindow(
+          provider: provider,
+          label: 'Session (5h)',
+          tokens: block.tokens.total,
+          cost: block.cost,
+          resetsAt: block.endsAt,
+          elapsed:
+              at.difference(block.startsAt).inSeconds / kBlockLength.inSeconds,
+        ),
+      );
+    }
+
+    final published = plan?.week;
+    windows.add(
+      published == null
+          ? week
+          : AiUsageWindow(
+            provider: provider,
+            label: 'Weekly',
+            tokens: week.tokens,
+            cost: week.cost,
+            resetsAt: published.resetsAt,
+            usedPercent: published.utilization,
+          ),
+    );
+
+    // Per-model weeks last, and only where they are metered separately. These
+    // carry no token count of their own: the logs record which model answered,
+    // but the allowance these percentages are drawn against is not the same
+    // denominator as the overall week, so pairing them would be arithmetic
+    // across two different scales.
+    for (final model in plan?.modelWeeks ?? const <ClaudeModelLimit>[]) {
+      windows.add(
+        AiUsageWindow(
+          provider: provider,
+          label: 'Weekly · ${model.model}',
+          resetsAt: model.window.resetsAt,
+          usedPercent: model.window.utilization,
+        ),
+      );
+    }
+
+    return windows;
+  }
+
   /// A trailing seven days for one provider. No reset time: the window rolls
   /// with the clock rather than expiring on it.
-  AiUsageWindow _week(AiProvider provider) {
+  ///
+  /// Takes [at] rather than reading the clock itself. Every other path through
+  /// `summarise` threads one instant, and this one used to call `DateTime.now()`
+  /// three times of its own — so `summarise(now: fixed)` did not actually fix
+  /// the clock, and the week could land on a different day from the session
+  /// drawn beside it when a sweep straddled midnight.
+  AiUsageWindow _week(AiProvider provider, DateTime at) {
     final cutoff = DateTime(
-      DateTime.now().year,
-      DateTime.now().month,
-      DateTime.now().day,
+      at.year,
+      at.month,
+      at.day,
     ).subtract(const Duration(days: 6));
 
     var tokens = 0;

@@ -1,4 +1,5 @@
 import 'package:tidy/features/ai_usage/data/models/ai_provider.dart';
+import 'package:tidy/features/ai_usage/data/models/claude_plan_usage.dart';
 import 'package:tidy/features/ai_usage/data/models/model_pricing.dart';
 import 'package:tidy/features/ai_usage/data/models/usage_totals.dart';
 
@@ -158,6 +159,8 @@ class AiUsageReport {
     this.missingRoots = const [],
     this.unpricedModels = const [],
     this.rateLimits = const {},
+    this.claudePlan,
+    this.claudePlanStatus = ClaudePlanStatus.off,
     this.unreadableFiles = 0,
     this.filesScanned = 0,
     this.scannedAt,
@@ -186,6 +189,49 @@ class AiUsageReport {
   final List<String> unpricedModels;
 
   final Map<AiProvider, ProviderRateLimit> rateLimits;
+
+  /// Claude's published plan usage, when the reading was switched on and the
+  /// fetch succeeded.
+  ///
+  /// Not a [ProviderRateLimit]: that type describes one window Codex wrote into
+  /// its own log, and this is several windows fetched from a service — a
+  /// session, a week, and one per metered model. Squeezing it into the same
+  /// shape would mean throwing away every window but one, and the week is the
+  /// one people actually run out of.
+  final ClaudePlanUsage? claudePlan;
+
+  /// Why there is, or is not, a [claudePlan].
+  ///
+  /// Carried beside the reading rather than inferred from its absence, because
+  /// the panel says different things for "not switched on", "not signed in to
+  /// Claude Code", "could not reach it" and "this account meters nothing" — and
+  /// a null cannot tell them apart. It used to guess, and it guessed "not
+  /// signed in" at anyone who was merely offline.
+  final ClaudePlanStatus claudePlanStatus;
+
+  /// The plan reading, but only while it still describes now.
+  ClaudePlanUsage? claudePlanAt(DateTime now) => claudePlan?.freshAt(now);
+
+  /// The same report with Claude's published limits attached.
+  ///
+  /// A separate step because the two come from different places at different
+  /// speeds: the sweep is local and slow, the fetch is remote and may not
+  /// answer at all. Folding the fetch into `buildReport` would put a network
+  /// call inside an isolate whose whole job is reading files, and would make a
+  /// flaky connection look like a failed sweep.
+  AiUsageReport withClaudePlan(ClaudePlanReading reading) => AiUsageReport(
+    days: days,
+    recentHours: recentHours,
+    providersFound: providersFound,
+    missingRoots: missingRoots,
+    unpricedModels: unpricedModels,
+    rateLimits: rateLimits,
+    claudePlan: reading.usage,
+    claudePlanStatus: reading.status,
+    unreadableFiles: unreadableFiles,
+    filesScanned: filesScanned,
+    scannedAt: scannedAt,
+  );
 
   /// Files that could not be read. Counted rather than swallowed: a silent
   /// undercount reads as "you used less than you did".

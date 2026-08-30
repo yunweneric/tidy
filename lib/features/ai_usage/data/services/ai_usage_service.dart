@@ -6,7 +6,9 @@ import 'package:tidy/core/settings/app_settings.dart';
 import 'package:tidy/features/ai_usage/data/models/ai_provider.dart';
 import 'package:tidy/features/ai_usage/data/models/ai_usage_report.dart';
 import 'package:tidy/features/ai_usage/data/models/ai_usage_summary.dart';
+import 'package:tidy/features/ai_usage/data/models/claude_plan_usage.dart';
 import 'package:tidy/features/ai_usage/data/services/ai_usage_bridge.dart';
+import 'package:tidy/features/ai_usage/data/services/claude_usage_client.dart';
 import 'package:tidy/features/ai_usage/data/parsing/usage_merge.dart';
 import 'package:tidy/features/ai_usage/data/parsing/usage_scan.dart';
 import 'package:tidy/features/ai_usage/data/services/ai_usage_cache.dart';
@@ -17,15 +19,20 @@ import 'package:tidy/features/ai_usage/data/services/ai_usage_cache.dart';
 /// re-sweep 1.5 GB, and owns the on-disk cache so a cold launch does not
 /// either.
 class AiUsageService {
-  AiUsageService({required AppSettings settings, AiUsageCache? cache})
-    : _settings = settings,
-      _cache = cache ?? AiUsageCache();
+  AiUsageService({
+    required AppSettings settings,
+    AiUsageCache? cache,
+    ClaudeUsageClient? claude,
+  }) : _settings = settings,
+       _cache = cache ?? AiUsageCache(),
+       _claude = claude ?? ClaudeUsageClient();
 
   /// How often the menu bar's summary is refreshed.
   static const Duration _publishInterval = Duration(minutes: 1);
 
   final AppSettings _settings;
   final AiUsageCache _cache;
+  final ClaudeUsageClient _claude;
 
   AiUsageReport? _report;
   Future<AiUsageReport>? _inFlight;
@@ -93,7 +100,7 @@ class AiUsageService {
         );
       }
 
-      final report = buildReport(scan);
+      final report = buildReport(scan).withClaudePlan(await _claudePlan());
       AppLog.aiUsage.info(
         'read the AI session logs',
         fields: {
@@ -146,6 +153,47 @@ class AiUsageService {
       // a wrong one — the native side ages it out on its own.
       AppLog.aiUsage.failed('refresh the menu bar summary', e);
     }
+  }
+
+  /// Claude's published limits, or null when the setting is off or the fetch
+  /// did not answer.
+  ///
+  /// Awaited rather than raced with the sweep because the sweep is the slow
+  /// half by two orders of magnitude — a warm pass is a `stat` per file, and
+  /// this is one request with its own timeout and its own cache. Never allowed
+  /// to throw: a plan reading that could not be fetched must cost the bar, not
+  /// the whole report it would have decorated.
+  Future<ClaudePlanReading> _claudePlan({bool force = false}) async {
+    if (!_settings.aiUsageClaudeLimits) return const ClaudePlanReading.off();
+    if (!_settings.aiUsageIncludeClaude) return const ClaudePlanReading.off();
+    try {
+      return await _claude.fetch(force: force);
+    } catch (e) {
+      AppLog.aiUsage.failed('read the Claude plan limits', e);
+      return const ClaudePlanReading(ClaudePlanStatus.unreachable);
+    }
+  }
+
+  /// Whether Claude Code is signed in on this Mac, so the limits fetch has
+  /// something to use.
+  ///
+  /// What Settings asks before offering the switch: a toggle that can only ever
+  /// fail is worse than one that explains why, and "sign in to Claude Code
+  /// first" is a thing the user can act on.
+  Future<bool> hasClaudeSignIn() => _claude.hasCredentials();
+
+  /// Re-reads the plan limits and returns the held report carrying them.
+  ///
+  /// The cheap path, and the one switching the setting on should take: no
+  /// sweep, no isolate, no cache write — one request against an endpoint that
+  /// answers in milliseconds. Null when there is no report to attach the
+  /// reading to yet, in which case the next sweep will pick it up anyway.
+  Future<AiUsageReport?> refreshClaudePlan({bool force = false}) async {
+    final held = _report;
+    if (held == null) return null;
+
+    final plan = await _claudePlan(force: force);
+    return _report = held.withClaudePlan(plan);
   }
 
   /// The config roots to read, as absolute paths.

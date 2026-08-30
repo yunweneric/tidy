@@ -70,6 +70,7 @@ class AppSettings extends ChangeNotifier {
   static const String _aiClaudeKey = 'aiUsageIncludeClaude';
   static const String _aiCodexKey = 'aiUsageIncludeCodex';
   static const String _aiRootsKey = 'aiUsageRoots';
+  static const String _aiClaudeLimitsKey = 'aiUsageClaudeLimits';
 
   // Updates. Dart-only, unlike the clipboard and network keys above: no Swift
   // file reads these, because nothing about updating has to be decided before
@@ -452,6 +453,22 @@ class AppSettings extends ChangeNotifier {
 
   set aiUsageIncludeCodex(bool value) {
     _values[_aiCodexKey] = value;
+    _persist();
+  }
+
+  /// Whether to ask Anthropic how much of the Claude plan is left.
+  ///
+  /// Off by default, and the only setting on this page that is. Everything else
+  /// AI Usage does starts and ends on this Mac; this one sends the account's
+  /// own OAuth token to the service that issued it, because the session and
+  /// weekly allowances are not written down anywhere locally — the logs record
+  /// what was spent, never what the budget was. That is a different promise
+  /// from the one the rest of the page makes, so it is asked for rather than
+  /// assumed.
+  bool get aiUsageClaudeLimits => _values[_aiClaudeLimitsKey] as bool? ?? false;
+
+  set aiUsageClaudeLimits(bool value) {
+    _values[_aiClaudeLimitsKey] = value;
     _persist();
   }
 
