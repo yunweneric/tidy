@@ -103,7 +103,8 @@ class _HealthHero extends StatelessWidget {
                               ? 'Clean up ${formatBytes(mac.reclaimableBytes)}'
                               : 'Run Smart Care',
                       icon: AppIcons.cleanup,
-                      onPressed: () => onNavigate?.call(PreviewScreen.cleanup),
+                      onPressed:
+                          () => onNavigate?.call(PreviewScreen.smartCare),
                     ),
                     const SizedBox(width: AppSpacing.md),
                     // The score is honest about what it could not measure. A
@@ -240,7 +241,7 @@ class _Counters extends StatelessWidget {
         detail: 'Caches, logs and saved app state',
         icon: AppIcons.cleanup,
         color: colors.safe,
-        onTap: () => onNavigate?.call(PreviewScreen.cleanup),
+        onTap: () => onNavigate?.call(PreviewScreen.smartCare),
       ),
       StatTile(
         label: 'In the Trash',

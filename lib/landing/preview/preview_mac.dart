@@ -31,7 +31,7 @@ const Set<AppDestination> kPlannedDestinations = {
 /// the app does and cannot drift from it.
 enum PreviewScreen {
   dashboard(AppDestination.dashboard),
-  cleanup(AppDestination.cleanup),
+  smartCare(AppDestination.smartCare),
   applications(AppDestination.applications),
   clipboard(AppDestination.clipboard),
   performance(AppDestination.performance),

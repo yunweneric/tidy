@@ -117,6 +117,27 @@ class ScanState extends Equatable {
   int get totalBytes =>
       roots.fold<int>(0, (sum, node) => sum + node.totalBytes);
 
+  /// What one click on Clean would remove right now, before anyone changes a
+  /// tick: exactly the leaves [ScanSelection.defaultFor] starts with.
+  ///
+  /// This, and not [totalBytes], is what the sidebar quotes. One sweep covers
+  /// caches, build output *and* applications you have not opened in months —
+  /// and the last of those is never pre-ticked, so a rail promising the total
+  /// would be quoting a figure that needs a decision the user has not made.
+  int get preselectedBytes {
+    var bytes = 0;
+    for (final root in roots) {
+      for (final leaf in root.leaves) {
+        if (leaf.safety.preselected &&
+            leaf.isRemovable &&
+            !leaf.sharesStorage) {
+          bytes += leaf.sizeBytes;
+        }
+      }
+    }
+    return bytes;
+  }
+
   int get selectedBytes => selection.selectedBytes(roots);
 
   int get selectedCount => selection.ids.length;

@@ -47,10 +47,10 @@ class DashboardCounters extends StatelessWidget {
         detail:
             state.junkBytes == null
                 ? 'Run a scan to find out'
-                : 'Caches, logs and saved app state',
+                : 'Caches, logs, saved state and build output',
         icon: AppIcons.cleanup,
         color: colors.safe,
-        onTap: () => onOpen(AppDestination.cleanup),
+        onTap: () => onOpen(AppDestination.smartCare),
       ),
       StatTile(
         label: 'In the Trash',

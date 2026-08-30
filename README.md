@@ -56,8 +56,7 @@ for the web from `lib/main_landing.dart`; see [The landing page](#the-landing-pa
 | Module | What it does | State |
 |---|---|---|
 | **Dashboard** | A health score, live vitals, storage, and what Tidy has done | ✅ Built |
-| **Smart Care** | Runs every built check in one pass, reviewed in one place | ✅ Built |
-| **Cleanup** | Caches, logs, saved window state, leftovers from apps that are gone | ✅ Built |
+| **Smart Care** | One pass over every built check — caches, logs, saved window state, Xcode and package-manager caches, leftovers, unused apps — reviewed in one place | ✅ Built |
 | **Clipboard** | Searchable copy history with pins, images and a `⌘⇧V` hotkey | ✅ Built |
 | **Performance** | Login items, background agents, macOS maintenance, running processes | ✅ Built |
 | **Applications** | Uninstall apps and everything they left behind | ✅ Built |
@@ -546,7 +545,7 @@ components, not the scan contract.
 
 Navigation is `go_router` with `StatefulShellRoute.indexedStack`, so every
 destination is a real route whose state survives being navigated away from. That
-matters here: a Cleanup sweep runs for tens of seconds, and losing it because
+matters here: a Smart Care sweep runs for tens of seconds, and losing it because
 you glanced at another module would be its own bug.
 
 Styling goes through tokens — no widget hard-codes a colour, size, radius,

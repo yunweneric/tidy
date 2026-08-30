@@ -53,14 +53,11 @@ enum AppDestination {
     blurb: 'One pass over everything, then a single review.',
     tone: ModuleTone.smartCare,
   ),
-  cleanup(
-    path: '/cleanup',
-    label: 'Cleanup',
-    icon: AppIcons.cleanup,
-    group: NavGroup.primary,
-    blurb: 'Reclaim space from caches, logs and build artefacts.',
-    tone: ModuleTone.cleanup,
-  ),
+  // There is no separate Cleanup destination: Smart Care runs the junk sweep
+  // and the rest in one pass, so a second page would have been a narrower view
+  // of the same scan — and, because each page owned its own bloc, a second
+  // sweep of ~/Library to produce a second, smaller answer to "how much can I
+  // get back".
   protection(
     path: '/protection',
     label: 'Protection',
@@ -192,8 +189,7 @@ enum AppDestination {
     label: 'AI Usage',
     icon: AppIcons.aiUsage,
     group: NavGroup.secondary,
-    blurb:
-        'What your AI coding tools have got through, and what it would cost.',
+    blurb: 'What your AI coding tools have got through, and what it would cost.',
     tone: ModuleTone.aiUsage,
   );
 

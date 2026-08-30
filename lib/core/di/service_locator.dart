@@ -14,7 +14,6 @@ import 'package:tidy/features/apps/data/services/junk_scanner.dart';
 import 'package:tidy/features/apps/data/services/leftover_scanner.dart';
 import 'package:tidy/features/apps/data/services/scan_cache.dart';
 import 'package:tidy/features/apps/data/services/unused_apps_module.dart';
-import 'package:tidy/features/cleanup/data/cleanup_module.dart';
 import 'package:tidy/features/cleanup/data/cleanup_scan_module.dart';
 import 'package:tidy/features/cleanup/data/scanners/developer_junk_module.dart';
 import 'package:tidy/features/clipboard/data/services/clipboard_service.dart';
@@ -71,16 +70,6 @@ Future<void> setUpLocator({required bool includeUi}) async {
 
   locator.registerLazySingleton<DeveloperJunkModule>(DeveloperJunkModule.new);
 
-  // Cleanup as the user meets it: system junk and developer junk in one sweep.
-  // Developer Junk is listed first so it wins the path dedupe for the folders
-  // both find under ~/Library/Caches — see CleanupModule.
-  locator.registerLazySingleton<CleanupModule>(
-    () => CleanupModule(
-      developerJunk: locator<DeveloperJunkModule>(),
-      systemJunk: locator<CleanupScanModule>(),
-    ),
-  );
-
   locator.registerLazySingleton<UnusedAppsModule>(
     () => UnusedAppsModule(
       apps: locator<AppManagerService>(),
@@ -92,7 +81,8 @@ Future<void> setUpLocator({required bool includeUi}) async {
   // Composite: owns no scanning of its own, just fans out to the others.
   locator.registerLazySingleton<SmartCareModule>(
     () => SmartCareModule(
-      cleanup: locator<CleanupModule>(),
+      developerJunk: locator<DeveloperJunkModule>(),
+      systemJunk: locator<CleanupScanModule>(),
       unusedApps: locator<UnusedAppsModule>(),
     ),
   );

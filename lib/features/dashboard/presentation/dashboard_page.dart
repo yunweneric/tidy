@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 import 'package:tidy/core/design/design.dart';
 import 'package:tidy/core/di/service_locator.dart';
 import 'package:tidy/core/insights/dashboard_repository.dart';
-import 'package:tidy/core/insights/health_insight.dart';
 import 'package:tidy/core/platform/full_disk_access_service.dart';
 import 'package:tidy/core/scanning/logic/scan_bloc.dart';
 import 'package:tidy/core/scanning/logic/scan_state.dart';
@@ -81,9 +80,9 @@ class _DashboardViewState extends State<_DashboardView> {
   Widget build(BuildContext context) {
     _syncTicker(ActiveDestination.isVisible(context, AppDestination.dashboard));
 
-    // The Cleanup scan is hoisted above every branch by `ShellScaffold`, so its
-    // total is already known if a scan has run. Reading it here rather than
-    // scanning again is the difference between one sweep of ~/Library and two.
+    // The sweep is hoisted above every branch by `ShellScaffold`, so its result
+    // is already known if a scan has run. Reading it here rather than scanning
+    // again is the difference between one sweep of ~/Library and two.
     final scan = context.watch<ScanBloc>().state;
     final junk = _junkFrom(scan);
     if (junk != null) {
@@ -144,20 +143,22 @@ class _DashboardViewState extends State<_DashboardView> {
 
   /// The hero's one action, resolved through the same insight the menu bar uses.
   void _act(BuildContext context, DashboardState state) {
-    final action = state.insight?.action;
-    context.go(switch (action) {
-      HealthInsightAction.cleanJunk => AppDestination.cleanup.path,
-      HealthInsightAction.openApp || null => AppDestination.smartCare.path,
-    });
+    // Every insight leads to the same place now that there is one sweep: the
+    // difference between "clean the junk" and "look at an app" is which tile
+    // you open once you are there, not which page you start on.
+    context.go(AppDestination.smartCare.path);
   }
 
-  /// The scan's total, but only once it means something.
+  /// What the sweep would remove without an argument, but only once it means
+  /// something.
   ///
   /// While a scan is still running the figure climbs as roots land, and a
   /// partial sweep reported as "reclaimable" would be a number that shrinks
-  /// when you look at it properly.
+  /// when you look at it properly. Pre-ticked rather than total, for the same
+  /// reason the sidebar quotes that figure: the sweep also finds applications,
+  /// and those are not bytes anyone has agreed to part with.
   static int? _junkFrom(ScanState scan) => switch (scan.phase) {
-    ScanPhase.results || ScanPhase.finished => scan.totalBytes,
+    ScanPhase.results || ScanPhase.finished => scan.preselectedBytes,
     ScanPhase.clean => 0,
     _ => null,
   };

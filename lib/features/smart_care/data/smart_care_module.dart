@@ -2,25 +2,34 @@ import 'package:tidy/core/design/app_icons.dart';
 import 'package:tidy/core/scanning/domain/composite_scan_module.dart';
 import 'package:tidy/core/scanning/domain/scan_module.dart';
 import 'package:tidy/features/apps/data/services/unused_apps_module.dart';
-import 'package:tidy/features/cleanup/data/cleanup_module.dart';
+import 'package:tidy/features/cleanup/data/cleanup_scan_module.dart';
+import 'package:tidy/features/cleanup/data/scanners/developer_junk_module.dart';
 
 /// One pass over every check that exists, reviewed in one place.
 ///
 /// Smart Care is a [CompositeScanModule] and nothing else — it owns no scanning
-/// logic of its own. Adding a module to [coverage] is all it takes to widen the
-/// sweep, and the module keeps working exactly as it does on its own page.
+/// logic of its own. Adding a module to [modules] is all it takes to widen the
+/// sweep, and each sub-scan keeps working exactly as it did alone.
 ///
-/// Order is deliberate: Cleanup runs first, so when it and the unused-apps pass
-/// both claim a leftover folder, it stays filed under junk rather than being
-/// attached to an app the user may well decide to keep.
+/// This is the app's only sweep. There was a separate Cleanup page running the
+/// junk half of this list on its own, which meant two scans of `~/Library` and
+/// two answers to "how much can I get back" — one of them always the smaller.
+///
+/// Order is deliberate, because the merge hands a contested path to the earlier
+/// module. Developer Junk runs first so the folders it and the system sweep
+/// both find under `~/Library/Caches` — Homebrew, CocoaPods, JetBrains — keep
+/// the label and the safety level of the tool that owns them. Unused Apps runs
+/// last so a leftover folder stays filed as junk rather than being attached to
+/// an application the user may well decide to keep.
 class SmartCareModule extends CompositeScanModule {
   SmartCareModule({
-    required CleanupModule cleanup,
+    required DeveloperJunkModule developerJunk,
+    required CleanupScanModule systemJunk,
     required UnusedAppsModule unusedApps,
   }) : super(
          id: ModuleId.smartCare,
          icon: AppIcons.smartCare,
-         modules: [cleanup, unusedApps],
+         modules: [developerJunk, systemJunk, unusedApps],
        );
 
   /// What this sweep currently covers, for the coverage note on the page.

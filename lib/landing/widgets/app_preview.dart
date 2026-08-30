@@ -191,7 +191,7 @@ class _PreviewWindow extends StatelessWidget {
       mac: mac,
       onNavigate: onNavigate,
     ),
-    PreviewScreen.cleanup => PreviewCleanupPane(
+    PreviewScreen.smartCare => PreviewCleanupPane(
       mac: mac,
       onNavigate: onNavigate,
     ),

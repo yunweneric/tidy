@@ -8,7 +8,6 @@ import 'package:tidy/core/platform/full_disk_access_service.dart';
 import 'package:tidy/core/settings/app_settings.dart';
 import 'package:tidy/core/widgets/fade_through.dart';
 import 'package:tidy/features/apps/presentation/screens/applications_page.dart';
-import 'package:tidy/features/cleanup/presentation/cleanup_page.dart';
 import 'package:tidy/features/dashboard/presentation/dashboard_page.dart';
 import 'package:tidy/features/onboarding/presentation/onboarding_screen.dart';
 import 'package:tidy/features/performance/presentation/performance_page.dart';
@@ -106,7 +105,6 @@ Widget _pageFor(
 ) => switch (destination) {
   AppDestination.dashboard => const DashboardPage(),
   AppDestination.aiUsage => const AiUsagePage(),
-  AppDestination.cleanup => const CleanupPage(),
   AppDestination.applications => const ApplicationsPage(),
   AppDestination.settings => SettingsPage(
     initialSection: SettingsSection.fromName(

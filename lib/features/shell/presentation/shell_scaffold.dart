@@ -18,16 +18,16 @@ import 'package:tidy/core/widgets/widgets.dart';
 import 'package:tidy/features/apps/data/services/apps_service.dart';
 import 'package:tidy/features/apps/logic/app_bloc.dart';
 import 'package:tidy/features/apps/logic/app_event.dart';
-import 'package:tidy/features/cleanup/data/cleanup_module.dart';
 import 'package:tidy/features/shell/domain/app_destination.dart';
 import 'package:tidy/features/shell/presentation/active_destination.dart';
 import 'package:tidy/features/shell/presentation/widgets/nav_sidebar.dart';
+import 'package:tidy/features/smart_care/data/smart_care_module.dart';
 
 /// The window chrome: permanent sidebar, plus whichever branch is active.
 ///
 /// Wraps a [StatefulNavigationShell], so every destination is a real route with
 /// its own navigator whose state survives being navigated away from. That
-/// matters more here than route history does — a Cleanup sweep takes tens of
+/// matters more here than route history does — a Smart Care sweep takes tens of
 /// seconds, and losing it because someone glanced at Applications would be its
 /// own bug report.
 class ShellScaffold extends StatefulWidget {
@@ -116,12 +116,13 @@ class _ShellScaffoldState extends State<ShellScaffold>
                 sampler: locator<MetricSampler>(),
               )..add(LoadApps()),
         ),
-        // Hoisted above the branches so the sidebar can show the reclaimable
-        // figure without running a second scan of its own.
+        // Hoisted above the branches so the sidebar and the Dashboard can
+        // read the sweep without running one of their own. Smart Care's page
+        // reads this same bloc: one scan, one answer, wherever it is shown.
         BlocProvider(
           create:
               (_) => ScanBloc(
-                locator<CleanupModule>(),
+                locator<SmartCareModule>(),
                 hasFullDiskAccess: _fullDiskAccess.granted ?? true,
                 store: locator<TidyStore>(),
               ),
@@ -165,7 +166,7 @@ class _ShellScaffoldState extends State<ShellScaffold>
             animation: _fullDiskAccess,
             builder: (context, _) {
               return BlocBuilder<ScanBloc, ScanState>(
-                builder: (context, cleanupState) {
+                builder: (context, scanState) {
                   return AmbientBackground(
                     // The module owns the window's colour, so switching branches
                     // repaints the whole frame, sidebar included.
@@ -176,11 +177,11 @@ class _ShellScaffoldState extends State<ShellScaffold>
                           current: current,
                           onSelect: _select,
                           disk: _disk,
-                          badges: _badges(cleanupState),
-                          reclaimableBytes: cleanupState.totalBytes,
+                          badges: _badges(scanState),
+                          reclaimableBytes: scanState.preselectedBytes,
                           fullDiskAccessGranted: _fullDiskAccess.granted,
                           onGrantAccess: _fullDiskAccess.openSettings,
-                          onReclaim: () => _select(AppDestination.cleanup),
+                          onReclaim: () => _select(AppDestination.smartCare),
                         ),
                         Expanded(
                           // Branches stay mounted when you navigate away, so a page
@@ -205,8 +206,11 @@ class _ShellScaffoldState extends State<ShellScaffold>
     );
   }
 
-  Map<AppDestination, String> _badges(ScanState cleanup) => {
-    if (cleanup.totalBytes > 0)
-      AppDestination.cleanup: formatBytes(cleanup.totalBytes),
+  /// The rail quotes what is pre-ticked, not what was found. The sweep also
+  /// turns up applications and other judgement calls, and none of those are
+  /// bytes anyone has agreed to part with yet.
+  Map<AppDestination, String> _badges(ScanState scan) => {
+    if (scan.preselectedBytes > 0)
+      AppDestination.smartCare: formatBytes(scan.preselectedBytes),
   };
 }
