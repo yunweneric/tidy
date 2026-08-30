@@ -153,6 +153,10 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
   /// consolidated layout the tab strip is the promise instead.
   MenuBarSurface _surface = MenuBarSurface.fallback;
 
+  /// The surfaces this panel may show, from the native side on every open.
+  /// Every surface until the first open tells it otherwise.
+  List<MenuBarSurface> _surfaces = MenuBarSurface.values;
+
   /// How many icons are on the bar, which decides whether the tab strip shows.
   ///
   /// Arrives with every open rather than being read from settings: this engine
@@ -310,8 +314,26 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
   void _onPopoverOpened(PopoverOpening opening) {
     _layout = MenuBarLayout.fromName(opening.layout);
     _windowStyle = AiWindowStyle.fromName(opening.aiWindowStyle);
+    _surfaces = [
+      for (final id in opening.surfaces)
+        if (MenuBarSurface.tryParse(id) case final surface?) surface,
+    ];
+    // Nothing recognised — an older native side, or a payload that arrived
+    // empty. Every surface is a better answer than none: a tab strip with
+    // nothing in it is a panel with no way out of the section it opened on.
+    if (_surfaces.isEmpty) _surfaces = MenuBarSurface.values;
+
+    final asked = MenuBarSurface.tryParse(opening.section);
+    // The section the icon asked for, unless it is one the user has switched
+    // off — which happens when a hot key names a surface whose icon is gone.
+    // Falling back to the first tab that *is* on keeps the panel and the tab
+    // strip agreeing about what is selected.
     _showSurface(
-      MenuBarSurface.tryParse(opening.section) ?? MenuBarSurface.fallback,
+      asked != null && _surfaces.contains(asked)
+          ? asked
+          : (_surfaces.contains(MenuBarSurface.fallback)
+              ? MenuBarSurface.fallback
+              : _surfaces.first),
     );
   }
 
@@ -542,9 +564,15 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
               // Only in the consolidated layout. In the separate layout each
               // icon already promised one surface, and a strip offering three
               // more would make the icon a lie.
-              if (_layout.isConsolidated) ...[
+              // One surface needs no switcher: the strip would be a single
+              // full-width tab that does nothing when clicked.
+              if (_layout.isConsolidated && _surfaces.length > 1) ...[
                 const Divider(height: 1),
-                MenuBarTabs(selected: _surface, onChanged: _selectSurface),
+                MenuBarTabs(
+                  surfaces: _surfaces,
+                  selected: _surface,
+                  onChanged: _selectSurface,
+                ),
               ],
               const Divider(height: 1),
               ...switch (_surface) {

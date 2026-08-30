@@ -8,7 +8,12 @@ import 'package:flutter/services.dart';
 /// nothing would fail — the panel would open on the wrong tab in the wrong
 /// style, and go on doing it.
 typedef PopoverOpening =
-    ({String? section, String? layout, String? aiWindowStyle});
+    ({
+      String? section,
+      String? layout,
+      String? aiWindowStyle,
+      List<String> surfaces,
+    });
 
 /// Talks to `macos/Runner/MenuBarController.swift`, which owns the status item
 /// and the popover this engine is rendered into.
@@ -38,6 +43,13 @@ class PopoverBridge {
             section: arguments?['section'] as String?,
             layout: arguments?['layout'] as String?,
             aiWindowStyle: arguments?['aiWindowStyle'] as String?,
+            // Which surfaces the user switched on. Empty only if the native
+            // side sent nothing, which the panel reads as "all of them" rather
+            // than as "none" — a tab strip with nothing in it is worse than
+            // one showing a surface that was switched off.
+            surfaces:
+                (arguments?['surfaces'] as List?)?.cast<String>() ??
+                const <String>[],
           ));
         case 'popoverDidClose':
           onPopoverClosed?.call();

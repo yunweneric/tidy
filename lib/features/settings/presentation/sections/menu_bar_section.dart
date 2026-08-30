@@ -108,7 +108,17 @@ class _MenuBarSectionState extends State<MenuBarSection> {
         ),
         const SizedBox(height: AppSpacing.lg),
         SettingsGroup(
-          title: 'What to show',
+          // The switches answer *what*; the layout above answers *how*. They
+          // used to be greyed out in the consolidated layout, on the grounds
+          // that they were the separate layout's controls — but the panel went
+          // on showing a tab for every surface whether or not its switch was
+          // on, so switching Clipboard off left a Clipboard tab sitting there.
+          // They are live in both layouts now, and the heading says what they
+          // do in the one you are in.
+          title:
+              separate
+                  ? 'What to show — one icon each'
+                  : 'What to show — tabs in the panel',
           children: [
             for (final surface in MenuBarSurface.values)
               SettingsSwitchRow(
@@ -118,12 +128,6 @@ class _MenuBarSectionState extends State<MenuBarSection> {
                         : surface.label,
                 detail: _detailFor(surface),
                 value: _settings.showInMenuBar(surface),
-                // Greyed rather than hidden in the consolidated layout. The
-                // switches are the *separate* layout's controls, and honouring
-                // them in both would make "one item" a suggestion — but hiding
-                // them would leave the layout choice looking like it did
-                // nothing.
-                enabled: separate,
                 onChanged:
                     (value) => setState(
                       () => _settings.setShowInMenuBar(surface, value),

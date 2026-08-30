@@ -2,7 +2,7 @@ import 'package:tidy/core/design/app_icons.dart';
 import 'package:tidy/core/scanning/domain/composite_scan_module.dart';
 import 'package:tidy/core/scanning/domain/scan_module.dart';
 import 'package:tidy/features/apps/data/services/unused_apps_module.dart';
-import 'package:tidy/features/cleanup/data/cleanup_scan_module.dart';
+import 'package:tidy/features/cleanup/data/cleanup_module.dart';
 
 /// One pass over every check that exists, reviewed in one place.
 ///
@@ -15,7 +15,7 @@ import 'package:tidy/features/cleanup/data/cleanup_scan_module.dart';
 /// attached to an app the user may well decide to keep.
 class SmartCareModule extends CompositeScanModule {
   SmartCareModule({
-    required CleanupScanModule cleanup,
+    required CleanupModule cleanup,
     required UnusedAppsModule unusedApps,
   }) : super(
          id: ModuleId.smartCare,
@@ -30,6 +30,7 @@ class SmartCareModule extends CompositeScanModule {
   /// never do.
   static const List<String> covered = [
     'Caches, logs and saved window state',
+    'Xcode build output and package-manager caches',
     'Leftovers from apps that are already gone',
     'Apps you have not opened in six months',
   ];

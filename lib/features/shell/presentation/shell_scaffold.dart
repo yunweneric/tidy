@@ -18,7 +18,7 @@ import 'package:tidy/core/widgets/widgets.dart';
 import 'package:tidy/features/apps/data/services/apps_service.dart';
 import 'package:tidy/features/apps/logic/app_bloc.dart';
 import 'package:tidy/features/apps/logic/app_event.dart';
-import 'package:tidy/features/cleanup/data/cleanup_scan_module.dart';
+import 'package:tidy/features/cleanup/data/cleanup_module.dart';
 import 'package:tidy/features/shell/domain/app_destination.dart';
 import 'package:tidy/features/shell/presentation/active_destination.dart';
 import 'package:tidy/features/shell/presentation/widgets/nav_sidebar.dart';
@@ -121,7 +121,7 @@ class _ShellScaffoldState extends State<ShellScaffold>
         BlocProvider(
           create:
               (_) => ScanBloc(
-                locator<CleanupScanModule>(),
+                locator<CleanupModule>(),
                 hasFullDiskAccess: _fullDiskAccess.granted ?? true,
                 store: locator<TidyStore>(),
               ),

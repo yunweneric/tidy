@@ -73,7 +73,8 @@ enum ModuleId {
     'Suspicious Items',
     'Known adware and unusual launch agents.',
   ),
-  privacyItems('Privacy', 'Browsing traces, recent items and saved networks.');
+  privacyItems('Privacy', 'Browsing traces, recent items and saved networks.'),
+  cleanup('Cleanup', 'Junk from macOS, your apps and your dev tools.');
 
   const ModuleId(this.label, this.description);
 

@@ -49,14 +49,13 @@ class MenuBarPrefs {
   /// engine with `popoverDidOpen`, which is the only engine that can act on it.
   final AiWindowStyle windowStyle;
 
-  /// The surfaces that get an icon, in bar order.
+  /// The surfaces the user switched on, in bar order.
   ///
-  /// The same rule the native side applies, kept here so Settings can show the
-  /// count without asking across the boundary: consolidated is always exactly
-  /// one item whatever the switches say, and separate never falls to zero —
-  /// an app with no icon has no way back into its own settings from the bar.
-  List<MenuBarSurface> get visibleSurfaces {
-    if (layout.isConsolidated) return const [MenuBarSurface.dashboard];
+  /// The switches answer *what* Tidy offers; [layout] answers *how* — an icon
+  /// each, or tabs behind one icon. Mirrors `MenuBarPrefs.enabledSurfaces` in
+  /// `MenuBarPrefs.swift`, and never falls to zero: an app with no icon has no
+  /// way back into its own settings from the bar.
+  List<MenuBarSurface> get enabledSurfaces {
     final wanted = [
       for (final surface in MenuBarSurface.values)
         if (switch (surface) {
@@ -69,6 +68,16 @@ class MenuBarPrefs {
     ];
     return wanted.isEmpty ? const [MenuBarSurface.dashboard] : wanted;
   }
+
+  /// The surfaces that get an icon of their own, in bar order.
+  ///
+  /// Kept here so Settings can draw the bar without asking across the
+  /// boundary. Consolidated is exactly one item whatever the switches say —
+  /// there the switches choose the panel's tabs instead.
+  List<MenuBarSurface> get visibleSurfaces =>
+      layout.isConsolidated
+          ? const [MenuBarSurface.dashboard]
+          : enabledSurfaces;
 
   Map<String, dynamic> toMap() => {
     'menuBarLayout': layout.name,
