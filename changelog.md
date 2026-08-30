@@ -28,3 +28,5 @@
 - Scroll the menu bar's clipboard list instead of growing the panel. The popover has a hard height cap, so rows past it were cut off with nothing to say they existed; the list is now bounded and scrollable and holds sixty clips rather than fourteen, still shrink-wrapping so a short history stays short. ([`9c1f3ee`](https://github.com/yunweneric/tidy/commit/9c1f3eee75bceafd8fc0e3437f2eebd0d994176b))
 - Set release notes in the app's own type instead of printing their source ([`ebdd35d`](https://github.com/yunweneric/tidy/commit/ebdd35da259547ce7d528e6b2d2e443375de75d9))
 - Refactor Cleanup module into Smart Care, consolidating functionality for a single sweep ([`85c0451`](https://github.com/yunweneric/tidy/commit/85c0451826f44d9a8490aa0b8d32622913364dd7))
+- Update check interval to 30 minutes and improve update check logic ([`12107da`](https://github.com/yunweneric/tidy/commit/12107da19a6312b0369916687f9698734148eb02))
+- Update version number in pubspec.yaml to 1.0.15+16 for the next release. ([`ea7f6e5`](https://github.com/yunweneric/tidy/commit/ea7f6e52fb6a04ed8163907c564ef5a281423a35))
