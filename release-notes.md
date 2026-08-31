@@ -1,9 +1,9 @@
-## 🧹 Tidy v1.0.17
+## 🧹 Tidy v1.0.18
 
 | Download | For |
 | --- | --- |
-| `Tidy-1.0.17.dmg` | A first install — drag Tidy to Applications |
-| `Tidy-1.0.17-macos.zip` | What the in-app updater downloads |
+| `Tidy-1.0.18.dmg` | A first install — drag Tidy to Applications |
+| `Tidy-1.0.18-macos.zip` | What the in-app updater downloads |
 
 > **Unsigned build.** Tidy is not signed with a Developer ID and not
 > notarized, so the first launch is blocked: open **System Settings →
@@ -25,7 +25,7 @@ Verify your download against `SHA256SUMS.txt`:
 
 The overview panel behind the gauge icon had grown into a summary of the whole
 app: the network rate, a teaser of your clipboard history and the reclaimable
-totals, all sitting under the vitals — and all of them repeating a surface that
+totals, all sitting under the vitals — and each of them repeating a surface that
 already has its own item on the menu bar and its own tab inside the same
 popover.
 
@@ -46,15 +46,13 @@ their own icon if you run separate items, their own tab if you run one.
 
 ### Also in this release
 
-- The drawn app icon now follows the **build's own flavour**, so a dev build
-  stops wearing the shipping icon in its rail and splash. The About card uses
-  the real mark rather than a stand-in glyph.
-- A running scan can be stopped, and the window stays responsive while one runs.
+The drawn app icon now follows the **build's own flavour**, so a development
+build stops wearing the shipping icon in its sidebar and splash. The About card
+uses the real mark rather than a stand-in glyph.
 
-### What changed since v1.0.16
+### What changed since v1.0.17
 
-- Make Stop on a running scan actually stop it, keep the window responsive while one runs, and drop the update toast. ([`100f70b`](https://github.com/yunweneric/tidy/commit/100f70bf96d87a612b79860fd4744f2203e74d9c))
 - Paint the brand mark in the running build's own flavour colours, so a dev build stops wearing the shipping icon in its rail and splash, and use the real mark on the About card instead of a stand-in glyph. ([`bab73a0`](https://github.com/yunweneric/tidy/commit/bab73a09a7eb2c69f41ea936ab6d368405135910))
 - Make the gauge popover about the machine and nothing else. The overview panel no longer carries the network rate, a clipboard teaser or the reclaimable totals — each already has its own menu bar item and its own tab — and shows memory pressure, swap and load average in their place, which the app has been sampling every two seconds and showing nowhere. ([`20ae406`](https://github.com/yunweneric/tidy/commit/20ae4066b64661c188c2632aaaa5ae0801b520f0))
 
-**Full changelog:** https://github.com/yunweneric/tidy/compare/v1.0.16...v1.0.17
+**Full changelog:** https://github.com/yunweneric/tidy/compare/v1.0.17...v1.0.18
