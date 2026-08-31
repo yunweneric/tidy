@@ -21,102 +21,40 @@ Verify your download against `SHA256SUMS.txt`:
 
 ---
 
-### Stop actually stops
+### The gauge popover is about your Mac again
 
-**Stop** on a running scan did nothing. The button was there, it emitted a
-state, and the next result from the still-running sweep painted straight over
-it — the scan only ever ended by finishing. It now genuinely stops, keeps
-whatever it had already found, and a banner says the results are partial rather
-than letting a half-swept run pass for a complete one. A stopped scan is no
-longer written into your history, where it would have shown up as a suspicious
-dip.
+The overview panel behind the gauge icon had grown into a summary of the whole
+app: the network rate, a teaser of your clipboard history and the reclaimable
+totals, all sitting under the vitals — and all of them repeating a surface that
+already has its own item on the menu bar and its own tab inside the same
+popover.
 
-**Start over** sits beside Rescan on the results screen: back to the beginning
-without kicking off another sweep, which is what you want after stopping one you
-did not mean to start.
+It now answers one question, which is the one its icon promises: **is this Mac
+struggling, and what is doing it.**
 
-### The window no longer freezes mid-scan
+- The three gauges, and the one thing worth acting on.
+- **Memory pressure, swap and load average** — new on screen, and not new to the
+  app. They have been sampled every two seconds since the sampler landed and
+  shown nowhere, and they are what make the gauges mean anything: 85% memory is
+  ordinary on a Mac, while 85% with pressure high and swap in use is the machine
+  working for it. Each colours only when it crosses something, so an uncoloured
+  row reads as "nothing to see" without having to say so.
+- What is using the machine right now.
 
-Switching to Dashboard or Applications while a scan was running left the screen
-stuck. The scan's directory walks ran on the same thread that draws the window,
-and opening Applications piled a second walk of `/Applications` on top of the
-first.
+Clipboard, network and what can be reclaimed are all still one click away —
+their own icon if you run separate items, their own tab if you run one.
 
-Those walks now happen off the UI thread — Cleanup's caches and orphan sweep,
-the leftover preview's search roots, and the application inventory. The scan
-takes the same time; the window keeps drawing while it does.
+### Also in this release
 
-### One update notice, not two
+- The drawn app icon now follows the **build's own flavour**, so a dev build
+  stops wearing the shipping icon in its rail and splash. The About card uses
+  the real mark rather than a stand-in glyph.
+- A running scan can be stopped, and the window stays responsive while one runs.
 
-The "update available" toast is gone. The sidebar chip above Settings already
-said the same thing, does more with a click, and was still there after the toast
-had been dismissed — the toast landed on top of the rail that was already
-showing it.
+### What changed since v1.0.16
 
----
+- Make Stop on a running scan actually stop it, keep the window responsive while one runs, and drop the update toast. ([`100f70b`](https://github.com/yunweneric/tidy/commit/100f70bf96d87a612b79860fd4744f2203e74d9c))
+- Paint the brand mark in the running build's own flavour colours, so a dev build stops wearing the shipping icon in its rail and splash, and use the real mark on the About card instead of a stand-in glyph. ([`bab73a0`](https://github.com/yunweneric/tidy/commit/bab73a09a7eb2c69f41ea936ab6d368405135910))
+- Make the gauge popover about the machine and nothing else. The overview panel no longer carries the network rate, a clipboard teaser or the reclaimable totals — each already has its own menu bar item and its own tab — and shows memory pressure, swap and load average in their place, which the app has been sampling every two seconds and showing nowhere. ([`20ae406`](https://github.com/yunweneric/tidy/commit/20ae4066b64661c188c2632aaaa5ae0801b520f0))
 
-## 🧹 Tidy v1.0.16
-
-| Download | For |
-| --- | --- |
-| `Tidy-1.0.16.dmg` | A first install — drag Tidy to Applications |
-| `Tidy-1.0.16-macos.zip` | What the in-app updater downloads |
-
-> **Unsigned build.** Tidy is not signed with a Developer ID and not
-> notarized, so the first launch is blocked: open **System Settings →
-> Privacy & Security** and choose **Open Anyway** (right-click → Open no
-> longer bypasses Gatekeeper on macOS 15+). Updates are verified against
-> the SHA-256 digest published below rather than a code signature.
-
-Tidy runs outside the App Sandbox so it can inspect `/Applications`
-and `~/Library`. Grant it **Full Disk Access** in System Settings and
-relaunch — macOS caches that decision per process, so the grant only
-takes effect after a restart of the app.
-
-Verify your download against `SHA256SUMS.txt`:
-`shasum -a 256 -c SHA256SUMS.txt --ignore-missing`
-
----
-
-### Protection
-
-The last big gap in the sidebar is filled. **Protection** answers three
-questions about this Mac: what starts itself, what your browser extensions can
-reach, and where your apps came from.
-
-**It is not an antivirus, and it says so on the page.** Tidy has no list of
-known-bad software and never downloads one. Everything here is something macOS
-can prove about a file already on your Mac — whether it is signed, by whom,
-whether the program it points at still exists, where it runs from, and which
-browser downloaded it. Verdicts read "Not signed" and "Binary is missing", never
-"malware". A quiet page is not a clean bill of health, and the page says that
-too.
-
-- **Startup items** — every launchd agent and daemon outside macOS's own, with
-  the signature on the program each one runs. A missing binary, something
-  running out of a temporary folder, or a file macOS will not let Tidy open all
-  stand out. Anything Homebrew built is named as such rather than flagged, and
-  any row can be settled so it stops being raised.
-- **Browser extensions** — Chrome, Brave, Edge and Firefox. What each extension
-  can reach, and whether it changes your search engine. "Can read every site" is
-  shown but not treated as a problem: it is true of two in five extensions and
-  is how ad blockers and password managers work.
-- **Installed apps** — who signed each one, and which browser downloaded it and
-  when. Checking an app's seal properly takes seconds, so it is a button on the
-  row rather than part of the sweep.
-- **Privacy traces** — the download history macOS keeps about you.
-
-**What it does not do**, each said in the section it applies to: Safari is not
-covered, because its extensions are App Store apps and its settings sit behind a
-permission Tidy does not ask for. Saved Wi-Fi networks are readable only by an
-administrator, and Tidy will not ask for your password to read a list. Browser
-extensions are revealed and explained rather than removed, because Chrome
-re-installs anything you delete underneath it.
-
-### What changed since v1.0.15
-
-- Move the launchd model and service into `core/` so Protection can read the same startup items Performance does, rather than growing a second plist reader and a second elevated-remove path. The channel name is unchanged; nothing native moved. ([`fd985c4`](https://github.com/yunweneric/tidy/commit/fd985c46acec12b5374d392a3888891c6ddbe5c7))
-- Point Performance at the relocated launch-item service. No behaviour change. ([`82be4c9`](https://github.com/yunweneric/tidy/commit/82be4c9d67c3fb68ef41b412b225e7f9e914d0b8))
-- Build Protection: what starts itself, what your browser extensions can reach, and where your apps came from. Reports only what macOS can prove locally — whether a thing is signed, by whom, whether its binary exists, where it runs from and which browser downloaded it. No list of known-bad software is consulted or downloaded, and the page says so. Startup items can be turned off or removed through the path that already existed for them; browser extensions are revealed and explained rather than deleted, because Chrome undoes that. Safari, saved Wi-Fi networks and recent-item contents are not covered, and each says why. ([`ca17275`](https://github.com/yunweneric/tidy/commit/ca17275947319879c2cfb0d464c1b18686e294c8))
-
-**Full changelog:** https://github.com/yunweneric/tidy/compare/v1.0.15...v1.0.16
+**Full changelog:** https://github.com/yunweneric/tidy/compare/v1.0.16...v1.0.17
