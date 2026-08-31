@@ -23,6 +23,7 @@
 /* Begin PBXBuildFile section */
 		002D095AC6A51DDFA1A94BB7 /* Pods_RunnerTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D0734BE18335D58B0F4D0B0D /* Pods_RunnerTests.framework */; };
 		08639DC4C75ABD10EB121DD3 /* DirectorySizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11EB623CC080D0A266B7331A /* DirectorySizer.swift */; };
+		7A31C4E90D62BB48F1A5E33C /* DuplicateFinder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B92D07AC1E38F5A6D204B71 /* DuplicateFinder.swift */; };
 		0925734A75E40C9513D3AE40 /* FullDiskAccess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 064C93F567966D12E475C156 /* FullDiskAccess.swift */; };
 		331C80D8294CF71000263BE5 /* RunnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 331C80D7294CF71000263BE5 /* RunnerTests.swift */; };
 		335BBD1B22A9A15E00E9071D /* GeneratedPluginRegistrant.swift in Sources */ = {isa = PBXBuildFile; fileRef = 335BBD1A22A9A15E00E9071D /* GeneratedPluginRegistrant.swift */; };
@@ -95,6 +96,7 @@
 		064C93F567966D12E475C156 /* FullDiskAccess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullDiskAccess.swift; sourceTree = "<group>"; };
 		0A1CD25F9E35CACA986FAB4D /* AppInfo-prod.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = "AppInfo-prod.xcconfig"; sourceTree = "<group>"; };
 		11EB623CC080D0A266B7331A /* DirectorySizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DirectorySizer.swift; sourceTree = "<group>"; };
+		4B92D07AC1E38F5A6D204B71 /* DuplicateFinder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuplicateFinder.swift; sourceTree = "<group>"; };
 		141B8FD2F5B7005D3D7C85B7 /* Pods-Runner.debug-dev.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.debug-dev.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.debug-dev.xcconfig"; sourceTree = "<group>"; };
 		1FF75261FF61A60203122AC5 /* Pods-Runner.profile-dev.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.profile-dev.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.profile-dev.xcconfig"; sourceTree = "<group>"; };
 		331C80D5294CF71000263BE5 /* RunnerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RunnerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -286,6 +288,7 @@
 				A582E94BA157B8C02B040738 /* UpdateChannel.swift */,
 				9D0B7E9AD30C5CB38F5F6A4F /* Updater.swift */,
 				11EB623CC080D0A266B7331A /* DirectorySizer.swift */,
+				4B92D07AC1E38F5A6D204B71 /* DuplicateFinder.swift */,
 				064C93F567966D12E475C156 /* FullDiskAccess.swift */,
 				33CC11122044BFA00003C045 /* MainFlutterWindow.swift */,
 				A1B2C3D001AA000000000001 /* SystemChannel.swift */,
@@ -567,6 +570,7 @@
 				D9258076458BE66ECFF7AA80 /* UpdateChannel.swift in Sources */,
 				524DB24E27DC6B3420860B25 /* Updater.swift in Sources */,
 				08639DC4C75ABD10EB121DD3 /* DirectorySizer.swift in Sources */,
+				7A31C4E90D62BB48F1A5E33C /* DuplicateFinder.swift in Sources */,
 				0925734A75E40C9513D3AE40 /* FullDiskAccess.swift in Sources */,
 				335BBD1B22A9A15E00E9071D /* GeneratedPluginRegistrant.swift in Sources */,
 			);

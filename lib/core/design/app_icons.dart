@@ -137,6 +137,10 @@ class AppIcons {
   static const IconData error = HugeIcons.strokeRoundedAlertCircle;
   static const IconData sharedStorage = HugeIcons.strokeRoundedLink01;
   static const IconData check = HugeIcons.strokeRoundedTick02;
+
+  /// Built, but not yet. Deliberately not [close]: a cross reads as "this
+  /// failed" where the truth is "this has not shipped".
+  static const IconData pending = HugeIcons.strokeRoundedClock01;
   static const IconData nothingFound = HugeIcons.strokeRoundedSearchRemove;
 
   // ─── Appearance ──────────────────────────────────────────────────────────

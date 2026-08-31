@@ -16,6 +16,10 @@ import 'package:tidy/features/apps/data/services/scan_cache.dart';
 import 'package:tidy/features/apps/data/services/unused_apps_module.dart';
 import 'package:tidy/features/cleanup/data/cleanup_scan_module.dart';
 import 'package:tidy/features/cleanup/data/scanners/developer_junk_module.dart';
+import 'package:tidy/features/clutter/data/clutter_module.dart';
+import 'package:tidy/features/clutter/data/downloads_scan_module.dart';
+import 'package:tidy/features/clutter/data/duplicates_scan_module.dart';
+import 'package:tidy/features/clutter/data/large_and_old_scan_module.dart';
 import 'package:tidy/features/clipboard/data/services/clipboard_service.dart';
 import 'package:tidy/features/network/data/services/network_service.dart';
 import 'package:tidy/core/services/launch_items_service.dart';
@@ -85,6 +89,24 @@ Future<void> setUpLocator({required bool includeUi}) async {
       developerJunk: locator<DeveloperJunkModule>(),
       systemJunk: locator<CleanupScanModule>(),
       unusedApps: locator<UnusedAppsModule>(),
+    ),
+  );
+
+  // My Clutter: a composite of the sub-scans that are built. Similar photos are
+  // still on the way and deliberately left out — Smart Care and this sweep must
+  // never claim checks they do not run.
+  locator.registerLazySingleton<DuplicatesScanModule>(DuplicatesScanModule.new);
+  locator.registerLazySingleton<LargeAndOldScanModule>(
+    LargeAndOldScanModule.new,
+  );
+  locator.registerLazySingleton<DownloadsClutterScanModule>(
+    DownloadsClutterScanModule.new,
+  );
+  locator.registerLazySingleton<ClutterModule>(
+    () => ClutterModule(
+      duplicates: locator<DuplicatesScanModule>(),
+      largeAndOld: locator<LargeAndOldScanModule>(),
+      downloads: locator<DownloadsClutterScanModule>(),
     ),
   );
 

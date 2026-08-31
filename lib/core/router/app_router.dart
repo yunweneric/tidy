@@ -8,6 +8,7 @@ import 'package:tidy/core/platform/full_disk_access_service.dart';
 import 'package:tidy/core/settings/app_settings.dart';
 import 'package:tidy/core/widgets/fade_through.dart';
 import 'package:tidy/features/apps/presentation/screens/applications_page.dart';
+import 'package:tidy/features/clutter/presentation/clutter_page.dart';
 import 'package:tidy/features/dashboard/presentation/dashboard_page.dart';
 import 'package:tidy/features/onboarding/presentation/onboarding_screen.dart';
 import 'package:tidy/features/performance/presentation/performance_page.dart';
@@ -118,15 +119,7 @@ Widget _pageFor(
   AppDestination.recycleBin => const RecycleBinPage(),
   AppDestination.clipboard => const ClipboardPage(),
   AppDestination.network => const NetworkPage(),
-  AppDestination.clutter => const ComingSoonPage(
-    destination: AppDestination.clutter,
-    planned: [
-      'Find byte-identical duplicates, and flag APFS clones that free nothing',
-      'Group near-identical photos — bursts, edits, re-saves',
-      'Surface large files you have not opened in months',
-      'Clear one-time installers out of Downloads',
-    ],
-  ),
+  AppDestination.clutter => const ClutterPage(),
   AppDestination.spaceLens => const SpaceLensPage(),
   AppDestination.allTools => const ComingSoonPage(
     destination: AppDestination.allTools,
