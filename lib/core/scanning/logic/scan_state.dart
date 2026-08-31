@@ -67,6 +67,7 @@ class ScanState extends Equatable {
     this.recentPaths = const [],
     this.visitedCount = 0,
     this.permissionLimited = false,
+    this.interrupted = false,
     this.outcome,
     this.error,
     this.focusedNodeId,
@@ -105,6 +106,15 @@ class ScanState extends Equatable {
 
   /// At least one root was unreadable — almost always Full Disk Access.
   final bool permissionLimited;
+
+  /// The user pressed Stop, so these results are whatever the sweep had
+  /// reached — not everything there is.
+  ///
+  /// Worth its own flag rather than being inferred from [fraction]: a module
+  /// that cannot know its total never reports one, so a partial run and a
+  /// finished one look identical from the outside. Without this, Stop hands
+  /// back a screen that claims to be a complete answer.
+  final bool interrupted;
 
   final CleanOutcome? outcome;
   final String? error;
@@ -160,6 +170,7 @@ class ScanState extends Equatable {
     List<String>? recentPaths,
     int? visitedCount,
     bool? permissionLimited,
+    bool? interrupted,
     CleanOutcome? outcome,
     String? error,
     String? focusedNodeId,
@@ -176,6 +187,7 @@ class ScanState extends Equatable {
       recentPaths: recentPaths ?? this.recentPaths,
       visitedCount: visitedCount ?? this.visitedCount,
       permissionLimited: permissionLimited ?? this.permissionLimited,
+      interrupted: interrupted ?? this.interrupted,
       outcome: clearOutcome ? null : (outcome ?? this.outcome),
       error: clearError ? null : (error ?? this.error),
       focusedNodeId: clearFocus ? null : (focusedNodeId ?? this.focusedNodeId),
@@ -192,6 +204,7 @@ class ScanState extends Equatable {
     recentPaths,
     visitedCount,
     permissionLimited,
+    interrupted,
     outcome,
     error,
     focusedNodeId,

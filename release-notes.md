@@ -1,3 +1,60 @@
+## 🧹 Tidy v1.0.17
+
+| Download | For |
+| --- | --- |
+| `Tidy-1.0.17.dmg` | A first install — drag Tidy to Applications |
+| `Tidy-1.0.17-macos.zip` | What the in-app updater downloads |
+
+> **Unsigned build.** Tidy is not signed with a Developer ID and not
+> notarized, so the first launch is blocked: open **System Settings →
+> Privacy & Security** and choose **Open Anyway** (right-click → Open no
+> longer bypasses Gatekeeper on macOS 15+). Updates are verified against
+> the SHA-256 digest published below rather than a code signature.
+
+Tidy runs outside the App Sandbox so it can inspect `/Applications`
+and `~/Library`. Grant it **Full Disk Access** in System Settings and
+relaunch — macOS caches that decision per process, so the grant only
+takes effect after a restart of the app.
+
+Verify your download against `SHA256SUMS.txt`:
+`shasum -a 256 -c SHA256SUMS.txt --ignore-missing`
+
+---
+
+### Stop actually stops
+
+**Stop** on a running scan did nothing. The button was there, it emitted a
+state, and the next result from the still-running sweep painted straight over
+it — the scan only ever ended by finishing. It now genuinely stops, keeps
+whatever it had already found, and a banner says the results are partial rather
+than letting a half-swept run pass for a complete one. A stopped scan is no
+longer written into your history, where it would have shown up as a suspicious
+dip.
+
+**Start over** sits beside Rescan on the results screen: back to the beginning
+without kicking off another sweep, which is what you want after stopping one you
+did not mean to start.
+
+### The window no longer freezes mid-scan
+
+Switching to Dashboard or Applications while a scan was running left the screen
+stuck. The scan's directory walks ran on the same thread that draws the window,
+and opening Applications piled a second walk of `/Applications` on top of the
+first.
+
+Those walks now happen off the UI thread — Cleanup's caches and orphan sweep,
+the leftover preview's search roots, and the application inventory. The scan
+takes the same time; the window keeps drawing while it does.
+
+### One update notice, not two
+
+The "update available" toast is gone. The sidebar chip above Settings already
+said the same thing, does more with a click, and was still there after the toast
+had been dismissed — the toast landed on top of the rail that was already
+showing it.
+
+---
+
 ## 🧹 Tidy v1.0.16
 
 | Download | For |

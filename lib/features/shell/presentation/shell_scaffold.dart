@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:tidy/core/design/design.dart';
-import 'package:tidy/core/feedback/feedback.dart';
 import 'package:tidy/core/di/service_locator.dart';
 import 'package:tidy/core/store/metric_sampler.dart';
 import 'package:tidy/core/settings/app_settings.dart';
@@ -128,79 +127,57 @@ class _ShellScaffoldState extends State<ShellScaffold>
               ),
         ),
         // Hoisted for the same reason from the other direction: the check runs
-        // at launch whether or not anyone opens Settings, and the toast below
-        // is the shell's, while the rail's chip and the controls belong to the
-        // sidebar and the Settings page.
+        // at launch whether or not anyone opens Settings, while the rail's chip
+        // and the full controls belong to the sidebar and the Settings page.
         BlocProvider.value(value: _updates),
       ],
-      child: BlocListener<UpdateBloc, UpdateState>(
-        // Only the arrival of an update is announced, and only once — the
-        // download, the check and the install all have a visible home in
-        // Settings, and a toast for each step would narrate a process the user
-        // is already watching.
-        listenWhen:
-            (previous, current) =>
-                current.status == UpdateStatus.available &&
-                previous.status != UpdateStatus.available,
-        listener: (context, updateState) {
-          final release = updateState.release;
-          if (release == null) return;
-          context.toastInfo(
-            'Version ${release.version.display} is ready to download.',
-            title: '${Brand.name} update available',
-            duration: Duration.zero,
-            action: ToastAction(
-              label: 'View',
-              onPressed:
-                  () => context.go(
-                    '${AppDestination.settings.path}?section=updates',
-                  ),
-            ),
-          );
-        },
-        child: Scaffold(
-          // The flat canvas is only a fallback; AmbientBackground paints the
-          // module's own colour over it.
-          backgroundColor: context.colors.canvas,
-          body: AnimatedBuilder(
-            animation: _fullDiskAccess,
-            builder: (context, _) {
-              return BlocBuilder<ScanBloc, ScanState>(
-                builder: (context, scanState) {
-                  return AmbientBackground(
-                    // The module owns the window's colour, so switching branches
-                    // repaints the whole frame, sidebar included.
-                    tone: current.tone,
-                    child: Row(
-                      children: [
-                        NavSidebar(
-                          current: current,
-                          onSelect: _select,
-                          disk: _disk,
-                          badges: _badges(scanState),
-                          reclaimableBytes: scanState.preselectedBytes,
-                          fullDiskAccessGranted: _fullDiskAccess.granted,
-                          onGrantAccess: _fullDiskAccess.openSettings,
-                          onReclaim: () => _select(AppDestination.smartCare),
-                        ),
-                        Expanded(
-                          // Branches stay mounted when you navigate away, so a page
-                          // that polls has no other way to know it is off screen.
-                          child: ActiveDestination(
-                            destination: current,
-                            child: FadeThrough(
-                              trigger: widget.navigationShell.currentIndex,
-                              child: widget.navigationShell,
-                            ),
+      // No toast when an update arrives. `SidebarUpdateChip` is already a
+      // standing row in the rail that says the same thing and does more with
+      // the click — a transient copy of a permanent notice is just something
+      // else to dismiss, and it landed on top of the rail that was already
+      // showing it.
+      child: Scaffold(
+        // The flat canvas is only a fallback; AmbientBackground paints the
+        // module's own colour over it.
+        backgroundColor: context.colors.canvas,
+        body: AnimatedBuilder(
+          animation: _fullDiskAccess,
+          builder: (context, _) {
+            return BlocBuilder<ScanBloc, ScanState>(
+              builder: (context, scanState) {
+                return AmbientBackground(
+                  // The module owns the window's colour, so switching branches
+                  // repaints the whole frame, sidebar included.
+                  tone: current.tone,
+                  child: Row(
+                    children: [
+                      NavSidebar(
+                        current: current,
+                        onSelect: _select,
+                        disk: _disk,
+                        badges: _badges(scanState),
+                        reclaimableBytes: scanState.preselectedBytes,
+                        fullDiskAccessGranted: _fullDiskAccess.granted,
+                        onGrantAccess: _fullDiskAccess.openSettings,
+                        onReclaim: () => _select(AppDestination.smartCare),
+                      ),
+                      Expanded(
+                        // Branches stay mounted when you navigate away, so a page
+                        // that polls has no other way to know it is off screen.
+                        child: ActiveDestination(
+                          destination: current,
+                          child: FadeThrough(
+                            trigger: widget.navigationShell.currentIndex,
+                            child: widget.navigationShell,
                           ),
                         ),
-                      ],
-                    ),
-                  );
-                },
-              );
-            },
-          ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            );
+          },
         ),
       ),
     );

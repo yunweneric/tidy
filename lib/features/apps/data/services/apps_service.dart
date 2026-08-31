@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:tidy/core/logging/logging.dart';
 import 'package:tidy/core/platform/system_bridge.dart';
@@ -45,7 +46,7 @@ class AppManagerService {
   ///
   /// Sorted by name, since there is nothing better to sort by yet.
   Future<List<MacApp>> scanApps() async {
-    final bundles = _discoverBundles();
+    final bundles = await _discoverBundles();
 
     final apps = await mapPooled<_BundleRef, MacApp?>(bundles, _readBundle);
 
@@ -156,9 +157,41 @@ class AppManagerService {
 
   // ---------------------------------------------------------------- discovery
 
-  List<_BundleRef> _discoverBundles() {
+  /// Walks the application folders in a background isolate.
+  ///
+  /// Two `listSync` levels over `/Applications` — every bundle, then every
+  /// child of every grouping folder like `Utilities` — is the single longest
+  /// synchronous block in the app. On the main isolate it stalls the frame
+  /// pump, which is what makes the window look stuck when a scan is running
+  /// and the user switches to Applications.
+  ///
+  /// The unreadable roots come back as data rather than being logged in place:
+  /// the isolate has no logger of its own, the same way
+  /// `browser_extension_audit` handles it.
+  Future<List<_BundleRef>> _discoverBundles() async {
+    final roots = [
+      for (final root in removableRoots) (root, false),
+      (systemAppRoot, true),
+    ];
+
+    final found = await Isolate.run(() => _walkBundles(roots));
+
+    for (final root in found.unreadableRoots) {
+      AppLog.apps.warn(
+        'could not list an applications folder',
+        fields: {'root': root},
+      );
+    }
+
+    return found.bundles;
+  }
+
+  /// Runs inside the isolate. Static, and captures only the plain
+  /// `(path, isSystem)` records handed to it.
+  static _BundleWalk _walkBundles(List<(String, bool)> roots) {
     final bundles = <_BundleRef>[];
     final seen = <String>{};
+    final unreadable = <String>[];
 
     void collect(String root, {required bool isSystem}) {
       final dir = Directory(root);
@@ -167,12 +200,8 @@ class AppManagerService {
       List<FileSystemEntity> entries;
       try {
         entries = dir.listSync(followLinks: false);
-      } on FileSystemException catch (e) {
-        AppLog.apps.failed(
-          'list an applications folder',
-          e,
-          fields: {'root': root},
-        );
+      } on FileSystemException {
+        unreadable.add(root);
         return;
       }
 
@@ -202,12 +231,11 @@ class AppManagerService {
       }
     }
 
-    for (final root in removableRoots) {
-      collect(root, isSystem: false);
+    for (final (root, isSystem) in roots) {
+      collect(root, isSystem: isSystem);
     }
-    collect(systemAppRoot, isSystem: true);
 
-    return bundles;
+    return _BundleWalk(bundles: bundles, unreadableRoots: unreadable);
   }
 
   // ----------------------------------------------------------------- metadata
@@ -361,4 +389,13 @@ class _BundleRef {
 
   final String path;
   final bool isSystem;
+}
+
+/// What the isolate hands back: the bundles it found, and the roots it could
+/// not read so the parent can log them.
+class _BundleWalk {
+  const _BundleWalk({required this.bundles, required this.unreadableRoots});
+
+  final List<_BundleRef> bundles;
+  final List<String> unreadableRoots;
 }

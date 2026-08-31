@@ -98,8 +98,8 @@ StatefulShellBranch _branch(AppDestination destination) {
 
 /// [state] is threaded through for the one destination that takes a parameter:
 /// Settings can be opened straight onto a section with `?section=updates`, so
-/// the "update available" toast can land the user where the button is instead
-/// of on the General tab.
+/// the rail's update chip can land the user where the button is instead of on
+/// the General tab.
 Widget _pageFor(
   AppDestination destination,
   GoRouterState state,
