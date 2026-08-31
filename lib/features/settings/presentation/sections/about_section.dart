@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:tidy/core/design/design.dart';
+import 'package:tidy/core/widgets/brand_mark.dart';
 import 'package:tidy/core/widgets/tidy_card.dart';
 
 class AboutSection extends StatelessWidget {
@@ -16,19 +17,12 @@ class AboutSection extends StatelessWidget {
         children: [
           Row(
             children: [
-              Container(
-                width: 34,
-                height: 34,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: colors.accentGradient,
-                  ),
-                  borderRadius: AppRadii.mdAll,
-                ),
-                child: Icon(Brand.mark, size: 19, color: colors.textOnAccent),
-              ),
+              // The app icon itself, not a stand-in. This was a sparkles
+              // glyph on the accent ramp — a different drawing from the one in
+              // the Dock, on a gradient that follows the theme rather than the
+              // product. The rail was fixed the same way; the card that says
+              // what this app *is* had been left behind.
+              const BrandMark(size: 34),
               const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: Column(
