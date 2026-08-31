@@ -16,7 +16,6 @@ const int _gb = _mb * 1024;
 /// and is not worth a pane. Deriving one from the other would quietly label
 /// both as unfinished.
 const Set<AppDestination> kPlannedDestinations = {
-  AppDestination.protection,
   AppDestination.clutter,
   AppDestination.allTools,
   AppDestination.activity,

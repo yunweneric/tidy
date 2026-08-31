@@ -47,7 +47,7 @@ class SmartCareModule extends CompositeScanModule {
   /// Checks that are not built yet. Listed so the sweep never implies it is
   /// more thorough than it is.
   static const List<String> notYetCovered = [
-    'Malware and suspicious launch agents',
+    'Signature and provenance checks — see Protection',
     'Login items and maintenance tasks',
     'Duplicates and large old files',
   ];

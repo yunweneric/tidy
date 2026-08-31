@@ -58,12 +58,20 @@ enum AppDestination {
   // of the same scan — and, because each page owned its own bloc, a second
   // sweep of ~/Library to produce a second, smaller answer to "how much can I
   // get back".
+  /// Moved out of [NavGroup.soon] when it stopped opening onto a roadmap.
+  ///
+  /// The blurb changed with it. The old one promised a check "for known
+  /// adware", and nothing on this Mac holds a list of that — what the module
+  /// actually does is report signatures and provenance, so that is what it now
+  /// says it does.
   protection(
     path: '/protection',
     label: 'Protection',
     icon: AppIcons.protection,
-    group: NavGroup.soon,
-    blurb: 'Check for known adware and unusual background items.',
+    group: NavGroup.primary,
+    blurb:
+        'What starts itself, what your browser extensions can reach, and where '
+        'your apps came from.',
     tone: ModuleTone.protection,
   ),
   performance(

@@ -70,6 +70,9 @@ class AppSettings extends ChangeNotifier {
   static const String _aiClaudeKey = 'aiUsageIncludeClaude';
   static const String _aiCodexKey = 'aiUsageIncludeCodex';
   static const String _aiRootsKey = 'aiUsageRoots';
+
+  // Protection. Dart-only.
+  static const String _protectionIgnoredKey = 'protectionIgnored';
   static const String _aiClaudeLimitsKey = 'aiUsageClaudeLimits';
 
   // Updates. Dart-only, unlike the clipboard and network keys above: no Swift
@@ -431,6 +434,19 @@ class AppSettings extends ChangeNotifier {
 
   set aiWindowStyle(AiWindowStyle value) {
     _values[_aiWindowStyleKey] = value.name;
+    _persist();
+  }
+
+  /// Findings the user has settled and does not want raised again.
+  ///
+  /// Exists because of Homebrew: a developer's Mac carries several unsigned
+  /// launch agents that are unsigned because they were built locally, and a
+  /// checker that mentions them every visit is one that stops being read.
+  List<String> get protectionIgnored =>
+      (_values[_protectionIgnoredKey] as List?)?.cast<String>() ?? const [];
+
+  set protectionIgnored(List<String> value) {
+    _values[_protectionIgnoredKey] = value;
     _persist();
   }
 

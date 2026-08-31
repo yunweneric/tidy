@@ -21,6 +21,7 @@ import 'package:tidy/features/network/data/services/network_service.dart';
 import 'package:tidy/core/services/launch_items_service.dart';
 import 'package:tidy/features/performance/data/services/maintenance_service.dart';
 import 'package:tidy/features/performance/data/services/process_monitor_service.dart';
+import 'package:tidy/features/protection/data/services/protection_service.dart';
 import 'package:tidy/features/space_lens/data/services/space_lens_service.dart';
 import 'package:tidy/features/recycle_bin/data/services/recycle_bin_service.dart';
 import 'package:tidy/core/models/launch_item.dart';
@@ -96,6 +97,18 @@ Future<void> setUpLocator({required bool includeUi}) async {
   );
   locator.registerLazySingleton<ProcessMonitorService>(
     ProcessMonitorService.new,
+  );
+
+  // ─── Protection ──────────────────────────────────────────────────────────
+  // A singleton for the cache. Reading the signature on seventy apps takes a
+  // second and a half, and going to Settings and back must not pay it again.
+  locator.registerLazySingleton<ProtectionService>(
+    () => ProtectionService(
+      launchItems: locator<LaunchItemsService>(),
+      apps: locator<AppManagerService>(),
+      settings: locator<AppSettings>(),
+      appData: locator<AppDataAccessService>(),
+    ),
   );
 
   // ─── Space Lens ──────────────────────────────────────────────────────────

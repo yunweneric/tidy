@@ -16,6 +16,7 @@ import 'package:tidy/features/network/presentation/network_page.dart';
 import 'package:tidy/features/recycle_bin/presentation/recycle_bin_page.dart';
 import 'package:tidy/features/settings/domain/settings_section.dart';
 import 'package:tidy/features/settings/presentation/settings_page.dart';
+import 'package:tidy/features/protection/presentation/protection_page.dart';
 import 'package:tidy/features/space_lens/presentation/space_lens_page.dart';
 import 'package:tidy/features/shell/domain/app_destination.dart';
 import 'package:tidy/features/shell/presentation/shell_scaffold.dart';
@@ -112,15 +113,7 @@ Widget _pageFor(
     ),
   ),
   AppDestination.smartCare => const SmartCarePage(),
-  AppDestination.protection => const ComingSoonPage(
-    destination: AppDestination.protection,
-    planned: [
-      'Flag launch agents whose binary is missing, unsigned, or hiding in /tmp',
-      'Check installed apps against a list of known adware and browser hijackers',
-      'Audit browser extensions for search hijacking and over-broad permissions',
-      'Clear browsing traces, recent items and saved Wi-Fi networks',
-    ],
-  ),
+  AppDestination.protection => const ProtectionPage(),
   AppDestination.performance => const PerformancePage(),
   AppDestination.recycleBin => const RecycleBinPage(),
   AppDestination.clipboard => const ClipboardPage(),

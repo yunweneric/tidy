@@ -64,7 +64,7 @@ for the web from `lib/main_landing.dart`; see [The landing page](#the-landing-pa
 | **Network** | Live throughput per interface, and the history behind it | ✅ Built |
 | **AI Usage** | What Claude Code and Codex got through, at published API rates | ✅ Built |
 | **Space Lens** | A map of what is filling the disk, a folder at a time | ✅ Built |
-| **Protection** | Known adware, suspicious launch agents, privacy traces | ⏳ Planned |
+| **Protection** | Signatures and provenance for startup items, extensions and apps | ✅ Built |
 | **My Clutter** | Duplicates, similar photos, large and old files | ⏳ Planned |
 
 Planned modules are visible in the sidebar and say plainly that they are not

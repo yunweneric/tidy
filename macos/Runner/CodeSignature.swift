@@ -44,8 +44,24 @@ enum CodeSignature {
       SecCSFlags(rawValue: kSecCSSigningInformation),
       &info
     )
+    // `errSecCSUnsigned` here rather than from the call above: creating a static
+    // code object succeeds for *any* file — a shell script, a text file — and it
+    // is reading the signing information that discovers there is no signature.
+    // Without this an unsigned Homebrew script comes back "signed, developer
+    // unknown", which is both wrong and the more alarming of the two answers.
+    if read == errSecCSUnsigned {
+      return ["path": path, "signed": false]
+    }
     guard read == errSecSuccess, let dictionary = info as? [String: Any] else {
       return ["path": path, "error": message(for: read)]
+    }
+
+    // Belt and braces: some unsigned objects answer successfully with a
+    // dictionary that simply has nothing in it.
+    if dictionary[kSecCodeInfoIdentifier as String] == nil &&
+        dictionary[kSecCodeInfoCertificates as String] == nil &&
+        dictionary[kSecCodeInfoFlags as String] == nil {
+      return ["path": path, "signed": false]
     }
 
     var payload: [String: Any] = ["path": path, "signed": true]

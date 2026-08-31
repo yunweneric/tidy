@@ -51,9 +51,8 @@ class ProtectionFact {
   const ProtectionFact(this.label, this.detail, {this.notable = false});
 
   /// A denied read, in the one shape every area reports it.
-  const ProtectionFact.unreadable(String detail)
+  const ProtectionFact.unreadable(this.detail)
     : label = 'Could not read',
-      detail = detail,
       notable = false;
 
   final String label;
@@ -69,7 +68,24 @@ class ProtectionFact {
 /// What can be done about a finding. The page turns each of these into a button
 /// and nothing else does — a finding with no actions is a statement, which is a
 /// legitimate thing for it to be.
-enum ProtectionAction { reveal, disable, enable, remove, validate, assess, openSettings, openApps }
+enum ProtectionAction {
+  reveal,
+  disable,
+  enable,
+  remove,
+  validate,
+  assess,
+  openSettings,
+  openApps,
+
+  /// Puts macOS's own "access data from other apps" dialog on screen.
+  ///
+  /// Its own action rather than something the page does on load, because with
+  /// this permission the first read *is* the request — see
+  /// `AppDataAccessService`. The row above the button is the explanation that
+  /// has to come first.
+  allowBrowserAccess,
+}
 
 /// One row on the Protection page.
 @immutable
