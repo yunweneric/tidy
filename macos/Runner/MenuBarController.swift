@@ -60,6 +60,10 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
   /// controller rather than outliving it.
   private var clickForwarder: Any?
 
+  /// See `watchForDismissal`. The panel closes itself, so these are what tell
+  /// it to.
+  private var dismissMonitors: [Any] = []
+
   // The panel is a dashboard now, not a menu: three vitals tiles across the
   // top and a live process table below them need room to be read at a glance,
   // which a menu-width strip does not have. The narrower surfaces declare their
@@ -559,9 +563,20 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     // where that gets said, so it is written per render rather than left as the
     // surface's standing line.
     button.toolTip =
-      style == .percentAndBlock && !shares.isEmpty
-      ? shares.map(\.spoken).joined(separator: "\n")
-      : MenuBarSurface.aiUsage.tooltip
+      if !shares.isEmpty, style == .percentAndBlock || style == .ring {
+        shares.map(\.spoken).joined(separator: "\n")
+      } else if shares.isEmpty, style.needsShare {
+        // The one case where the item is not drawing what its setting names.
+        // Without this the bar simply shows a cost and the setting looks
+        // broken, which is what it was reported as.
+        """
+        No share to draw yet, so this is today's cost instead.
+        Codex publishes a reading after its first request in the current window; \
+        Claude Code has one while a five-hour block is open.
+        """
+      } else {
+        MenuBarSurface.aiUsage.tooltip
+      }
     button.image = readout
 
     item.length = NSStatusItem.variableLength
@@ -763,11 +778,17 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
 
     let text: NSAttributedString
     switch style {
-    // A percentage style with nothing to be a percentage of — no open block and
-    // no published reading — falls back to the cost rather than to a dash: a
-    // figure that is true beats a placeholder that is only honest.
+    // A share style with nothing to be a share of — no open block and no
+    // published reading — falls back to the cost rather than to a dash: a
+    // figure that is true beats a placeholder that is only honest. It looks
+    // from the bar like the setting did nothing, which is why Settings says so
+    // in words; see `_Caveat` in `menu_bar_section.dart`.
     case .cost, .block, .percentAndBlock:
       text = aiFigureTitle(cost)
+    case .ring:
+      text = aiFigureTitle(shares.first?.label ?? cost)
+    case .tokens:
+      text = aiFigureTitle(tokens)
     case .costAndTokens:
       text = aiStackedTitle(cost: cost, tokens: tokens)
     }
@@ -784,10 +805,14 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
       height: measured.height.rounded(.up)
     )
 
-    // Only the block style carries a bar here, and only while there is a share
-    // to fill it with. The first in scope, which with both providers on is
-    // Claude Code's five-hour block — the window this style was built for.
-    let bar = style == .block ? shares.first.map { blockImage($0.share) } : nil
+    // The gauge in front of the figure, and only while there is a share to
+    // fill it with. The first in scope, which with both providers on is Claude
+    // Code's five-hour block — the window these styles were built for.
+    let bar: NSImage? = switch style {
+    case .block: shares.first.map { blockImage($0.share) }
+    case .ring: shares.first.map { ringImage($0.share) }
+    default: nil
+    }
     let barWidth = bar.map { $0.size.width + networkGap } ?? 0
 
     let image = NSImage(
@@ -925,6 +950,53 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
   /// difference anybody reads at menu bar size; six blocks quantise it into
   /// something countable at a glance. Every segment is drawn either way — an
   /// unlit one at low alpha — so a bar at 0% is still visibly a bar.
+  /// The same share as a ring: a 12pt track with the used arc drawn over it,
+  /// clockwise from twelve.
+  ///
+  /// Kept in step with `_Ring` in the settings preview, the way `blockImage` is
+  /// with `_ReadoutBar`. A ring rather than segments because the bar is a
+  /// crowded 22pt strip: this reads at a glance in half the width, at the cost
+  /// of being harder to read a precise value off — which is why the figure
+  /// stays beside it.
+  private static func ringImage(_ share: Double) -> NSImage {
+    let size = NSSize(width: 12, height: 12)
+    let width: CGFloat = 2.5
+    let filled = min(max(share, 0), 1)
+
+    let image = NSImage(size: size, flipped: false) { rect in
+      let centre = NSPoint(x: rect.midX, y: rect.midY)
+      let radius = (rect.width - width) / 2
+
+      let track = NSBezierPath()
+      track.appendArc(withCenter: centre, radius: radius, startAngle: 0, endAngle: 360)
+      track.lineWidth = width
+      // The same third-strength unlit tone the segmented bar uses, so the two
+      // styles read as the same reading in two shapes.
+      NSColor.black.withAlphaComponent(0.32).setStroke()
+      track.stroke()
+
+      // Nothing to draw at zero, and `appendArc` with equal angles draws a
+      // full circle rather than none — which would read as completely used.
+      if filled > 0 {
+        let used = NSBezierPath()
+        used.appendArc(
+          withCenter: centre,
+          radius: radius,
+          startAngle: 90,
+          endAngle: 90 - 360 * filled,
+          clockwise: true
+        )
+        used.lineWidth = width
+        used.lineCapStyle = .round
+        NSColor.black.setStroke()
+        used.stroke()
+      }
+      return true
+    }
+    image.isTemplate = true
+    return image
+  }
+
   private static func blockImage(_ share: Double) -> NSImage {
     let segments = 6
     let gap: CGFloat = 1
@@ -1113,10 +1185,25 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
 
     popover.contentViewController = controller
     popover.contentSize = NSSize(width: panelWidth, height: 520)
-    popover.behavior = .transient
+    // `.applicationDefined`, not `.transient`, and the dismissal is ours.
+    //
+    // `.transient` dismisses on the mouse-*down* of any click outside the
+    // panel — and a status item is outside the panel. The button's action
+    // fires on mouse-*up*, by which point AppKit had already closed the
+    // popover, so `togglePopover` saw a closed panel and opened it again. The
+    // second click on an icon therefore never closed anything: it closed and
+    // reopened, fast enough to look like nothing happened at all. No amount of
+    // care in `togglePopover` could fix that, because the state it branches on
+    // had already been changed underneath it.
+    //
+    // So the panel is told when to close instead of guessing: `watchForDismissal`
+    // handles clicks outside the app and elsewhere in it, and `itemClicked`
+    // handles our own icons — each in one place, with no race between them.
+    popover.behavior = .applicationDefined
     popover.animates = true
     popover.delegate = self
     forwardClicksIntoThePanel()
+    watchForDismissal()
 
     // The popover engine is started headless, before any window exists, and
     // does not reliably pick up the system appearance the way the main window
@@ -1132,7 +1219,8 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     }
   }
 
-  /// Hands clicks to the panel's view controller, because AppKit will not.
+  /// Hands clicks and scrolls to the panel's view controller, because AppKit
+  /// will not.
   ///
   /// A view nested inside an `NSPopover` does not get `mouseDown:`/`mouseUp:`
   /// forwarded up its responder chain: the events arrive at the window, the
@@ -1156,7 +1244,15 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
   /// with the click because a drag that never got its mouse-down is not a drag.
   private func forwardClicksIntoThePanel() {
     clickForwarder = NSEvent.addLocalMonitorForEvents(
-      matching: [.leftMouseDown, .leftMouseUp, .leftMouseDragged]
+      // `.scrollWheel` for the same reason as the clicks, and it went unnoticed
+      // for as long as it did because nothing in the panel scrolled: the panel
+      // resized itself to its content instead. The clipboard list is the first
+      // thing here with more rows than the popover's height cap allows, and
+      // without this it would be a list that cannot be scrolled to the bottom
+      // of. `FlutterViewController` implements `scrollWheel(with:)` just as it
+      // implements `mouseDown(with:)`, so it is stranded by the same broken
+      // responder chain.
+      matching: [.leftMouseDown, .leftMouseUp, .leftMouseDragged, .scrollWheel]
     ) { [weak self] event in
       guard let self,
             let controller = self.popover.contentViewController,
@@ -1169,12 +1265,85 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
       switch event.type {
       case .leftMouseDown: controller.mouseDown(with: event)
       case .leftMouseUp: controller.mouseUp(with: event)
+      case .scrollWheel: controller.scrollWheel(with: event)
       default: controller.mouseDragged(with: event)
       }
       // Swallowed: it has been delivered by hand, and letting it carry on would
       // be the same click twice on any macOS where AppKit does deliver it.
       return nil
     }
+  }
+
+  /// Closes the panel on anything that is not a click inside it.
+  ///
+  /// What `.transient` used to do, minus the part that broke the icons. Three
+  /// monitors, because AppKit splits the world three ways:
+  ///
+  /// - **Global** sees clicks that belong to other apps — another window, the
+  ///   desktop, another app's menu bar item. Our own clicks never arrive here.
+  /// - **Local** sees clicks that belong to us: the main window, a panel, and
+  ///   our own status items. The status items are handed straight back, because
+  ///   `itemClicked` owns those and two closers racing over one click is the
+  ///   bug this whole change is about.
+  /// - **Escape**, which `.transient` gave for free and `.applicationDefined`
+  ///   does not, and which is the first thing anyone tries on a panel with no
+  ///   close button.
+  private func watchForDismissal() {
+    let outside = NSEvent.addGlobalMonitorForEvents(
+      matching: [.leftMouseDown, .rightMouseDown, .otherMouseDown]
+    ) { [weak self] _ in
+      self?.dismissPanel()
+    }
+
+    let inside = NSEvent.addLocalMonitorForEvents(
+      matching: [.leftMouseDown, .rightMouseDown, .otherMouseDown]
+    ) { [weak self] event in
+      guard let self, self.panelIsOnScreen else { return event }
+
+      // Inside the panel: not a dismissal. The forwarder above delivers it.
+      if let window = self.popover.contentViewController?.view.window,
+         event.window === window {
+        return event
+      }
+      // One of our status items: `itemClicked` decides, on mouse-up. Closing
+      // here would put us back to closing on the way down and reopening on the
+      // way up, which is exactly what `.transient` was doing.
+      if self.items.values.contains(where: { $0.button?.window === event.window }) {
+        return event
+      }
+
+      self.dismissPanel()
+      return event
+    }
+
+    let escape = NSEvent.addLocalMonitorForEvents(matching: [.keyDown]) {
+      [weak self] event in
+      guard let self, self.panelIsOnScreen, event.keyCode == 53 else {
+        return event
+      }
+      self.dismissPanel()
+      // Swallowed: the panel took it, and letting it travel on would also
+      // dismiss whatever is behind the panel.
+      return nil
+    }
+
+    dismissMonitors = [outside, inside, escape].compactMap { $0 }
+  }
+
+  /// Whether the panel is actually up.
+  ///
+  /// `isShown` alone is not enough — it can outlive the window, because Dart
+  /// closes the popover itself after a clip is copied. The window is the truth,
+  /// and a stale `true` here means every later click is read as "close the
+  /// thing that is already closed".
+  private var panelIsOnScreen: Bool {
+    popover.isShown
+      && (popover.contentViewController?.view.window?.isVisible ?? false)
+  }
+
+  private func dismissPanel() {
+    guard panelIsOnScreen else { return }
+    popover.performClose(nil)
   }
 
   private static var isDarkAppearance: Bool {
@@ -1185,42 +1354,26 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     channel?.invokeMethod("appearanceChanged", arguments: ["dark": Self.isDarkAppearance])
   }
 
-  /// A click on an icon opens its panel, and a second click on the *same* icon
-  /// closes it. A click on the other icon while the panel is open moves the
-  /// panel rather than dismissing it — the two icons are two views of one
-  /// panel, and going between them should not cost a round trip through
-  /// closed.
+  /// A click on an icon opens the panel; a click on *any* of our icons while
+  /// it is open closes it.
+  ///
+  /// Including a different icon from the one it is hanging off. This used to
+  /// relocate the panel instead — two icons being two views of one panel — but
+  /// that only ever half-worked: `.transient` was closing the popover on the
+  /// way down before this method ran, so the "move" was really a close and a
+  /// reopen with the animation suppressed to hide the seam. Now that the
+  /// dismissal is ours, a click on an icon that is already showing a panel does
+  /// the one thing every menu bar item on the system does, which is put it
+  /// away.
   private func togglePopover(from button: NSStatusBarButton, section: String?) {
-    // `isShown` can outlive the window — Dart closes the popover itself after
-    // a clip is copied — and a stale true means every later click is read as
-    // "close the thing that is already closed". The window is the truth.
-    let onScreen = popover.isShown
-      && (popover.contentViewController?.view.window?.isVisible ?? false)
-
-    if onScreen && anchor === button {
+    if panelIsOnScreen {
       popover.performClose(nil)
       return
     }
-    guard popover.isShown else {
-      showPopover(section: section, from: button)
-      return
-    }
-
-    // Moving between two of our own icons, which is the one case where the
-    // panel is not appearing or disappearing — it is relocating.
-    //
-    // The animation is what stopped it reading that way. A show fades and
-    // scales the panel up from nothing, so following a close with one turned
-    // every move into "out, then in", with a beat of empty menu bar between
-    // them. Off for the move, those two beats become one. It goes back on
-    // straight afterwards: for an actual opening, from nothing, at the icon
-    // that was just clicked, the fade is the right macOS behaviour and its
-    // absence is what would look wrong.
-    popover.animates = false
-    defer { popover.animates = true }
-    // close(), not performClose(): the animated close is still running when
-    // the next show starts, and the popover comes back up empty.
-    popover.close()
+    // Not on screen, but `isShown` may still be true — see `panelIsOnScreen`.
+    // close(), not performClose(): an animated close still running when the
+    // next show starts brings the popover back up empty.
+    if popover.isShown { popover.close() }
     showPopover(section: section, from: button)
   }
 
@@ -1345,9 +1498,14 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
   /// style travels the same road for the same reason — nothing native draws
   /// with it; it is the popover's to apply.
   private func arguments(for section: String?) -> [String: Any] {
+    let prefs = MenuBarStore.shared.prefs
     var arguments: [String: Any] = [
-      "layout": MenuBarStore.shared.prefs.layout.rawValue,
-      "aiWindowStyle": MenuBarStore.shared.prefs.aiWindowStyle.rawValue,
+      "layout": prefs.layout.rawValue,
+      "aiWindowStyle": prefs.aiWindowStyle.rawValue,
+      // Which tabs the consolidated panel offers. Sent rather than assumed:
+      // this engine has no `AppSettings`, and it was drawing a tab per surface
+      // that exists rather than per surface the user switched on.
+      "surfaces": prefs.enabledSurfaces.map(\.rawValue),
     ]
     if let section { arguments["section"] = section }
     return arguments
@@ -1454,6 +1612,9 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     }
     if let clickForwarder {
       NSEvent.removeMonitor(clickForwarder)
+    }
+    for monitor in dismissMonitors {
+      NSEvent.removeMonitor(monitor)
     }
   }
 }

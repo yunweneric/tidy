@@ -8,10 +8,13 @@ import 'package:tidy/features/shell/domain/app_destination.dart';
 /// The "there is a newer version" prompt, pinned in the rail just above
 /// Settings.
 ///
-/// The toast the shell raises is a moment; this is the standing reminder. It
-/// sits beside Settings because that is where the full controls (release notes,
-/// skip, the automatic-check preference) live, and it is one row tall because
-/// the rail already carries a card — a second block the size of
+/// The only announcement an update gets: the shell used to raise a toast as
+/// well, which said the same thing over the top of this row and had to be
+/// dismissed to read it. A standing reminder does not need a transient one.
+///
+/// It sits beside Settings because that is where the full controls (release
+/// notes, skip, the automatic-check preference) live, and it is one row tall
+/// because the rail already carries a card — a second block the size of
 /// [StorageSummary] would make the foot of the sidebar heavier than the
 /// navigation above it.
 ///

@@ -1,9 +1,9 @@
-## 🧹 Tidy v1.0.10
+## 🧹 Tidy v1.0.18
 
 | Download | For |
 | --- | --- |
-| `Tidy-1.0.9.dmg` | A first install — drag Tidy to Applications |
-| `Tidy-1.0.9-macos.zip` | What the in-app updater downloads |
+| `Tidy-1.0.18.dmg` | A first install — drag Tidy to Applications |
+| `Tidy-1.0.18-macos.zip` | What the in-app updater downloads |
 
 > **Unsigned build.** Tidy is not signed with a Developer ID and not
 > notarized, so the first launch is blocked: open **System Settings →
@@ -21,13 +21,38 @@ Verify your download against `SHA256SUMS.txt`:
 
 ---
 
-### What changed since v1.0.8
+### The gauge popover is about your Mac again
 
-- Enhance README with download statistics section and clarify asset download metrics. Update app icons with new menu and GitHub icons. Improve landing navigation for touch devices with responsive height adjustments and a new navigation sheet for better user experience. ([`4f237c4`](https://github.com/yunweneric/tidy/commit/4f237c45d6f535892e8272ab829b08a9ba59d7ba))
-- Refactor landing navigation for improved touch responsiveness and update GitHub icon with a star badge. Introduce new filled star icon for better visual clarity in the GitHub chip component. ([`5ac9c7d`](https://github.com/yunweneric/tidy/commit/5ac9c7d8443018f8c14cdaf5ffe8dd4c4293c0db))
-- Implement AI usage features in menu bar settings, including new readout scope and window style options. Update related models and UI components to support per-provider usage tracking. Refactor menu bar preferences and popover handling to accommodate these changes. ([`f3592d1`](https://github.com/yunweneric/tidy/commit/f3592d1c24bcdf1448792a8f152fca1cf8f01ac5))
-- Refactor permission section initialization to ensure service refresh occurs after the frame is built, preventing potential UI issues during rebuilds. This change enhances the handling of macOS permission requests and maintains silent operation until the request has been made. ([`ea3ba16`](https://github.com/yunweneric/tidy/commit/ea3ba16fba2a22e2503604d5117ba9fd5283f2d3))
-- Update version number in pubspec.yaml to 1.0.9+10 for the next release. ([`f05a43d`](https://github.com/yunweneric/tidy/commit/f05a43deadeaa89b0e6fe4df62b77945c0772194))
-- Add an update prompt to the sidebar; a chip pinned above Settings now follows the update check and carries the download, the install and the cancel inline, with a progress bar while the release is fetched and a red row when it fails. Hoisted the update bloc into the shell state so re-activating the window re-checks after a sleep, and fixed `?section=updates` so both the chip and the toast land on the Updates tab when Settings was already open on another one.
+The overview panel behind the gauge icon had grown into a summary of the whole
+app: the network rate, a teaser of your clipboard history and the reclaimable
+totals, all sitting under the vitals — and each of them repeating a surface that
+already has its own item on the menu bar and its own tab inside the same
+popover.
 
-**Full changelog:** https://github.com/yunweneric/tidy/compare/v1.0.8...v1.0.9
+It now answers one question, which is the one its icon promises: **is this Mac
+struggling, and what is doing it.**
+
+- The three gauges, and the one thing worth acting on.
+- **Memory pressure, swap and load average** — new on screen, and not new to the
+  app. They have been sampled every two seconds since the sampler landed and
+  shown nowhere, and they are what make the gauges mean anything: 85% memory is
+  ordinary on a Mac, while 85% with pressure high and swap in use is the machine
+  working for it. Each colours only when it crosses something, so an uncoloured
+  row reads as "nothing to see" without having to say so.
+- What is using the machine right now.
+
+Clipboard, network and what can be reclaimed are all still one click away —
+their own icon if you run separate items, their own tab if you run one.
+
+### Also in this release
+
+The drawn app icon now follows the **build's own flavour**, so a development
+build stops wearing the shipping icon in its sidebar and splash. The About card
+uses the real mark rather than a stand-in glyph.
+
+### What changed since v1.0.17
+
+- Paint the brand mark in the running build's own flavour colours, so a dev build stops wearing the shipping icon in its rail and splash, and use the real mark on the About card instead of a stand-in glyph. ([`bab73a0`](https://github.com/yunweneric/tidy/commit/bab73a09a7eb2c69f41ea936ab6d368405135910))
+- Make the gauge popover about the machine and nothing else. The overview panel no longer carries the network rate, a clipboard teaser or the reclaimable totals — each already has its own menu bar item and its own tab — and shows memory pressure, swap and load average in their place, which the app has been sampling every two seconds and showing nowhere. ([`20ae406`](https://github.com/yunweneric/tidy/commit/20ae4066b64661c188c2632aaaa5ae0801b520f0))
+
+**Full changelog:** https://github.com/yunweneric/tidy/compare/v1.0.17...v1.0.18

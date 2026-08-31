@@ -208,8 +208,8 @@ class DeveloperJunkPage extends StatelessWidget {
 ```
 
 The page reads its `ScanBloc` from above, so provide it wherever the page is
-mounted — see `ShellScaffold` for how Cleanup's bloc is hoisted so the sidebar
-can read the same scan.
+mounted — see `ShellScaffold` for how Smart Care's bloc is hoisted so the
+sidebar and the Dashboard read the same scan.
 
 ---
 

@@ -1,6 +1,10 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:tidy/core/design/design.dart';
+import 'package:tidy/core/di/service_locator.dart';
 import 'package:tidy/core/settings/app_settings.dart';
+import 'package:tidy/core/utils/byte_format.dart';
 import 'package:tidy/core/widgets/brand_mark.dart';
 import 'package:tidy/core/widgets/tidy_card.dart';
 import 'package:tidy/core/widgets/usage_window_row.dart';
@@ -9,6 +13,7 @@ import 'package:tidy/features/ai_usage/data/models/ai_provider.dart';
 import 'package:tidy/features/ai_usage/data/models/ai_readout_scope.dart';
 import 'package:tidy/features/ai_usage/data/models/ai_usage_summary.dart';
 import 'package:tidy/features/ai_usage/data/models/ai_window_style.dart';
+import 'package:tidy/features/ai_usage/data/services/ai_usage_service.dart';
 import 'package:tidy/features/menubar/data/models/menu_bar_prefs.dart';
 import 'package:tidy/features/menubar/domain/menu_bar_surface.dart';
 import 'package:tidy/features/network/data/models/network_prefs.dart';
@@ -39,6 +44,38 @@ class MenuBarSection extends StatefulWidget {
 class _MenuBarSectionState extends State<MenuBarSection> {
   AppSettings get _settings => widget.settings;
 
+  /// What the bar has to draw with right now, or null when no sweep has run.
+  ///
+  /// Read once, from the report the AI page already built — `summarise()` folds
+  /// every day and every recent hour, so it is not something to do per build,
+  /// and starting a sweep to decorate a settings pane would be a scan running
+  /// for a picture. Where it is null the preview says its figures are samples.
+  late final AiUsageSummary? _summary =
+      locator<AiUsageService>().cached?.summarise();
+
+  /// The share each provider would fill a bar to, by the same rule the bar
+  /// uses — [AiProviderReadout.shareAt], which mirrors the Swift side.
+  Map<AiProvider, double> get _shares {
+    final summary = _summary;
+    if (summary == null) return const {};
+    final now = DateTime.now();
+    return {
+      for (final readout in summary.providers)
+        if (readout.shareAt(now) case final share?) readout.provider: share,
+    };
+  }
+
+  /// Whether the chosen style can draw what its name says on this Mac, now.
+  ///
+  /// A share style with no share falls back to the cost — see `aiReadout` in
+  /// `MenuBarController.swift` — so picking it changes nothing on the bar. That
+  /// silence is what this whole caveat exists to break.
+  bool get _styleCanDraw {
+    if (!_settings.aiMenuBarStyle.needsShare) return true;
+    if (_summary == null) return true;
+    return _settings.aiReadoutScope.providers.any(_shares.containsKey);
+  }
+
   /// Roughly what an item asks macOS for.
   ///
   /// A glyph is the 18pt canvas plus AppKit's own padding either side. A
@@ -64,6 +101,10 @@ class _MenuBarSectionState extends State<MenuBarSection> {
       // each where it asks for one.
       AiMenuBarStyle.percentAndBlock =>
         _settings.aiReadoutScope == AiReadoutScope.both ? 116 : 60,
+      // A ring is half the width of six segments, which is the whole reason
+      // the style exists.
+      AiMenuBarStyle.ring => 60,
+      AiMenuBarStyle.tokens => 50,
     },
   };
 
@@ -89,6 +130,12 @@ class _MenuBarSectionState extends State<MenuBarSection> {
           aiScope: _settings.aiReadoutScope,
           networkStyle: _settings.networkMenuBarStyle,
           points: visible.fold<double>(0, (sum, s) => sum + _widthOf(s)),
+          summary: _summary,
+          shares: _shares,
+          caveat:
+              _styleCanDraw
+                  ? null
+                  : _missingShareLine(_settings.aiReadoutScope),
         ),
         const SizedBox(height: AppSpacing.lg),
         SettingsGroup(
@@ -108,7 +155,17 @@ class _MenuBarSectionState extends State<MenuBarSection> {
         ),
         const SizedBox(height: AppSpacing.lg),
         SettingsGroup(
-          title: 'What to show',
+          // The switches answer *what*; the layout above answers *how*. They
+          // used to be greyed out in the consolidated layout, on the grounds
+          // that they were the separate layout's controls — but the panel went
+          // on showing a tab for every surface whether or not its switch was
+          // on, so switching Clipboard off left a Clipboard tab sitting there.
+          // They are live in both layouts now, and the heading says what they
+          // do in the one you are in.
+          title:
+              separate
+                  ? 'What to show — one icon each'
+                  : 'What to show — tabs in the panel',
           children: [
             for (final surface in MenuBarSurface.values)
               SettingsSwitchRow(
@@ -118,12 +175,6 @@ class _MenuBarSectionState extends State<MenuBarSection> {
                         : surface.label,
                 detail: _detailFor(surface),
                 value: _settings.showInMenuBar(surface),
-                // Greyed rather than hidden in the consolidated layout. The
-                // switches are the *separate* layout's controls, and honouring
-                // them in both would make "one item" a suggestion — but hiding
-                // them would leave the layout choice looking like it did
-                // nothing.
-                enabled: separate,
                 onChanged:
                     (value) => setState(
                       () => _settings.setShowInMenuBar(surface, value),
@@ -203,6 +254,30 @@ class _MenuBarSectionState extends State<MenuBarSection> {
     );
   }
 
+  /// Why the chosen style is drawing a cost instead of a share, in the terms
+  /// of whichever provider is in scope.
+  ///
+  /// Each has its own reason and they are not interchangeable: Codex has to
+  /// publish a reading, Claude Code has to be inside a block. Naming the wrong
+  /// one would send someone to check the wrong thing.
+  static String _missingShareLine(AiReadoutScope scope) => switch (scope) {
+    AiReadoutScope.codex =>
+      'Codex has not published a reading for the current window yet — it does '
+          'that after its first request in one. Until then this style shows '
+          'today’s cost instead of a share, which is why the bar looks '
+          'unchanged.',
+    AiReadoutScope.claudeCode =>
+      'Claude Code has no open five-hour block right now, and publishes no '
+          'limit of its own unless plan limits are on. Until one opens this '
+          'style shows today’s cost instead of a share, which is why the bar '
+          'looks unchanged.',
+    AiReadoutScope.both =>
+      'Neither tool has a share to draw yet — Codex publishes one after its '
+          'first request in the current window, Claude Code while a five-hour '
+          'block is open. Until then this style shows today’s cost, which is '
+          'why the bar looks unchanged.',
+  };
+
   String _detailFor(MenuBarSurface surface) => switch (surface) {
     MenuBarSurface.dashboard =>
       'Disk, memory and what is running. Also the way back into ${Brand.name} '
@@ -261,6 +336,9 @@ class _BarPreview extends StatelessWidget {
     required this.aiScope,
     required this.networkStyle,
     required this.points,
+    required this.summary,
+    required this.shares,
+    this.caveat,
   });
 
   final List<MenuBarSurface> surfaces;
@@ -270,6 +348,15 @@ class _BarPreview extends StatelessWidget {
 
   /// What the current choice asks the bar for, in points.
   final double points;
+
+  /// This Mac's own figures, or null when no sweep has run this session.
+  final AiUsageSummary? summary;
+
+  /// The share each provider can actually fill a bar to right now.
+  final Map<AiProvider, double> shares;
+
+  /// Why the chosen style will not draw what its name says, if it will not.
+  final String? caveat;
 
   @override
   Widget build(BuildContext context) {
@@ -303,6 +390,8 @@ class _BarPreview extends StatelessWidget {
                     aiStyle: aiStyle,
                     aiScope: aiScope,
                     networkStyle: networkStyle,
+                    summary: summary,
+                    shares: shares,
                   ),
                   const SizedBox(width: AppSpacing.md),
                 ],
@@ -318,6 +407,10 @@ class _BarPreview extends StatelessWidget {
               ],
             ),
           ),
+          if (caveat != null) ...[
+            const SizedBox(height: AppSpacing.md),
+            _Caveat(caveat!),
+          ],
           const SizedBox(height: AppSpacing.md),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -336,12 +429,13 @@ class _BarPreview extends StatelessWidget {
                     ),
                     const SizedBox(height: AppSpacing.xxs),
                     Text(
-                      'Sample figures above. A menu bar has only what is left '
-                      'after the frontmost app’s menus, and on a notched Mac '
-                      'only what is left to the right of the notch. Past that '
-                      'macOS does not shrink anything or drop the widest item '
-                      '— it hands out slots underneath the notch, where '
-                      'nothing is drawn, and icons you already had disappear.',
+                      '${summary == null ? 'Sample figures above' : 'Your own figures above, as the bar would draw them now'}. '
+                      'A menu bar has only what is left after the frontmost '
+                      'app’s menus, and on a notched Mac only what is left to '
+                      'the right of the notch. Past that macOS does not shrink '
+                      'anything or drop the widest item — it hands out slots '
+                      'underneath the notch, where nothing is drawn, and icons '
+                      'you already had disappear.',
                       style: text.bodyM,
                     ),
                   ],
@@ -362,12 +456,16 @@ class _Item extends StatelessWidget {
     required this.aiStyle,
     required this.aiScope,
     required this.networkStyle,
+    required this.summary,
+    required this.shares,
   });
 
   final MenuBarSurface surface;
   final AiMenuBarStyle aiStyle;
   final AiReadoutScope aiScope;
   final NetworkMenuBarStyle networkStyle;
+  final AiUsageSummary? summary;
+  final Map<AiProvider, double> shares;
 
   @override
   Widget build(BuildContext context) => switch (surface) {
@@ -380,30 +478,69 @@ class _Item extends StatelessWidget {
       size: 15,
       color: context.colors.textPrimary,
     ),
-    MenuBarSurface.aiUsage => _AiReadout(style: aiStyle, scope: aiScope),
+    MenuBarSurface.aiUsage => _AiReadout(
+      style: aiStyle,
+      scope: aiScope,
+      summary: summary,
+      shares: shares,
+    ),
     MenuBarSurface.network => _NetworkReadout(style: networkStyle),
   };
 }
 
 /// The AI item, in the style and scope it is set to.
 class _AiReadout extends StatelessWidget {
-  const _AiReadout({required this.style, required this.scope});
+  const _AiReadout({
+    required this.style,
+    required this.scope,
+    required this.summary,
+    required this.shares,
+  });
 
   final AiMenuBarStyle style;
   final AiReadoutScope scope;
+
+  /// This Mac's figures, or null to fall back to [_Sample].
+  final AiUsageSummary? summary;
+
+  /// Real shares, by provider. A provider absent from here has none, and a
+  /// style that needs one draws the cost instead — exactly as `aiReadout` in
+  /// `MenuBarController.swift` does, so the drawing above the settings and the
+  /// drawing in the corner of the screen agree.
+  final Map<AiProvider, double> shares;
 
   @override
   Widget build(BuildContext context) {
     final claude = scope.covers(AiProvider.claudeCode);
     final codex = scope.covers(AiProvider.codex);
+    final live = summary;
+
+    // Scoped from the parts rather than from the day's totals, which are every
+    // provider added together — the same reason `providers` exists at all.
+    final scoped = [
+      for (final provider in scope.providers)
+        if (live?.readoutFor(provider) case final readout?) readout,
+    ];
 
     final cost =
-        (claude ? _Sample.claudeCost : 0.0) + (codex ? _Sample.codexCost : 0.0);
-    final tokens = switch (scope) {
-      AiReadoutScope.both => _Sample.bothTokens,
-      AiReadoutScope.claudeCode => _Sample.claudeTokens,
-      AiReadoutScope.codex => _Sample.codexTokens,
-    };
+        live != null
+            ? scoped.fold<double>(0, (sum, r) => sum + r.costToday)
+            : (claude ? _Sample.claudeCost : 0.0) +
+                (codex ? _Sample.codexCost : 0.0);
+    final tokens =
+        live != null
+            ? formatCount(scoped.fold<int>(0, (sum, r) => sum + r.tokensToday))
+            : switch (scope) {
+              AiReadoutScope.both => _Sample.bothTokens,
+              AiReadoutScope.claudeCode => _Sample.claudeTokens,
+              AiReadoutScope.codex => _Sample.codexTokens,
+            };
+
+    // In scope, in bar order, and only the ones with something to fill a bar.
+    final drawable = [
+      for (final provider in scope.providers)
+        if (_shareOf(provider) case final share?) (provider, share),
+    ];
 
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -412,33 +549,168 @@ class _AiReadout extends StatelessWidget {
         AiMenuBarStyle.costAndTokens => [
           _Stacked(top: _usd(cost), bottom: tokens),
         ],
+        AiMenuBarStyle.tokens => [_Figure(tokens)],
+        // The first share in scope, which with both providers on is Claude
+        // Code's five-hour block — the window this style was built for. With
+        // none, the cost, which is what the bar falls back to.
         AiMenuBarStyle.block => [
-          const _ReadoutBar(share: _Sample.claudeShare),
-          const SizedBox(width: AppSpacing.xs),
+          if (drawable.isNotEmpty) ...[
+            _ReadoutBar(share: drawable.first.$2),
+            const SizedBox(width: AppSpacing.xs),
+          ],
           _Figure(_usd(cost)),
+        ],
+        AiMenuBarStyle.ring => [
+          if (drawable.isNotEmpty) ...[
+            _Ring(share: drawable.first.$2),
+            const SizedBox(width: AppSpacing.xs),
+            _Figure(_percent(drawable.first.$2)),
+          ] else
+            _Figure(_usd(cost)),
         ],
         // A bar and a figure per provider, in bar order, with a wider gap
         // between the pairs than inside one — the same spacing the native
         // readout uses, and what keeps it reading as two pairs rather than
         // four loose things.
         AiMenuBarStyle.percentAndBlock => [
-          if (claude) ...[
-            const _ReadoutBar(share: _Sample.claudeShare),
-            const SizedBox(width: AppSpacing.xs),
-            const _Figure('47%'),
-          ],
-          if (claude && codex) const SizedBox(width: AppSpacing.sm),
-          if (codex) ...[
-            const _ReadoutBar(share: _Sample.codexShare),
-            const SizedBox(width: AppSpacing.xs),
-            const _Figure('27%'),
-          ],
+          if (drawable.isEmpty)
+            _Figure(_usd(cost))
+          else
+            for (final (index, pair) in drawable.indexed) ...[
+              if (index > 0) const SizedBox(width: AppSpacing.sm),
+              _ReadoutBar(share: pair.$2),
+              const SizedBox(width: AppSpacing.xs),
+              // Tagged only when position cannot say whose figure it is: both
+              // providers asked for, one of them able to draw. Mirrors
+              // `aiShares` in `MenuBarController.swift`.
+              _Figure(
+                scope.providers.length > 1 && drawable.length == 1
+                    ? '${_tag(pair.$1)} ${_percent(pair.$2)}'
+                    : _percent(pair.$2),
+              ),
+            ],
         ],
       },
     );
   }
 
+  /// The real share where there is one, and the sample only when there is no
+  /// report at all — never a sample standing in for a provider that has none,
+  /// which is the drawing that started this.
+  double? _shareOf(AiProvider provider) {
+    if (summary != null) return shares[provider];
+    return switch (provider) {
+      AiProvider.claudeCode => _Sample.claudeShare,
+      AiProvider.codex => _Sample.codexShare,
+    };
+  }
+
   static String _usd(double amount) => '\$${amount.toStringAsFixed(2)}';
+
+  static String _percent(double share) =>
+      '${(share.clamp(0.0, 1.0) * 100).round()}%';
+
+  /// The two-letter tag the bar uses when a figure has to name its provider.
+  /// Mirrors `AiProvider.tag` in `AiUsageChannel.swift`.
+  static String _tag(AiProvider provider) => switch (provider) {
+    AiProvider.claudeCode => 'CC',
+    AiProvider.codex => 'CX',
+  };
+}
+
+/// The caveat under the strip: what the chosen style will not be drawing, and
+/// why. Toned as a warning rather than as information — the setting is not
+/// doing what its name says, and that is closer to a fault than to a note.
+class _Caveat extends StatelessWidget {
+  const _Caveat(this.message);
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: colors.review.withValues(alpha: 0.10),
+        borderRadius: AppRadii.mdAll,
+        border: Border.all(color: colors.review.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(AppIcons.review, size: 17, color: colors.review),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(child: Text(message, style: context.text.bodyM)),
+        ],
+      ),
+    );
+  }
+}
+
+/// The ring the AI item draws: a track with the used arc over it, clockwise
+/// from twelve.
+///
+/// Mirrors `MenuBarController.ringImage`. If one of the two changes the other
+/// is wrong, and there is no compiler between them.
+class _Ring extends StatelessWidget {
+  const _Ring({required this.share});
+
+  final double share;
+
+  @override
+  Widget build(BuildContext context) => SizedBox.square(
+    dimension: 12,
+    child: CustomPaint(
+      painter: _RingPainter(
+        share: share.clamp(0.0, 1.0),
+        colour: context.colors.textPrimary,
+      ),
+    ),
+  );
+}
+
+class _RingPainter extends CustomPainter {
+  const _RingPainter({required this.share, required this.colour});
+
+  final double share;
+  final Color colour;
+
+  static const double _width = 2.5;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Rect.fromLTWH(
+      _width / 2,
+      _width / 2,
+      size.width - _width,
+      size.height - _width,
+    );
+    final stroke =
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = _width
+          ..strokeCap = StrokeCap.round;
+
+    // The same third-strength unlit tone the segmented bar uses, so the two
+    // styles read as the same reading in two shapes.
+    canvas.drawOval(rect, stroke..color = colour.withValues(alpha: 0.32));
+    if (share <= 0) return;
+
+    // From twelve, clockwise. Flutter's zero is at three o'clock.
+    canvas.drawArc(
+      rect,
+      -math.pi / 2,
+      2 * math.pi * share,
+      false,
+      stroke..color = colour,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_RingPainter old) =>
+      old.share != share || old.colour != colour;
 }
 
 /// The network item, in the style it is set to.

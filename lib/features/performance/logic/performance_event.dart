@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:tidy/features/performance/data/models/launch_item.dart';
+import 'package:tidy/core/models/launch_item.dart';
 import 'package:tidy/features/performance/data/models/maintenance_task.dart';
 
 sealed class PerformanceEvent extends Equatable {

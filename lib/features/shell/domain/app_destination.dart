@@ -53,20 +53,25 @@ enum AppDestination {
     blurb: 'One pass over everything, then a single review.',
     tone: ModuleTone.smartCare,
   ),
-  cleanup(
-    path: '/cleanup',
-    label: 'Cleanup',
-    icon: AppIcons.cleanup,
-    group: NavGroup.primary,
-    blurb: 'Reclaim space from caches, logs and build artefacts.',
-    tone: ModuleTone.cleanup,
-  ),
+  // There is no separate Cleanup destination: Smart Care runs the junk sweep
+  // and the rest in one pass, so a second page would have been a narrower view
+  // of the same scan — and, because each page owned its own bloc, a second
+  // sweep of ~/Library to produce a second, smaller answer to "how much can I
+  // get back".
+  /// Moved out of [NavGroup.soon] when it stopped opening onto a roadmap.
+  ///
+  /// The blurb changed with it. The old one promised a check "for known
+  /// adware", and nothing on this Mac holds a list of that — what the module
+  /// actually does is report signatures and provenance, so that is what it now
+  /// says it does.
   protection(
     path: '/protection',
     label: 'Protection',
     icon: AppIcons.protection,
-    group: NavGroup.soon,
-    blurb: 'Check for known adware and unusual background items.',
+    group: NavGroup.primary,
+    blurb:
+        'What starts itself, what your browser extensions can reach, and where '
+        'your apps came from.',
     tone: ModuleTone.protection,
   ),
   performance(
@@ -93,11 +98,17 @@ enum AppDestination {
     blurb: 'Find duplicates, near-identical photos and forgotten files.',
     tone: ModuleTone.clutter,
   ),
+
+  /// Moved out of [NavGroup.soon] when it stopped opening onto a roadmap.
+  ///
+  /// With the working modules rather than under MORE, unlike Network and AI
+  /// Usage: those are somewhere you go to watch something, and this is
+  /// somewhere you go to find something and then do something about it.
   spaceLens(
     path: '/space-lens',
     label: 'Space Lens',
     icon: AppIcons.spaceLens,
-    group: NavGroup.soon,
+    group: NavGroup.primary,
     blurb: 'See what is actually filling your disk.',
     tone: ModuleTone.spaceLens,
   ),
@@ -108,12 +119,18 @@ enum AppDestination {
     group: NavGroup.soon,
     blurb: 'Every scanner on its own, without the modules.',
   ),
+
+  /// Moved out of [NavGroup.soon] when it stopped opening onto a roadmap.
+  ///
+  /// Under MORE rather than with the working modules, for the reason Network
+  /// and AI Usage are: it is somewhere you go to look at what happened, not
+  /// somewhere you go to make something happen.
   activity(
     path: '/activity',
     label: 'Activity',
     icon: AppIcons.activity,
-    group: NavGroup.soon,
-    blurb: 'What has been cleaned, and what to look at next.',
+    group: NavGroup.secondary,
+    blurb: 'Every cleanup Tidy has run, and every file it removed.',
   ),
 
   /// Under SOON rather than pinned to the footer beside Settings, which is

@@ -133,7 +133,7 @@ class PreviewSidebar extends StatelessWidget {
           ),
           _PreviewStorage(
             mac: mac,
-            onReclaim: () => onNavigate?.call(PreviewScreen.cleanup),
+            onReclaim: () => onNavigate?.call(PreviewScreen.smartCare),
           ),
           const SizedBox(height: AppSpacing.md),
           Divider(height: 1, color: colors.border),
@@ -159,12 +159,14 @@ class PreviewSidebar extends StatelessWidget {
       label: destination.label,
       active: target == screen,
       badge: switch (destination) {
-        AppDestination.cleanup when reclaimable > 0 => formatBytes(reclaimable),
+        AppDestination.smartCare when reclaimable > 0 => formatBytes(
+          reclaimable,
+        ),
         _ when kPlannedDestinations.contains(destination) => 'Soon',
         _ => null,
       },
       badgeColor:
-          destination == AppDestination.cleanup
+          destination == AppDestination.smartCare
               ? context.colors.safe
               : context.colors.textMuted,
       // A destination with no pane still draws a real row and still does

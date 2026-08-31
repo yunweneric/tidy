@@ -102,6 +102,9 @@ class AppLog {
   /// Reading the AI CLIs' session logs, and the isolate that does it.
   static const AppLog aiUsage = AppLog('ai');
 
+  /// Signature reads, download records and browser-profile parsing.
+  static const AppLog protection = AppLog('protect');
+
   // ─── Writing ──────────────────────────────────────────────────────────────
 
   /// Per-item detail inside a loop. Off unless the level is turned down.

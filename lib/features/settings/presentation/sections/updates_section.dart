@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:tidy/core/design/design.dart';
+import 'package:tidy/core/updates/presentation/release_notes_view.dart';
 import 'package:tidy/core/settings/app_settings.dart';
 import 'package:tidy/core/updates/logic/update_bloc.dart';
 import 'package:tidy/core/utils/byte_format.dart';
@@ -161,19 +162,18 @@ class _UpdateCard extends StatelessWidget {
           ),
           if (release.notes.isNotEmpty) ...[
             const SizedBox(height: AppSpacing.lg),
-            // Plain text, deliberately. Release notes are a handful of bullet
-            // points, and a markdown renderer to set them in bold would be a
-            // dependency bigger than the feature it serves.
+            // Set rather than shown raw. These are written for GitHub — a
+            // heading, a download table, a quoted warning, bullets and inline
+            // code — and printing the source of that document put `## 🧹 Tidy
+            // v1.0.13` and a row of pipes in front of the reader.
+            //
+            // Taller than the 180 it was, because the notes it now has to hold
+            // are a page rather than three bullets, and a keyhole onto a
+            // rendered document is a worse read than a keyhole onto a list.
             ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: 180),
+              constraints: const BoxConstraints(maxHeight: 240),
               child: SingleChildScrollView(
-                child: Text(
-                  release.notes,
-                  style: context.text.bodyS.copyWith(
-                    color: colors.textSecondary,
-                    height: 1.5,
-                  ),
-                ),
+                child: ReleaseNotesView(notes: release.notes),
               ),
             ),
           ],

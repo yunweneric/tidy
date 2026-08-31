@@ -15,16 +15,19 @@ import 'package:tidy/features/apps/data/services/leftover_scanner.dart';
 import 'package:tidy/features/apps/data/services/scan_cache.dart';
 import 'package:tidy/features/apps/data/services/unused_apps_module.dart';
 import 'package:tidy/features/cleanup/data/cleanup_scan_module.dart';
+import 'package:tidy/features/cleanup/data/scanners/developer_junk_module.dart';
 import 'package:tidy/features/clutter/data/clutter_module.dart';
 import 'package:tidy/features/clutter/data/downloads_scan_module.dart';
 import 'package:tidy/features/clutter/data/large_and_old_scan_module.dart';
 import 'package:tidy/features/clipboard/data/services/clipboard_service.dart';
 import 'package:tidy/features/network/data/services/network_service.dart';
-import 'package:tidy/features/performance/data/services/launch_items_service.dart';
+import 'package:tidy/core/services/launch_items_service.dart';
 import 'package:tidy/features/performance/data/services/maintenance_service.dart';
 import 'package:tidy/features/performance/data/services/process_monitor_service.dart';
+import 'package:tidy/features/protection/data/services/protection_service.dart';
+import 'package:tidy/features/space_lens/data/services/space_lens_service.dart';
 import 'package:tidy/features/recycle_bin/data/services/recycle_bin_service.dart';
-import 'package:tidy/features/performance/data/models/launch_item.dart';
+import 'package:tidy/core/models/launch_item.dart';
 import 'package:tidy/features/performance/data/services/performance_bridge.dart';
 import 'package:tidy/features/recycle_bin/data/services/recycle_bin_service.dart'
     show RecycleBinService;
@@ -69,6 +72,8 @@ Future<void> setUpLocator({required bool includeUi}) async {
     ),
   );
 
+  locator.registerLazySingleton<DeveloperJunkModule>(DeveloperJunkModule.new);
+
   locator.registerLazySingleton<UnusedAppsModule>(
     () => UnusedAppsModule(
       apps: locator<AppManagerService>(),
@@ -80,7 +85,8 @@ Future<void> setUpLocator({required bool includeUi}) async {
   // Composite: owns no scanning of its own, just fans out to the others.
   locator.registerLazySingleton<SmartCareModule>(
     () => SmartCareModule(
-      cleanup: locator<CleanupScanModule>(),
+      developerJunk: locator<DeveloperJunkModule>(),
+      systemJunk: locator<CleanupScanModule>(),
       unusedApps: locator<UnusedAppsModule>(),
     ),
   );
@@ -110,6 +116,26 @@ Future<void> setUpLocator({required bool includeUi}) async {
   );
   locator.registerLazySingleton<ProcessMonitorService>(
     ProcessMonitorService.new,
+  );
+
+  // ─── Protection ──────────────────────────────────────────────────────────
+  // A singleton for the cache. Reading the signature on seventy apps takes a
+  // second and a half, and going to Settings and back must not pay it again.
+  locator.registerLazySingleton<ProtectionService>(
+    () => ProtectionService(
+      launchItems: locator<LaunchItemsService>(),
+      apps: locator<AppManagerService>(),
+      settings: locator<AppSettings>(),
+      appData: locator<AppDataAccessService>(),
+    ),
+  );
+
+  // ─── Space Lens ──────────────────────────────────────────────────────────
+  // A singleton for the cache, which is the whole point of it: the folders you
+  // have already looked at stay measured, so walking back up the trail costs
+  // nothing and leaving the page does not throw the map away.
+  locator.registerLazySingleton<SpaceLensService>(
+    () => SpaceLensService(store: locator<TidyStore>()),
   );
 
   // ─── Recycle Bin ─────────────────────────────────────────────────────────

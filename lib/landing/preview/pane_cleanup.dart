@@ -18,8 +18,8 @@ class PreviewCleanupPane extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ModuleScaffold(
-      title: PreviewScreen.cleanup.label,
-      subtitle: PreviewScreen.cleanup.blurb,
+      title: PreviewScreen.smartCare.label,
+      subtitle: PreviewScreen.smartCare.blurb,
       actions: [
         if (mac.phase != PreviewScanPhase.idle)
           OutlineActionButton(

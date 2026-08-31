@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:tidy/features/activity/presentation/activity_page.dart';
 import 'package:tidy/features/ai_usage/presentation/ai_usage_page.dart';
 import 'package:tidy/core/di/service_locator.dart';
 import 'package:tidy/core/platform/app_data_access_service.dart';
@@ -7,7 +8,6 @@ import 'package:tidy/core/platform/full_disk_access_service.dart';
 import 'package:tidy/core/settings/app_settings.dart';
 import 'package:tidy/core/widgets/fade_through.dart';
 import 'package:tidy/features/apps/presentation/screens/applications_page.dart';
-import 'package:tidy/features/cleanup/presentation/cleanup_page.dart';
 import 'package:tidy/features/clutter/presentation/clutter_page.dart';
 import 'package:tidy/features/dashboard/presentation/dashboard_page.dart';
 import 'package:tidy/features/onboarding/presentation/onboarding_screen.dart';
@@ -17,6 +17,8 @@ import 'package:tidy/features/network/presentation/network_page.dart';
 import 'package:tidy/features/recycle_bin/presentation/recycle_bin_page.dart';
 import 'package:tidy/features/settings/domain/settings_section.dart';
 import 'package:tidy/features/settings/presentation/settings_page.dart';
+import 'package:tidy/features/protection/presentation/protection_page.dart';
+import 'package:tidy/features/space_lens/presentation/space_lens_page.dart';
 import 'package:tidy/features/shell/domain/app_destination.dart';
 import 'package:tidy/features/shell/presentation/shell_scaffold.dart';
 import 'package:tidy/features/smart_care/presentation/smart_care_page.dart';
@@ -97,15 +99,14 @@ StatefulShellBranch _branch(AppDestination destination) {
 
 /// [state] is threaded through for the one destination that takes a parameter:
 /// Settings can be opened straight onto a section with `?section=updates`, so
-/// the "update available" toast can land the user where the button is instead
-/// of on the General tab.
+/// the rail's update chip can land the user where the button is instead of on
+/// the General tab.
 Widget _pageFor(
   AppDestination destination,
   GoRouterState state,
 ) => switch (destination) {
   AppDestination.dashboard => const DashboardPage(),
   AppDestination.aiUsage => const AiUsagePage(),
-  AppDestination.cleanup => const CleanupPage(),
   AppDestination.applications => const ApplicationsPage(),
   AppDestination.settings => SettingsPage(
     initialSection: SettingsSection.fromName(
@@ -113,41 +114,20 @@ Widget _pageFor(
     ),
   ),
   AppDestination.smartCare => const SmartCarePage(),
-  AppDestination.protection => const ComingSoonPage(
-    destination: AppDestination.protection,
-    planned: [
-      'Flag launch agents whose binary is missing, unsigned, or hiding in /tmp',
-      'Check installed apps against a list of known adware and browser hijackers',
-      'Audit browser extensions for search hijacking and over-broad permissions',
-      'Clear browsing traces, recent items and saved Wi-Fi networks',
-    ],
-  ),
+  AppDestination.protection => const ProtectionPage(),
   AppDestination.performance => const PerformancePage(),
   AppDestination.recycleBin => const RecycleBinPage(),
   AppDestination.clipboard => const ClipboardPage(),
   AppDestination.network => const NetworkPage(),
   AppDestination.clutter => const ClutterPage(),
-  AppDestination.spaceLens => const ComingSoonPage(
-    destination: AppDestination.spaceLens,
-    planned: [
-      'Map the disk as nested bubbles sized by what they actually occupy',
-      'Drill into any folder and remove from the map',
-      'Cache results so a rescan is incremental, not a full walk',
-    ],
-  ),
+  AppDestination.spaceLens => const SpaceLensPage(),
   AppDestination.allTools => const ComingSoonPage(
     destination: AppDestination.allTools,
     planned: [
       'Every scanner listed on its own, for when the modules get in the way',
     ],
   ),
-  AppDestination.activity => const ComingSoonPage(
-    destination: AppDestination.activity,
-    planned: [
-      'A record of what was removed, and when',
-      'What is worth looking at next',
-    ],
-  ),
+  AppDestination.activity => const ActivityPage(),
   AppDestination.assistant => const ComingSoonPage(
     destination: AppDestination.assistant,
     planned: [

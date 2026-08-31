@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:tidy/core/design/design.dart';
-import 'package:tidy/core/feedback/feedback.dart';
 import 'package:tidy/core/di/service_locator.dart';
 import 'package:tidy/core/store/metric_sampler.dart';
 import 'package:tidy/core/settings/app_settings.dart';
@@ -18,16 +17,16 @@ import 'package:tidy/core/widgets/widgets.dart';
 import 'package:tidy/features/apps/data/services/apps_service.dart';
 import 'package:tidy/features/apps/logic/app_bloc.dart';
 import 'package:tidy/features/apps/logic/app_event.dart';
-import 'package:tidy/features/cleanup/data/cleanup_scan_module.dart';
 import 'package:tidy/features/shell/domain/app_destination.dart';
 import 'package:tidy/features/shell/presentation/active_destination.dart';
 import 'package:tidy/features/shell/presentation/widgets/nav_sidebar.dart';
+import 'package:tidy/features/smart_care/data/smart_care_module.dart';
 
 /// The window chrome: permanent sidebar, plus whichever branch is active.
 ///
 /// Wraps a [StatefulNavigationShell], so every destination is a real route with
 /// its own navigator whose state survives being navigated away from. That
-/// matters more here than route history does — a Cleanup sweep takes tens of
+/// matters more here than route history does — a Smart Care sweep takes tens of
 /// seconds, and losing it because someone glanced at Applications would be its
 /// own bug report.
 class ShellScaffold extends StatefulWidget {
@@ -116,97 +115,79 @@ class _ShellScaffoldState extends State<ShellScaffold>
                 sampler: locator<MetricSampler>(),
               )..add(LoadApps()),
         ),
-        // Hoisted above the branches so the sidebar can show the reclaimable
-        // figure without running a second scan of its own.
+        // Hoisted above the branches so the sidebar and the Dashboard can
+        // read the sweep without running one of their own. Smart Care's page
+        // reads this same bloc: one scan, one answer, wherever it is shown.
         BlocProvider(
           create:
               (_) => ScanBloc(
-                locator<CleanupScanModule>(),
+                locator<SmartCareModule>(),
                 hasFullDiskAccess: _fullDiskAccess.granted ?? true,
                 store: locator<TidyStore>(),
               ),
         ),
         // Hoisted for the same reason from the other direction: the check runs
-        // at launch whether or not anyone opens Settings, and the toast below
-        // is the shell's, while the rail's chip and the controls belong to the
-        // sidebar and the Settings page.
+        // at launch whether or not anyone opens Settings, while the rail's chip
+        // and the full controls belong to the sidebar and the Settings page.
         BlocProvider.value(value: _updates),
       ],
-      child: BlocListener<UpdateBloc, UpdateState>(
-        // Only the arrival of an update is announced, and only once — the
-        // download, the check and the install all have a visible home in
-        // Settings, and a toast for each step would narrate a process the user
-        // is already watching.
-        listenWhen:
-            (previous, current) =>
-                current.status == UpdateStatus.available &&
-                previous.status != UpdateStatus.available,
-        listener: (context, updateState) {
-          final release = updateState.release;
-          if (release == null) return;
-          context.toastInfo(
-            'Version ${release.version.display} is ready to download.',
-            title: '${Brand.name} update available',
-            duration: Duration.zero,
-            action: ToastAction(
-              label: 'View',
-              onPressed:
-                  () => context.go(
-                    '${AppDestination.settings.path}?section=updates',
-                  ),
-            ),
-          );
-        },
-        child: Scaffold(
-          // The flat canvas is only a fallback; AmbientBackground paints the
-          // module's own colour over it.
-          backgroundColor: context.colors.canvas,
-          body: AnimatedBuilder(
-            animation: _fullDiskAccess,
-            builder: (context, _) {
-              return BlocBuilder<ScanBloc, ScanState>(
-                builder: (context, cleanupState) {
-                  return AmbientBackground(
-                    // The module owns the window's colour, so switching branches
-                    // repaints the whole frame, sidebar included.
-                    tone: current.tone,
-                    child: Row(
-                      children: [
-                        NavSidebar(
-                          current: current,
-                          onSelect: _select,
-                          disk: _disk,
-                          badges: _badges(cleanupState),
-                          reclaimableBytes: cleanupState.totalBytes,
-                          fullDiskAccessGranted: _fullDiskAccess.granted,
-                          onGrantAccess: _fullDiskAccess.openSettings,
-                          onReclaim: () => _select(AppDestination.cleanup),
-                        ),
-                        Expanded(
-                          // Branches stay mounted when you navigate away, so a page
-                          // that polls has no other way to know it is off screen.
-                          child: ActiveDestination(
-                            destination: current,
-                            child: FadeThrough(
-                              trigger: widget.navigationShell.currentIndex,
-                              child: widget.navigationShell,
-                            ),
+      // No toast when an update arrives. `SidebarUpdateChip` is already a
+      // standing row in the rail that says the same thing and does more with
+      // the click — a transient copy of a permanent notice is just something
+      // else to dismiss, and it landed on top of the rail that was already
+      // showing it.
+      child: Scaffold(
+        // The flat canvas is only a fallback; AmbientBackground paints the
+        // module's own colour over it.
+        backgroundColor: context.colors.canvas,
+        body: AnimatedBuilder(
+          animation: _fullDiskAccess,
+          builder: (context, _) {
+            return BlocBuilder<ScanBloc, ScanState>(
+              builder: (context, scanState) {
+                return AmbientBackground(
+                  // The module owns the window's colour, so switching branches
+                  // repaints the whole frame, sidebar included.
+                  tone: current.tone,
+                  child: Row(
+                    children: [
+                      NavSidebar(
+                        current: current,
+                        onSelect: _select,
+                        disk: _disk,
+                        badges: _badges(scanState),
+                        reclaimableBytes: scanState.preselectedBytes,
+                        fullDiskAccessGranted: _fullDiskAccess.granted,
+                        onGrantAccess: _fullDiskAccess.openSettings,
+                        onReclaim: () => _select(AppDestination.smartCare),
+                      ),
+                      Expanded(
+                        // Branches stay mounted when you navigate away, so a page
+                        // that polls has no other way to know it is off screen.
+                        child: ActiveDestination(
+                          destination: current,
+                          child: FadeThrough(
+                            trigger: widget.navigationShell.currentIndex,
+                            child: widget.navigationShell,
                           ),
                         ),
-                      ],
-                    ),
-                  );
-                },
-              );
-            },
-          ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            );
+          },
         ),
       ),
     );
   }
 
-  Map<AppDestination, String> _badges(ScanState cleanup) => {
-    if (cleanup.totalBytes > 0)
-      AppDestination.cleanup: formatBytes(cleanup.totalBytes),
+  /// The rail quotes what is pre-ticked, not what was found. The sweep also
+  /// turns up applications and other judgement calls, and none of those are
+  /// bytes anyone has agreed to part with yet.
+  Map<AppDestination, String> _badges(ScanState scan) => {
+    if (scan.preselectedBytes > 0)
+      AppDestination.smartCare: formatBytes(scan.preselectedBytes),
   };
 }

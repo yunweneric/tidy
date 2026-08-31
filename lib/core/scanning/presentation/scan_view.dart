@@ -16,6 +16,7 @@ import 'package:tidy/core/widgets/empty_state.dart';
 import 'package:tidy/core/widgets/gradient_button.dart';
 import 'package:tidy/core/widgets/module_scaffold.dart';
 import 'package:tidy/core/widgets/permission_banner.dart';
+import 'package:tidy/core/widgets/tidy_card.dart';
 
 /// A complete module page, driven entirely by a [ScanBloc].
 ///
@@ -68,11 +69,20 @@ class ScanView extends StatelessWidget {
                 icon: const Icon(AppIcons.back, size: 16),
                 label: const Text('All categories'),
               ),
-            if (state.phase == ScanPhase.results && focused == null)
+            if (state.phase == ScanPhase.results && focused == null) ...[
+              // Back to the hero, discarding what was found. The bloc has
+              // always had `ResetScan`; nothing reached it until Stop started
+              // working, because before that the only way out of results was
+              // to run another scan.
+              TextButton(
+                onPressed: () => bloc.add(const ResetScan()),
+                child: const Text('Start over'),
+              ),
               TextButton(
                 onPressed: () => bloc.add(const StartScan()),
                 child: const Text('Rescan'),
               ),
+            ],
             ...headerActions,
           ],
           child: _body(context, state, bloc),
@@ -81,19 +91,34 @@ class ScanView extends StatelessWidget {
     );
   }
 
-  /// Both banners can matter at once — a partial scan that is also only
-  /// covering half the modules — so they stack rather than compete.
+  /// Every banner can matter at once — a stopped scan that was also missing
+  /// permissions and only covering half the modules — so they stack rather
+  /// than compete.
   Widget? _banner(BuildContext context, ScanState state) {
-    final permission =
-        state.permissionLimited && onGrantAccess != null
-            ? PermissionBanner(onOpenSettings: onGrantAccess!)
-            : null;
+    final shown = <Widget>[
+      // First, because it changes what the numbers underneath mean: results
+      // from a stopped sweep are a floor, not a total.
+      //
+      // Results only. The flag survives into `cleaning` and `finished`, where
+      // the screen is about the removal rather than the scan and saying "you
+      // stopped this" again would be answering a question nobody is asking.
+      if (state.interrupted && state.phase == ScanPhase.results)
+        const _InterruptedBanner(),
+      if (state.permissionLimited && onGrantAccess != null)
+        PermissionBanner(onOpenSettings: onGrantAccess!),
+      if (banner != null) banner!,
+    ];
 
-    if (permission == null) return banner;
-    if (banner == null) return permission;
+    if (shown.isEmpty) return null;
+    if (shown.length == 1) return shown.first;
 
     return Column(
-      children: [permission, const SizedBox(height: AppSpacing.md), banner!],
+      children: [
+        for (final (index, widget) in shown.indexed) ...[
+          if (index > 0) const SizedBox(height: AppSpacing.md),
+          widget,
+        ],
+      ],
     );
   }
 
@@ -179,6 +204,54 @@ class ScanView extends StatelessWidget {
       case ScanPhase.results:
         return _Results(state: state, bloc: bloc);
     }
+  }
+}
+
+/// Says the results below are partial, because the user pressed Stop.
+///
+/// Its own banner rather than a line in the hero: the tiles underneath are
+/// real findings the user can act on, so this has to qualify them without
+/// hiding them. Neutral `info` rather than a warning colour — stopping a scan
+/// is a thing the user chose, not a fault.
+class _InterruptedBanner extends StatelessWidget {
+  const _InterruptedBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+
+    return TidyCard(
+      accent: colors.info,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: colors.info.withValues(alpha: 0.14),
+              borderRadius: AppRadii.mdAll,
+            ),
+            child: Icon(AppIcons.info, size: 18, color: colors.info),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('You stopped this scan', style: context.text.titleS),
+                const SizedBox(height: AppSpacing.xxs),
+                Text(
+                  'These are the results it had reached, so there is likely '
+                  'more to find. Everything listed is still safe to clean.',
+                  style: context.text.bodyM,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

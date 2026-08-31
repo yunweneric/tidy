@@ -16,9 +16,7 @@ const int _gb = _mb * 1024;
 /// and is not worth a pane. Deriving one from the other would quietly label
 /// both as unfinished.
 const Set<AppDestination> kPlannedDestinations = {
-  AppDestination.protection,
   AppDestination.clutter,
-  AppDestination.spaceLens,
   AppDestination.allTools,
   AppDestination.activity,
   AppDestination.assistant,
@@ -32,7 +30,7 @@ const Set<AppDestination> kPlannedDestinations = {
 /// the app does and cannot drift from it.
 enum PreviewScreen {
   dashboard(AppDestination.dashboard),
-  cleanup(AppDestination.cleanup),
+  smartCare(AppDestination.smartCare),
   applications(AppDestination.applications),
   clipboard(AppDestination.clipboard),
   performance(AppDestination.performance),

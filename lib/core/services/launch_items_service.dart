@@ -1,8 +1,9 @@
 import 'dart:typed_data';
 
 import 'package:tidy/core/platform/system_bridge.dart';
-import 'package:tidy/features/performance/data/models/launch_item.dart';
-import 'package:tidy/features/performance/data/services/performance_bridge.dart';
+import 'package:tidy/core/models/launch_item.dart';
+import 'package:tidy/core/platform/action_outcome.dart';
+import 'package:tidy/core/platform/launch_items_bridge.dart';
 
 /// Everything on this Mac that starts itself, and the two things we can do
 /// about it: turn it off, or take it away.
@@ -19,7 +20,7 @@ class LaunchItemsService {
   Map<String, Uint8List> get icons => Map.unmodifiable(_icons);
 
   Future<List<LaunchItem>> load() async {
-    final raw = await PerformanceBridge.launchItems();
+    final raw = await LaunchItemsBridge.launchItems();
     final items =
         raw.map(LaunchItem.fromMap).toList()..sort(_byUrgencyThenName);
     await _loadIcons(items);
@@ -36,7 +37,7 @@ class LaunchItemsService {
       items.where((item) => item.scope == LaunchItemScope.global).toList();
 
   Future<ActionOutcome> setEnabled(LaunchItem item, {required bool enabled}) {
-    return PerformanceBridge.setLaunchItemEnabled(
+    return LaunchItemsBridge.setLaunchItemEnabled(
       label: item.label,
       scope: item.scope.name,
       path: item.path,
@@ -55,7 +56,7 @@ class LaunchItemsService {
     // authorization prompt, which does the bootout and the move to Trash in one
     // elevated step. Everything else is user-space and needs no password.
     if (item.canRemoveWithAdmin) {
-      return PerformanceBridge.removeLaunchItemElevated(
+      return LaunchItemsBridge.removeLaunchItemElevated(
         path: item.path,
         label: item.label,
         kind: item.kind.name,
@@ -71,7 +72,7 @@ class LaunchItemsService {
       );
     }
 
-    await PerformanceBridge.unloadLaunchItem(
+    await LaunchItemsBridge.unloadLaunchItem(
       label: item.label,
       scope: item.scope.name,
     );

@@ -22,19 +22,17 @@ import 'package:tidy/features/menubar/presentation/widgets/menu_bar_clip_row.dar
 import 'package:tidy/features/menubar/presentation/widgets/menu_bar_insight_card.dart';
 import 'package:tidy/features/menubar/presentation/widgets/menu_bar_network.dart';
 import 'package:tidy/features/menubar/presentation/widgets/menu_bar_process_row.dart';
-import 'package:tidy/features/menubar/presentation/widgets/menu_bar_reclaim_row.dart';
 import 'package:tidy/features/menubar/presentation/widgets/menu_bar_section.dart';
 import 'package:tidy/features/menubar/presentation/widgets/menu_bar_tabs.dart';
 import 'package:tidy/features/menubar/presentation/widgets/menu_bar_vitals.dart';
+import 'package:tidy/features/menubar/presentation/widgets/menu_bar_vitals_detail.dart';
 import 'package:tidy/features/network/data/models/network_sample.dart';
 import 'package:tidy/core/models/network_series.dart';
-import 'package:tidy/features/network/data/models/network_units.dart';
 import 'package:tidy/features/network/data/services/network_service.dart';
 import 'package:tidy/core/vitals/process_sample.dart';
 import 'package:tidy/core/vitals/system_vitals.dart';
 import 'package:tidy/features/performance/data/services/performance_bridge.dart';
 import 'package:tidy/features/performance/data/services/process_monitor_service.dart';
-import 'package:tidy/core/models/trash_item.dart';
 import 'package:tidy/features/recycle_bin/data/services/recycle_bin_service.dart';
 import 'package:tidy/features/shell/domain/app_destination.dart';
 
@@ -110,13 +108,22 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
   /// short enough that the panel stays a glance rather than a table.
   static const int _consumerCount = 5;
 
-  /// How many recent clips the dashboard's teaser lists. Enough to cover "the
-  /// thing before the thing I have now", short enough that it stays a glance.
-  static const int _clipCount = 6;
+  /// How many the clipboard panel lists.
+  ///
+  /// Fourteen was the number that fit before the list scrolled — any more and
+  /// the panel ran past the popover's cap and the extra rows were simply cut
+  /// off. With a scroller under them the limit is about how far back anyone
+  /// reaches for a clip, not about how tall the panel can be.
+  static const int _clipboardPanelCount = 60;
 
-  /// How many the clipboard panel lists. Longer, because there the clips are
-  /// not a teaser — they are what the user came for.
-  static const int _clipboardPanelCount = 14;
+  /// How tall the scrolling clip list is allowed to get.
+  ///
+  /// Sized against `MenuBarController.maxPanelHeight` (760) less the panel's
+  /// own chrome — header, tab strip, section heading, footer and their
+  /// dividers, which come to roughly 260. Staying under the cap is what keeps
+  /// the list scrolling *inside* a panel that fits, rather than the panel
+  /// growing until Swift clamps it and clips the bottom rows off.
+  static const double _clipListMaxHeight = 440;
 
   /// Matches the Performance page's cadence. Faster reads as noise, slower
   /// stops feeling live.
@@ -137,10 +144,9 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
   JunkReport _junk = JunkReport.empty;
   int _trashBytes = 0;
 
-  /// False when macOS refused to list the Trash — it is behind Full Disk
-  /// Access. An unreadable bin reported as an empty one tells the user there is
-  /// nothing to reclaim when there may be gigabytes.
-  bool _trashReadable = true;
+  /// The clip list's scroller. Held rather than implicit so the scrollbar can
+  /// be attached to the same position the list reads.
+  final ScrollController _clipScroll = ScrollController();
 
   ProcessSort _sort = ProcessSort.cpu;
   Timer? _ticker;
@@ -152,6 +158,10 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
   /// would be a worse lie than having no clipboard icon at all. In the
   /// consolidated layout the tab strip is the promise instead.
   MenuBarSurface _surface = MenuBarSurface.fallback;
+
+  /// The surfaces this panel may show, from the native side on every open.
+  /// Every surface until the first open tells it otherwise.
+  List<MenuBarSurface> _surfaces = MenuBarSurface.values;
 
   /// How many icons are on the bar, which decides whether the tab strip shows.
   ///
@@ -184,7 +194,10 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
   StreamSubscription<NetworkSample>? _trafficSubscription;
 
   /// The space scan — junk and Trash — is the slow half and runs on its own.
-  bool _scanningSpace = true;
+  ///
+  /// Still run, and no longer drawn: the panel stopped listing what can be
+  /// reclaimed, but the insight card above is built from these figures and is
+  /// the one thing on this panel worth acting on.
   bool _sampled = false;
   bool _busy = false;
   String? _status;
@@ -219,6 +232,7 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
     _network.stopLive();
     _bridge.onPopoverOpened = null;
     _bridge.onPopoverClosed = null;
+    _clipScroll.dispose();
     super.dispose();
   }
 
@@ -257,17 +271,8 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
     if (!mounted) return;
     setState(() {
       _trashBytes = bin.totalBytes;
-      _trashReadable = _isReadable(bin);
-      _scanningSpace = false;
     });
   }
-
-  /// Nothing listed at all counts as unreadable too: the home bin always
-  /// exists, so an empty set of locations means macOS answered with a refusal
-  /// rather than with a bin.
-  static bool _isReadable(TrashSnapshot bin) =>
-      bin.locations.isNotEmpty &&
-      bin.locations.any((location) => location.readable);
 
   Future<void> _loadClips() async {
     final entries = await _clipboard.history();
@@ -310,8 +315,26 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
   void _onPopoverOpened(PopoverOpening opening) {
     _layout = MenuBarLayout.fromName(opening.layout);
     _windowStyle = AiWindowStyle.fromName(opening.aiWindowStyle);
+    _surfaces = [
+      for (final id in opening.surfaces)
+        if (MenuBarSurface.tryParse(id) case final surface?) surface,
+    ];
+    // Nothing recognised — an older native side, or a payload that arrived
+    // empty. Every surface is a better answer than none: a tab strip with
+    // nothing in it is a panel with no way out of the section it opened on.
+    if (_surfaces.isEmpty) _surfaces = MenuBarSurface.values;
+
+    final asked = MenuBarSurface.tryParse(opening.section);
+    // The section the icon asked for, unless it is one the user has switched
+    // off — which happens when a hot key names a surface whose icon is gone.
+    // Falling back to the first tab that *is* on keeps the panel and the tab
+    // strip agreeing about what is selected.
     _showSurface(
-      MenuBarSurface.tryParse(opening.section) ?? MenuBarSurface.fallback,
+      asked != null && _surfaces.contains(asked)
+          ? asked
+          : (_surfaces.contains(MenuBarSurface.fallback)
+              ? MenuBarSurface.fallback
+              : _surfaces.first),
     );
   }
 
@@ -421,10 +444,7 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
   }
 
   Future<void> _refresh() async {
-    setState(() {
-      _scanningSpace = true;
-      _status = null;
-    });
+    setState(() => _status = null);
     await Future.wait([_sample(), _scanSpace()]);
   }
 
@@ -452,7 +472,6 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
       _junk = junk;
       _disk = disk;
       _trashBytes = bin.totalBytes;
-      _trashReadable = _isReadable(bin);
       _busy = false;
       _status =
           result.isCompleteSuccess
@@ -542,9 +561,15 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
               // Only in the consolidated layout. In the separate layout each
               // icon already promised one surface, and a strip offering three
               // more would make the icon a lie.
-              if (_layout.isConsolidated) ...[
+              // One surface needs no switcher: the strip would be a single
+              // full-width tab that does nothing when clicked.
+              if (_layout.isConsolidated && _surfaces.length > 1) ...[
                 const Divider(height: 1),
-                MenuBarTabs(selected: _surface, onChanged: _selectSurface),
+                MenuBarTabs(
+                  surfaces: _surfaces,
+                  selected: _surface,
+                  onChanged: _selectSurface,
+                ),
               ],
               const Divider(height: 1),
               ...switch (_surface) {
@@ -564,6 +589,15 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
 
   /// Everything the vitals icon promises: how the machine is doing, the one
   /// thing worth acting on, what is using it, what can be handed back.
+  /// The gauge icon's panel: how the machine is doing, and nothing else.
+  ///
+  /// It used to carry the network rate, a clipboard teaser and the reclaimable
+  /// totals as well — which made it a summary of the whole app rather than the
+  /// thing its icon promises, and duplicated three surfaces that each have
+  /// their own item on the bar. What is left is the four readings that answer
+  /// "is this Mac struggling, and what is doing it": the gauges, the one thing
+  /// worth acting on, the vitals that explain the gauges, and what is using the
+  /// machine right now.
   List<Widget> _dashboardBody() {
     return [
       Padding(
@@ -588,42 +622,9 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
           onAction: _runInsightAction,
         ),
       ),
-      _buildTraffic(),
+      MenuBarVitalsDetail(vitals: _vitals),
+      const SizedBox(height: AppSpacing.sm),
       _buildConsumers(),
-      _buildClips(),
-      const Divider(height: 1),
-      MenuBarSection(
-        title: 'Reclaimable',
-        trailing:
-            _scanningSpace
-                ? 'scanning…'
-                : formatBytes(_junk.safeBytes + _trashBytes),
-      ),
-      MenuBarReclaimRow(
-        icon: AppIcons.cleanup,
-        title: 'Caches, logs & saved state',
-        subtitle: 'Rebuilt automatically the next time an app runs',
-        bytes: _junk.safeBytes,
-        scanning: _scanningSpace && _junk.safeBytes == 0,
-        actionLabel: 'Clean',
-        onAction: _junk.safeBytes == 0 || _busy ? null : _clearJunk,
-      ),
-      MenuBarReclaimRow(
-        icon: AppIcons.recycleBin,
-        title: 'Trash',
-        subtitle:
-            _trashReadable
-                ? 'Still taking up space until it is emptied'
-                : 'macOS keeps the Trash behind Full Disk Access',
-        bytes: _trashBytes,
-        scanning: _scanningSpace,
-        note: _trashReadable || _scanningSpace ? null : 'can’t read it',
-        actionLabel: _trashReadable ? 'Review' : 'Grant',
-        onAction:
-            _trashReadable
-                ? _bridge.openMainWindow
-                : SystemBridge.openFullDiskAccessSettings,
-      ),
     ];
   }
 
@@ -823,8 +824,13 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
               // Said once, at the bottom, rather than on every row it applies
               // to. The rows already differ — a percentage against tokens — and
               // this is the sentence that explains why they do.
-              'Claude Code publishes no limit, so its windows show what went '
-              'through them rather than a share of an allowance.',
+              //
+              // Phrased by row rather than by provider: Claude's windows carry
+              // a real percentage once plan limits are switched on, so naming
+              // Claude here would be wrong for anyone who has.
+              'A row without a percentage shows what went through the window '
+              'rather than a share of an allowance, because no limit is '
+              'published for it.',
               style: text.caption,
             ),
           ),
@@ -959,13 +965,42 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
                   _bridge.openMainWindow(route: AppDestination.clipboard.path),
         ),
       ),
-      for (final entry in _clips)
-        MenuBarClipRow(
-          key: ValueKey(entry.id),
-          entry: entry,
-          onCopy: () => _copyClip(entry),
-          onHover: (top) => _previewClip(entry, top),
+      // Bounded and scrollable, rather than every row laid out at once and the
+      // panel growing to match. The popover has a hard height cap, so a taller
+      // panel did not mean a taller list — it meant the rows past the cap were
+      // cut off with nothing to say they existed.
+      //
+      // `shrinkWrap` so a short history still sizes to its own content: three
+      // clips should be three rows tall, not 440 points of mostly nothing.
+      ConstrainedBox(
+        constraints: const BoxConstraints(maxHeight: _clipListMaxHeight),
+        child: Scrollbar(
+          controller: _clipScroll,
+          // Always drawn rather than fading in on scroll. The panel is
+          // transient and closes the moment you look away from it, so a
+          // scrollbar that only appears once you have already started
+          // scrolling is a hint arriving after the thing it hints at.
+          thumbVisibility: true,
+          child: ListView.builder(
+            controller: _clipScroll,
+            shrinkWrap: true,
+            padding: EdgeInsets.zero,
+            itemCount: _clips.length,
+            itemBuilder: (context, index) {
+              final entry = _clips[index];
+              return MenuBarClipRow(
+                key: ValueKey(entry.id),
+                entry: entry,
+                onCopy: () => _copyClip(entry),
+                // Still correct once the list scrolls: the row reports its own
+                // position in the view's coordinates rather than its index, so
+                // the native preview follows it up and down.
+                onHover: (top) => _previewClip(entry, top),
+              );
+            },
+          ),
         ),
+      ),
     ];
   }
 
@@ -976,103 +1011,6 @@ class _MenuBarPanelState extends State<MenuBarPanel> {
   /// three vitals tiles, an insight, a process table and two reclaim rows, and
   /// a second chart in it would push the thing the user actually opened it for
   /// below the fold.
-  Widget _buildTraffic() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const Divider(height: 1),
-        MenuBarSection(
-          title: 'Network',
-          action: MenuBarButton(
-            label: 'Open',
-            onPressed:
-                () =>
-                    _bridge.openMainWindow(route: AppDestination.network.path),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.md + 2,
-            0,
-            AppSpacing.md + 2,
-            AppSpacing.sm,
-          ),
-          child: Row(
-            children: [
-              Icon(
-                AppIcons.downstream,
-                size: 13,
-                color: context.colors.downstream,
-              ),
-              const SizedBox(width: AppSpacing.xs),
-              Text(
-                _traffic.isKnown
-                    ? formatRate(
-                      _traffic.downBytesPerSecond,
-                      units: _traffic.units,
-                    )
-                    : '—',
-                style: context.text.label,
-              ),
-              const SizedBox(width: AppSpacing.lg),
-              Icon(AppIcons.upstream, size: 13, color: context.colors.upstream),
-              const SizedBox(width: AppSpacing.xs),
-              Text(
-                _traffic.isKnown
-                    ? formatRate(
-                      _traffic.upBytesPerSecond,
-                      units: _traffic.units,
-                    )
-                    : '—',
-                style: context.text.label,
-              ),
-              const Spacer(),
-              Text(
-                _traffic.busiest?.label ?? 'idle',
-                style: context.text.caption,
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// Recent clips.
-  ///
-  /// Absent rather than empty when there is nothing: the recorder is off until
-  /// the user turns it on, and a permanently blank section in a panel this
-  /// small would be advertising, not information.
-  Widget _buildClips() {
-    if (_clips.isEmpty) return const SizedBox.shrink();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const Divider(height: 1),
-        MenuBarSection(
-          title: 'Recent clips',
-          action: MenuBarButton(
-            label: 'Open',
-            onPressed:
-                () => _bridge.openMainWindow(
-                  route: AppDestination.clipboard.path,
-                ),
-          ),
-        ),
-        for (final entry in _clips.take(_clipCount))
-          MenuBarClipRow(
-            key: ValueKey(entry.id),
-            entry: entry,
-            onCopy: () => _copyClip(entry),
-            onHover: (top) => _previewClip(entry, top),
-          ),
-      ],
-    );
-  }
-
   Widget _buildHeader() {
     final insight = _insight;
 

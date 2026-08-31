@@ -48,6 +48,28 @@ class AiUsageRangeChanged extends AiUsageEvent {
   List<Object?> get props => [range];
 }
 
+/// A minute has passed. Re-derives the page's views against a fresh clock.
+///
+/// Reads nothing: the windows count down to a reset and the plan reading ages
+/// out, and both of those move on their own. Without this the countdown froze
+/// at whatever it said when the last sweep finished.
+class AiUsageTicked extends AiUsageEvent {
+  const AiUsageTicked();
+}
+
+/// Fetch Claude's plan limits alone, leaving the logs alone.
+///
+/// [force] skips the client's own cache, for the case where the user has just
+/// switched the setting on and is waiting to see a bar appear.
+class ClaudePlanRefreshed extends AiUsageEvent {
+  const ClaudePlanRefreshed({this.force = false});
+
+  final bool force;
+
+  @override
+  List<Object?> get props => [force];
+}
+
 /// The sweep moved on. Drives the determinate progress line, which is the
 /// difference between a cold read looking like work and looking like a hang.
 class AiUsageProgressed extends AiUsageEvent {

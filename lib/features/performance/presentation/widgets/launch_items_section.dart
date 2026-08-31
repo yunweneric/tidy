@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:tidy/core/design/design.dart';
 import 'package:tidy/core/widgets/widgets.dart';
-import 'package:tidy/features/performance/data/models/launch_item.dart';
+import 'package:tidy/core/models/launch_item.dart';
 import 'package:tidy/features/performance/logic/performance_bloc.dart';
 import 'package:tidy/features/performance/logic/performance_event.dart';
 import 'package:tidy/features/performance/logic/performance_state.dart';

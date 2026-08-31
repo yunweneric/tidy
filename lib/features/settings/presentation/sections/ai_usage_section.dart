@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -23,6 +24,32 @@ class AiUsageSection extends StatefulWidget {
 
 class _AiUsageSectionState extends State<AiUsageSection> {
   bool _rebuilding = false;
+
+  /// Whether Claude Code has a sign-in on this Mac. Null while the check runs.
+  bool? _signedIn;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_checkSignIn());
+  }
+
+  Future<void> _checkSignIn() async {
+    final signedIn = await locator<AiUsageService>().hasClaudeSignIn();
+    if (mounted) setState(() => _signedIn = signedIn);
+  }
+
+  /// Turning this on should cost one request, not a sweep of every session log
+  /// on the disk — which is what a full refresh here used to do for the sake of
+  /// two percentages that arrive over the network.
+  void _setClaudeLimits(bool value) {
+    setState(() => widget.settings.aiUsageClaudeLimits = value);
+    if (!value) return;
+    // Forced past the client's own cache: the user has just asked for this and
+    // is watching for a bar to appear.
+    unawaited(locator<AiUsageService>().refreshClaudePlan(force: true));
+    unawaited(_checkSignIn());
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -51,9 +78,10 @@ class _AiUsageSectionState extends State<AiUsageSection> {
                   'write to your home folder, and takes four things from each '
                   'reply: when it happened, which model answered, how many '
                   'tokens it used, and which folder you were working in. The '
-                  'text of your prompts is never read, nothing is sent '
+                  'text of your prompts is never read, none of it is sent '
                   'anywhere, and Full Disk Access is not needed to read any '
-                  'of it.',
+                  'of it. The one exception is Claude plan limits below, '
+                  'which is off until you turn it on and says what it sends.',
                   style: context.text.bodyM,
                 ),
               ),
@@ -81,6 +109,37 @@ class _AiUsageSectionState extends State<AiUsageSection> {
                   (value) => setState(() {
                     settings.aiUsageIncludeCodex = value;
                   }),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        SettingsGroup(
+          title: 'Plan limits',
+          children: [
+            SettingsSwitchRow(
+              title: 'Claude plan limits',
+              // The only thing on this page that leaves the Mac, described as
+              // exactly that. The logs say what was spent and never what the
+              // budget was, so without this the weekly row is a token count
+              // with no bar — which is why the reason to turn it on is stated
+              // as plainly as the cost of doing so.
+              detail:
+                  'Reads how much of your session and weekly allowance is '
+                  'left, so those bars show real percentages instead of just '
+                  'totals. ${Brand.name} sends your existing Claude Code '
+                  'sign-in to Anthropic and asks for the two numbers back — '
+                  'nothing about your prompts, your files or your Mac goes '
+                  'with it. Off means the rest of this page still works, '
+                  'entirely on this machine.'
+                  // A switch that can only ever fail is worse than one that
+                  // says why. Checked once when the section opens, because the
+                  // answer is a keychain read and does not change while
+                  // somebody reads a paragraph.
+                  '${_signedIn == false ? "\n\nClaude Code is not signed in "
+                          "on this Mac yet, so there is nothing to read until "
+                          "you run `claude` and sign in." : ""}',
+              value: settings.aiUsageClaudeLimits,
+              onChanged: _setClaudeLimits,
             ),
           ],
         ),

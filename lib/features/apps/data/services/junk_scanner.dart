@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:tidy/core/utils/disk_utils.dart';
 import 'package:tidy/features/apps/data/models/mac_app_model.dart';
@@ -184,10 +185,11 @@ class JunkScanner {
   /// Every immediate child of [root] counts as clearable junk, except those
   /// owned by macOS itself.
   Future<JunkGroup> _scanDirectory(String root, JunkKind kind) async {
+    final children = await _childrenOfAll([root]);
     final entries =
-        _childrenOf(
-          root,
-        ).where((path) => !_isProtectedEntry(path.split('/').last)).toList();
+        (children[root] ?? const <String>[])
+            .where((path) => !_isProtectedEntry(path.split('/').last))
+            .toList();
     final sizes = await pathSizes(entries);
 
     final items = <JunkItem>[
@@ -207,8 +209,9 @@ class JunkScanner {
   /// Bundle-id-named folders with no matching installed app.
   Future<JunkGroup> _scanOrphans(Set<String> installedIds) async {
     final candidates = <String>[];
+    final children = await _childrenOfAll(_orphanRoots.toList());
     for (final root in _orphanRoots) {
-      for (final path in _childrenOf(root)) {
+      for (final path in children[root] ?? const <String>[]) {
         final name = _stripKnownSuffix(path.split('/').last);
         if (!_bundleIdPattern.hasMatch(name)) continue;
         if (_isProtectedEntry(name)) continue;
@@ -257,6 +260,27 @@ class JunkScanner {
     return name;
   }
 
+  /// Lists every root in one background isolate.
+  ///
+  /// `listSync` on `~/Library/Caches` is tens of milliseconds on a busy Mac,
+  /// and the orphan sweep does five roots back to back. On the main isolate
+  /// that is a stall the user sees as the window refusing to repaint — the
+  /// scan runs, but switching to Dashboard or Applications while it does
+  /// leaves the screen stuck.
+  ///
+  /// Async listing (`Directory.list()`) would keep the isolate responsive too,
+  /// but it yields per entry, so a directory with thousands of children costs
+  /// thousands of event-loop turns competing with the frame pump. One hop into
+  /// an isolate and one list back is cheaper and far less jittery.
+  ///
+  /// Batched — all roots in a single `Isolate.run` — because spawning one is a
+  /// millisecond or two, which is the same order as the work itself when a
+  /// directory turns out to be small.
+  static Future<Map<String, List<String>>> _childrenOfAll(List<String> roots) =>
+      Isolate.run(() => {for (final root in roots) root: _childrenOf(root)});
+
+  /// Runs inside the isolate. Static and self-contained: it captures nothing
+  /// but the path string, which is what makes it sendable.
   static List<String> _childrenOf(String root) {
     final dir = Directory(root);
     if (!dir.existsSync()) return const [];

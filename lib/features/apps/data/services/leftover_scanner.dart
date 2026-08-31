@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:tidy/core/utils/disk_utils.dart';
 import 'package:tidy/features/apps/data/models/leftover_item.dart';
@@ -95,24 +96,18 @@ class LeftoverScanner {
 
     final matches = <_SearchRoot, List<String>>{};
 
+    // Listed in one background isolate rather than root by root on the main
+    // one. This runs while a scan may already be in flight, and a dozen
+    // `listSync` calls over `~/Library` is long enough to drop frames — the
+    // window stops repainting and reads as stuck.
+    final listings = await _listRoots([for (final root in _roots) root.path]);
+
     for (final root in _roots) {
-      final dir = Directory(root.path);
-      if (!dir.existsSync()) continue;
-
-      List<FileSystemEntity> entries;
-      try {
-        entries = dir.listSync(followLinks: false);
-      } on FileSystemException {
-        // Usually a TCC denial (Full Disk Access not granted). Skip the root
-        // rather than aborting the whole preview.
-        continue;
-      }
-
-      for (final entity in entries) {
-        final name = entity.path.split('/').last;
+      for (final path in listings[root.path] ?? const <String>[]) {
+        final name = path.split('/').last;
         if (!_matches(name, app)) continue;
-        if (!_isSafeToRemove(entity.path, root.path)) continue;
-        (matches[root] ??= []).add(entity.path);
+        if (!_isSafeToRemove(path, root.path)) continue;
+        (matches[root] ??= []).add(path);
       }
     }
 
@@ -138,6 +133,27 @@ class LeftoverScanner {
     items.sort((a, b) => b.sizeBytes.compareTo(a.sizeBytes));
     return items;
   }
+
+  /// Lists every root in one isolate hop.
+  ///
+  /// An unreadable root comes back absent rather than throwing: that is almost
+  /// always a TCC denial, and skipping it is what keeps the rest of the
+  /// preview useful.
+  static Future<Map<String, List<String>>> _listRoots(List<String> roots) =>
+      Isolate.run(() {
+        final out = <String, List<String>>{};
+        for (final root in roots) {
+          final dir = Directory(root);
+          if (!dir.existsSync()) continue;
+          try {
+            out[root] =
+                dir.listSync(followLinks: false).map((e) => e.path).toList();
+          } on FileSystemException {
+            continue;
+          }
+        }
+        return out;
+      });
 
   bool _matches(String entryName, MacApp app) {
     final bundleId = app.bundleId.trim();

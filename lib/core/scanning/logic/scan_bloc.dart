@@ -37,7 +37,31 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
   /// supplied one — the scan still runs, it is just not remembered.
   final TidyStore? _store;
 
+  /// The live scan, held so [CancelScan] can actually stop it.
+  ///
+  /// This used to be declared and never assigned, which made every
+  /// `_subscription?.cancel()` below a no-op: Stop emitted a state, the stream
+  /// carried on, and the next progress frame overwrote it. The scan only ever
+  /// ended by finishing.
   StreamSubscription<ScanProgress>? _subscription;
+
+  /// Completes when the stream ends, fails, or is cancelled — so the event
+  /// handler stays alive for as long as the scan does and `emit` stays legal.
+  Completer<void>? _scanDone;
+
+  /// Set by [CancelScan] so the teardown can tell "the user stopped this" from
+  /// "it finished". A cancelled scan is not recorded: a half-swept run written
+  /// down as a result would put a fictional trough in the history.
+  bool _cancelled = false;
+
+  /// Which scan run is current.
+  ///
+  /// `on<StartScan>` uses bloc's default concurrent transformer, so a second
+  /// Scan press starts a handler while the first is still unwinding. Without a
+  /// generation the older handler's teardown would null out the newer run's
+  /// subscription and record the newer scan's start time against the older
+  /// one's results.
+  int _runId = 0;
 
   /// Timed from the event rather than the first progress emission: the wait
   /// before the first tile appears is part of how long a scan felt.
@@ -45,12 +69,15 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
 
   @override
   Future<void> close() async {
-    await _subscription?.cancel();
+    _cancelled = true;
+    await _stopScan();
     return super.close();
   }
 
   Future<void> _onStart(StartScan event, Emitter<ScanState> emit) async {
-    await _subscription?.cancel();
+    await _stopScan();
+    _cancelled = false;
+    final runId = ++_runId;
 
     emit(
       const ScanState(phase: ScanPhase.scanning).copyWith(clearOutcome: true),
@@ -64,25 +91,60 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
       hasFullDiskAccess: hasFullDiskAccess,
     );
 
-    try {
-      await emit.forEach<ScanProgress>(
-        module.scan(request),
-        onData: (progress) => _fromProgress(progress),
-        onError:
-            (error, _) => state.copyWith(
-              phase: ScanPhase.failed,
-              error: 'That scan could not finish.\n$error',
-            ),
-      );
-      _recordScan(startedAt);
-    } catch (e) {
-      emit(
-        state.copyWith(
-          phase: ScanPhase.failed,
-          error: 'That scan could not finish.\n$e',
-        ),
-      );
-    }
+    // An explicit subscription rather than `emit.forEach`, which owns its own
+    // and hands back no handle — there is no way to stop a `forEach` from
+    // another event handler, which is precisely what Stop has to do.
+    final done = _scanDone = Completer<void>();
+
+    _subscription = module
+        .scan(request)
+        .listen(
+          (progress) {
+            if (_cancelled || runId != _runId || emit.isDone) return;
+            emit(_fromProgress(progress));
+          },
+          onError: (Object error, StackTrace _) {
+            if (!_cancelled && runId == _runId && !emit.isDone) {
+              emit(
+                state.copyWith(
+                  phase: ScanPhase.failed,
+                  error: 'That scan could not finish.\n$error',
+                ),
+              );
+            }
+            if (!done.isCompleted) done.complete();
+          },
+          onDone: () {
+            if (!done.isCompleted) done.complete();
+          },
+          cancelOnError: true,
+        );
+
+    await done.future;
+
+    // Cancelled scans are neither recorded nor rewritten: `_onCancel` has
+    // already emitted the state the user asked for, and anything here would
+    // land on top of it.
+    if (_cancelled || runId != _runId) return;
+
+    _subscription = null;
+    _scanDone = null;
+    _recordScan(startedAt);
+  }
+
+  /// Stops the running scan, if there is one, and waits for it to let go.
+  ///
+  /// Awaiting the subscription's `cancel()` matters: an `async*` module stops
+  /// at its next yield, and returning before that would let a frame from the
+  /// old scan land on the new one's state.
+  Future<void> _stopScan() async {
+    final subscription = _subscription;
+    _subscription = null;
+    await subscription?.cancel();
+
+    final done = _scanDone;
+    _scanDone = null;
+    if (done != null && !done.isCompleted) done.complete();
   }
 
   /// Writes down what the scan found — including nothing.
@@ -160,20 +222,27 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
     );
   }
 
+  /// Stop, and keep whatever the scan had already found.
+  ///
+  /// Set before the await so an in-flight progress frame cannot slip past and
+  /// repaint the scanning state after the user has left it.
   Future<void> _onCancel(CancelScan event, Emitter<ScanState> emit) async {
-    await _subscription?.cancel();
-    _subscription = null;
+    _cancelled = true;
+    _scanClock = null;
+    await _stopScan();
     emit(
       state.copyWith(
         phase: state.roots.isEmpty ? ScanPhase.idle : ScanPhase.results,
         currentPath: null,
+        interrupted: state.roots.isNotEmpty,
       ),
     );
   }
 
   Future<void> _onReset(ResetScan event, Emitter<ScanState> emit) async {
-    await _subscription?.cancel();
-    _subscription = null;
+    _cancelled = true;
+    _scanClock = null;
+    await _stopScan();
     emit(const ScanState());
   }
 

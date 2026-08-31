@@ -83,6 +83,22 @@ enum AiMenuBarStyle: String {
   case costAndTokens
   case block
   case percentAndBlock
+  case ring
+  case tokens
+
+  /// Whether the style needs a share to draw what it promises.
+  ///
+  /// These three fall back to the cost when no provider in scope publishes a
+  /// reading and none has an open window, which is a silent change of subject —
+  /// the settings preview reads the same predicate through Dart's
+  /// `AiMenuBarStyle.needsShare` so it can say so rather than drawing a bar
+  /// that will not appear.
+  var needsShare: Bool {
+    switch self {
+    case .block, .percentAndBlock, .ring: true
+    case .cost, .costAndTokens, .tokens: false
+    }
+  }
 }
 
 /// Whose usage the AI readout is about.
@@ -149,13 +165,13 @@ struct MenuBarPrefs: Equatable {
   /// Dart side.
   var aiWindowStyle = AiWindowStyle.expanded
 
-  /// Which items belong on the bar right now.
+  /// The surfaces the user has switched on, in bar order.
   ///
-  /// In `.consolidated` that is exactly one, whatever the switches say — the
-  /// switches are the *separate* layout's controls, and honouring them in both
-  /// would make "one item" a suggestion.
-  var visibleSurfaces: [MenuBarSurface] {
-    guard layout == .separate else { return [.dashboard] }
+  /// The switches answer *what Tidy offers*; [layout] answers *how* — an icon
+  /// each, or tabs behind one icon. They used to answer only the first of those
+  /// and were ignored entirely in `.consolidated`, which is how the panel came
+  /// to show a Clipboard tab to someone who had switched Clipboard off.
+  var enabledSurfaces: [MenuBarSurface] {
     let wanted = MenuBarSurface.ordered.filter { surface in
       switch surface {
       case .dashboard: showVitals
@@ -168,6 +184,14 @@ struct MenuBarPrefs: Equatable {
     // settings from the bar, and the popover is the only route for someone who
     // has closed the window.
     return wanted.isEmpty ? [.dashboard] : wanted
+  }
+
+  /// Which items belong on the bar right now.
+  ///
+  /// In `.consolidated` that is exactly one by definition; the surfaces the
+  /// switches named are tabs inside its panel instead — see [enabledSurfaces].
+  var visibleSurfaces: [MenuBarSurface] {
+    layout == .separate ? enabledSurfaces : [.dashboard]
   }
 
   /// This preference set with everything the *popover* alone cares about

@@ -71,6 +71,10 @@ class AppSettings extends ChangeNotifier {
   static const String _aiCodexKey = 'aiUsageIncludeCodex';
   static const String _aiRootsKey = 'aiUsageRoots';
 
+  // Protection. Dart-only.
+  static const String _protectionIgnoredKey = 'protectionIgnored';
+  static const String _aiClaudeLimitsKey = 'aiUsageClaudeLimits';
+
   // Updates. Dart-only, unlike the clipboard and network keys above: no Swift
   // file reads these, because nothing about updating has to be decided before
   // a Flutter engine exists.
@@ -433,6 +437,19 @@ class AppSettings extends ChangeNotifier {
     _persist();
   }
 
+  /// Findings the user has settled and does not want raised again.
+  ///
+  /// Exists because of Homebrew: a developer's Mac carries several unsigned
+  /// launch agents that are unsigned because they were built locally, and a
+  /// checker that mentions them every visit is one that stops being read.
+  List<String> get protectionIgnored =>
+      (_values[_protectionIgnoredKey] as List?)?.cast<String>() ?? const [];
+
+  set protectionIgnored(List<String> value) {
+    _values[_protectionIgnoredKey] = value;
+    _persist();
+  }
+
   // ─── AI usage ──────────────────────────────────────────────────────────
 
   /// Whether the AI Usage page reads `~/.claude/projects`.
@@ -452,6 +469,22 @@ class AppSettings extends ChangeNotifier {
 
   set aiUsageIncludeCodex(bool value) {
     _values[_aiCodexKey] = value;
+    _persist();
+  }
+
+  /// Whether to ask Anthropic how much of the Claude plan is left.
+  ///
+  /// Off by default, and the only setting on this page that is. Everything else
+  /// AI Usage does starts and ends on this Mac; this one sends the account's
+  /// own OAuth token to the service that issued it, because the session and
+  /// weekly allowances are not written down anywhere locally — the logs record
+  /// what was spent, never what the budget was. That is a different promise
+  /// from the one the rest of the page makes, so it is asked for rather than
+  /// assumed.
+  bool get aiUsageClaudeLimits => _values[_aiClaudeLimitsKey] as bool? ?? false;
+
+  set aiUsageClaudeLimits(bool value) {
+    _values[_aiClaudeLimitsKey] = value;
     _persist();
   }
 

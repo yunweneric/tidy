@@ -6,7 +6,7 @@ every release is built the same way, so this is the procedure.
 
 `scripts/release.sh` does all of it. This document is what the script cannot
 tell you: what to set up once, what the updater expects of a release, and the
-two things that will bite on the first signed build.
+two things that will bite on the first signed build
 
 ## One-time setup
 

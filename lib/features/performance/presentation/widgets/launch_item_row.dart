@@ -6,7 +6,7 @@ import 'package:tidy/core/platform/system_bridge.dart';
 import 'package:tidy/core/utils/byte_format.dart';
 import 'package:tidy/core/utils/home_dir.dart';
 import 'package:tidy/core/widgets/widgets.dart';
-import 'package:tidy/features/performance/data/models/launch_item.dart';
+import 'package:tidy/core/models/launch_item.dart';
 
 /// One launchd job.
 ///

@@ -56,17 +56,16 @@ for the web from `lib/main_landing.dart`; see [The landing page](#the-landing-pa
 | Module | What it does | State |
 |---|---|---|
 | **Dashboard** | A health score, live vitals, storage, and what Tidy has done | ✅ Built |
-| **Smart Care** | Runs every built check in one pass, reviewed in one place | ✅ Built |
-| **Cleanup** | Caches, logs, saved window state, leftovers from apps that are gone | ✅ Built |
+| **Smart Care** | One pass over every built check — caches, logs, saved window state, Xcode and package-manager caches, leftovers, unused apps — reviewed in one place | ✅ Built |
 | **Clipboard** | Searchable copy history with pins, images and a `⌘⇧V` hotkey | ✅ Built |
 | **Performance** | Login items, background agents, macOS maintenance, running processes | ✅ Built |
 | **Applications** | Uninstall apps and everything they left behind | ✅ Built |
 | **Recycle Bin** | Every trash on every volume, with working Put Back | ✅ Built |
 | **Network** | Live throughput per interface, and the history behind it | ✅ Built |
 | **AI Usage** | What Claude Code and Codex got through, at published API rates | ✅ Built |
-| **Protection** | Known adware, suspicious launch agents, privacy traces | ⏳ Planned |
+| **Space Lens** | A map of what is filling the disk, a folder at a time | ✅ Built |
+| **Protection** | Signatures and provenance for startup items, extensions and apps | ✅ Built |
 | **My Clutter** | Duplicates, similar photos, large and old files | ⏳ Planned |
-| **Space Lens** | A map of what is actually filling the disk | ⏳ Planned |
 
 Planned modules are visible in the sidebar and say plainly that they are not
 built yet. None of them show a scan button that finds nothing — a cleaner
@@ -546,7 +545,7 @@ components, not the scan contract.
 
 Navigation is `go_router` with `StatefulShellRoute.indexedStack`, so every
 destination is a real route whose state survives being navigated away from. That
-matters here: a Cleanup sweep runs for tens of seconds, and losing it because
+matters here: a Smart Care sweep runs for tens of seconds, and losing it because
 you glanced at another module would be its own bug.
 
 Styling goes through tokens — no widget hard-codes a colour, size, radius,

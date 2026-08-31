@@ -268,47 +268,23 @@ enum Updater {
   /// unable to read anything it could read yesterday. Refusing to install is
   /// strictly better than that.
   private static func verifySignature(of app: URL) throws {
-    let mismatch = Failure(
-      code: "signature_rejected",
-      message: "The download is not signed by the same developer as this copy "
-        + "of \(appName), or it was changed on the way here. It has not been "
-        + "installed."
-    )
-
-    var selfCode: SecCode?
-    var selfStatic: SecStaticCode?
-    var requirement: SecRequirement?
-    guard SecCodeCopySelf(SecCSFlags(rawValue: 0), &selfCode) == errSecSuccess,
-          let selfCode,
-          SecCodeCopyStaticCode(selfCode, SecCSFlags(rawValue: 0), &selfStatic) == errSecSuccess,
-          let selfStatic,
-          SecCodeCopyDesignatedRequirement(selfStatic, SecCSFlags(rawValue: 0), &requirement)
-            == errSecSuccess,
-          let requirement else {
+    guard let requirement = CodeSignature.selfDesignatedRequirement() else {
       throw Failure(
         code: "requirement_failed",
         message: "\(appName) could not work out what a valid update looks like."
       )
     }
 
-    var code: SecStaticCode?
-    guard SecStaticCodeCreateWithPath(app as CFURL, SecCSFlags(rawValue: 0), &code) == errSecSuccess,
-          let code else {
-      throw Failure(code: "unsigned", message: "The downloaded app is not signed.")
-    }
-
-    let flags = SecCSFlags(rawValue:
-      kSecCSCheckAllArchitectures | kSecCSCheckNestedCode | kSecCSStrictValidate)
-
-    // `WithErrors` rather than the plain call: the CFError carries the actual
-    // sentence — "a sealed resource is missing or invalid", and the path of the
-    // file that failed — where an OSStatus alone is useless in a log.
-    var error: Unmanaged<CFError>?
-    guard SecStaticCodeCheckValidityWithErrors(code, flags, requirement, &error) == errSecSuccess
-    else {
-      let detail = error?.takeRetainedValue().localizedDescription
+    let verdict = CodeSignature.validate(path: app.path, against: requirement)
+    guard verdict["ok"] as? Bool == true else {
+      let detail = verdict["reason"] as? String
       NSLog("[tidy][updates] signature check failed: \(detail ?? "unknown")")
-      var reported = mismatch
+      var reported = Failure(
+        code: "signature_rejected",
+        message: "The download is not signed by the same developer as this copy "
+          + "of \(appName), or it was changed on the way here. It has not been "
+          + "installed."
+      )
       reported.detail = detail
       throw reported
     }
@@ -322,13 +298,11 @@ enum Updater {
   /// notarised but never stapled fails here on an offline Mac, which is the
   /// correct answer and the reason the release script staples before zipping.
   private static func verifyGatekeeper(_ app: URL) throws {
-    let status = Shell.run("/usr/sbin/spctl", ["--assess", "--type", "execute", app.path])
-    guard status == 0 else {
+    guard CodeSignature.assess(path: app.path)["ok"] as? Bool == true else {
       throw Failure(
         code: "gatekeeper_rejected",
         message: "macOS refused the download — it may not be notarised. It has "
-          + "not been installed.",
-        detail: "spctl exited \(status)"
+          + "not been installed."
       )
     }
   }
@@ -563,21 +537,10 @@ enum Updater {
   /// is a hash of that exact binary, so there is nothing a *different* build
   /// could ever be checked against.
   private static func isDeveloperIDSigned(_ url: URL) -> Bool {
-    var code: SecStaticCode?
-    guard SecStaticCodeCreateWithPath(url as CFURL, SecCSFlags(rawValue: 0), &code) == errSecSuccess,
-          let code else { return false }
-
-    var info: CFDictionary?
-    guard SecCodeCopySigningInformation(
-      code,
-      SecCSFlags(rawValue: kSecCSSigningInformation),
-      &info
-    ) == errSecSuccess, let dictionary = info as? [String: Any] else { return false }
-
-    let flags = SecCodeSignatureFlags(
-      rawValue: (dictionary[kSecCodeInfoFlags as String] as? UInt32) ?? 0)
-    if flags.contains(.adhoc) { return false }
-    return dictionary[kSecCodeInfoTeamIdentifier as String] as? String != nil
+    let info = CodeSignature.inspect(path: url.path)
+    guard info["signed"] as? Bool == true else { return false }
+    if info["adhoc"] as? Bool == true { return false }
+    return info["teamIdentifier"] != nil
   }
 
   /// Strips `com.apple.quarantine` from every path in the bundle.

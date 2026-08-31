@@ -53,6 +53,8 @@ class MainFlutterWindow: NSWindow, NSWindowDelegate {
     PerformanceChannel.register(with: flutterViewController.engine.binaryMessenger)
     // Same reasoning: the popover shows metrics, not the Trash.
     RecycleBinChannel.register(with: flutterViewController.engine.binaryMessenger)
+    // And again: signatures and download records are a page, not a popover.
+    ProtectionChannel.register(with: flutterViewController.engine.binaryMessenger)
     // This one goes on both engines. The store is a single native singleton, so
     // two channels onto it is two windows onto one list, not two copies of it.
     ClipboardChannel.register(with: flutterViewController.engine.binaryMessenger)

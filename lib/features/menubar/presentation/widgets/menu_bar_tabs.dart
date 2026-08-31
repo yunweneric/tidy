@@ -12,9 +12,18 @@ import 'package:tidy/features/menubar/domain/menu_bar_surface.dart';
 class MenuBarTabs extends StatelessWidget {
   const MenuBarTabs({
     super.key,
+    required this.surfaces,
     required this.selected,
     required this.onChanged,
   });
+
+  /// The surfaces to offer, in bar order.
+  ///
+  /// Passed in rather than taken from `MenuBarSurface.values`, which is what
+  /// this used to draw: every surface that exists, whatever the user had
+  /// switched off in Settings. A tab for a surface you turned off is the
+  /// settings page and the panel disagreeing in front of you.
+  final List<MenuBarSurface> surfaces;
 
   final MenuBarSurface selected;
   final ValueChanged<MenuBarSurface> onChanged;
@@ -28,7 +37,7 @@ class MenuBarTabs extends StatelessWidget {
       ),
       child: Row(
         children: [
-          for (final surface in MenuBarSurface.values)
+          for (final surface in surfaces)
             Expanded(
               child: _Tab(
                 surface: surface,
