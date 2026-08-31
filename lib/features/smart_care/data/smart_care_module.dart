@@ -49,6 +49,6 @@ class SmartCareModule extends CompositeScanModule {
   static const List<String> notYetCovered = [
     'Signature and provenance checks — see Protection',
     'Login items and maintenance tasks',
-    'Duplicates and large old files',
+    'Duplicates and large old files — see My Clutter',
   ];
 }

@@ -29,6 +29,7 @@ class AppSettings extends ChangeNotifier {
   static const String _reduceMotionKey = 'reduceMotion';
   static const String _onboardingKey = 'onboardingCompletedVersion';
   static const String _coverageNoteKey = 'smartCareCoverageSeen';
+  static const String _clutterCoverageKey = 'clutterCoverageSeen';
   static const String _appDataAskedKey = 'appDataAccessRequested';
 
   // Clipboard. These four are also read directly by `ClipboardStore.swift` at
@@ -241,6 +242,18 @@ class AppSettings extends ChangeNotifier {
   void markSmartCareCoverageSeen() {
     if (hasSeenSmartCareCoverage) return;
     _values[_coverageNoteKey] = true;
+    _persist();
+  }
+
+  /// The same, for My Clutter. A separate key rather than one shared flag:
+  /// dismissing Smart Care's note says nothing about whether the user has read
+  /// what a different sweep does and does not look at.
+  bool get hasSeenClutterCoverage =>
+      _values[_clutterCoverageKey] as bool? ?? false;
+
+  void markClutterCoverageSeen() {
+    if (hasSeenClutterCoverage) return;
+    _values[_clutterCoverageKey] = true;
     _persist();
   }
 

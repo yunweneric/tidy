@@ -39,6 +39,16 @@ enum SystemChannel {
         let children = DirectorySizer.children(of: path)
         DispatchQueue.main.async { result(children) }
       }
+    case "duplicateGroups":
+      let args = call.arguments as? [String: Any]
+      let roots = args?["roots"] as? [String] ?? []
+      let minBytes = (args?["minBytes"] as? NSNumber)?.int64Value ?? 0
+      let maxGroups = (args?["maxGroups"] as? NSNumber)?.intValue ?? 0
+      // Walks and hashes whole subtrees; never on the main thread.
+      DispatchQueue.global(qos: .userInitiated).async {
+        let groups = DuplicateFinder.groups(roots: roots, minBytes: minBytes, maxGroups: maxGroups)
+        DispatchQueue.main.async { result(groups) }
+      }
     case "iconsForPaths":
       result(icons(for: call))
     case "revealInFinder":

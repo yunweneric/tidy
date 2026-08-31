@@ -34,6 +34,57 @@ class DirectoryEntry {
   String get name => path.split('/').last;
 }
 
+/// One set of byte-identical files, and which copy Tidy suggests keeping.
+class DuplicateGroup {
+  const DuplicateGroup({
+    required this.name,
+    required this.keeping,
+    required this.logicalSizeBytes,
+    required this.copies,
+  });
+
+  /// File name shared by every copy in the set.
+  final String name;
+
+  /// The copy Tidy keeps: the oldest, so the one the others were likely made
+  /// from. Never offered for removal.
+  final String keeping;
+
+  /// Logical size of a single copy.
+  final int logicalSizeBytes;
+
+  /// Every copy except [keeping].
+  final List<DuplicateCopy> copies;
+}
+
+/// One redundant copy.
+class DuplicateCopy {
+  const DuplicateCopy({
+    required this.path,
+    required this.sizeBytes,
+    required this.reclaimableBytes,
+    required this.sharesStorage,
+    this.modified,
+  });
+
+  final String path;
+
+  /// Allocated bytes, as every other scanner reports them.
+  final int sizeBytes;
+
+  /// Bytes this copy owns outright — what deleting it actually frees. Well
+  /// below [sizeBytes] for an APFS clone, and zero for a hardlink.
+  final int reclaimableBytes;
+
+  /// Shares its blocks with the copy being kept, so removing it frees nothing
+  /// worth counting.
+  final bool sharesStorage;
+
+  final DateTime? modified;
+
+  String get name => path.split('/').last;
+}
+
 /// One path that could not be removed, with the reason macOS gave.
 class RemovalFailure {
   const RemovalFailure({required this.path, required this.error});
@@ -234,6 +285,70 @@ class SystemBridge {
       AppLog.platform.failed('list child sizes', e, fields: {'path': path});
       return const [];
     }
+  }
+
+  /// Byte-identical files under [roots], grouped.
+  ///
+  /// The walk, the hashing and the per-file private-size lookups all happen
+  /// natively: this reads whole files, and doing it over a method channel one
+  /// chunk at a time would be slower than the scan is allowed to be.
+  static Future<List<DuplicateGroup>> duplicateGroups(
+    List<String> roots, {
+    required int minBytes,
+    required int maxGroups,
+  }) async {
+    if (roots.isEmpty) return const [];
+    try {
+      final result = await _channel.invokeListMethod<dynamic>(
+        'duplicateGroups',
+        {'roots': roots, 'minBytes': minBytes, 'maxGroups': maxGroups},
+      );
+      if (result == null) return const [];
+
+      return [
+        for (final raw in result)
+          if (_group((raw as Map).cast<String, dynamic>()) case final group?)
+            group,
+      ];
+    } catch (e) {
+      AppLog.platform.failed(
+        'find duplicates',
+        e,
+        fields: {'roots': roots.length},
+      );
+      return const [];
+    }
+  }
+
+  /// A group with nothing left to remove is not a finding, so it is dropped
+  /// here rather than rendered as an empty row.
+  static DuplicateGroup? _group(Map<String, dynamic> map) {
+    final copies = [
+      for (final raw in (map['copies'] as List?) ?? const [])
+        _copy((raw as Map).cast<String, dynamic>()),
+    ];
+    if (copies.isEmpty) return null;
+
+    return DuplicateGroup(
+      name: map['name'] as String? ?? '',
+      keeping: map['keeping'] as String? ?? '',
+      logicalSizeBytes: (map['logicalSize'] as num?)?.toInt() ?? 0,
+      copies: copies,
+    );
+  }
+
+  static DuplicateCopy _copy(Map<String, dynamic> map) {
+    final modified = (map['modified'] as num?)?.toInt() ?? 0;
+    return DuplicateCopy(
+      path: map['path'] as String? ?? '',
+      sizeBytes: (map['size'] as num?)?.toInt() ?? 0,
+      reclaimableBytes: (map['reclaimable'] as num?)?.toInt() ?? 0,
+      sharesStorage: map['sharesStorage'] as bool? ?? false,
+      modified:
+          modified == 0
+              ? null
+              : DateTime.fromMillisecondsSinceEpoch(modified * 1000),
+    );
   }
 
   /// Rendered icons for app bundles, keyed by bundle path.

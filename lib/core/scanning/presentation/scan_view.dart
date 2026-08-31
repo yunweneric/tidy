@@ -125,12 +125,14 @@ class ScanView extends StatelessWidget {
   Widget _body(BuildContext context, ScanState state, ScanBloc bloc) {
     switch (state.phase) {
       case ScanPhase.idle:
-        return ScanHero(
-          headline: idleHeadline ?? 'Ready when you are',
-          message: idleMessage ?? bloc.module.id.description,
-          icon: bloc.module.icon,
-          actionLabel: actionLabel,
-          onAction: () => bloc.add(const StartScan()),
+        return _FitOrScroll(
+          child: ScanHero(
+            headline: idleHeadline ?? 'Ready when you are',
+            message: idleMessage ?? bloc.module.id.description,
+            icon: bloc.module.icon,
+            actionLabel: actionLabel,
+            onAction: () => bloc.add(const StartScan()),
+          ),
         );
 
       case ScanPhase.scanning:
@@ -162,13 +164,15 @@ class ScanView extends StatelessWidget {
         );
 
       case ScanPhase.clean:
-        return ScanHero.allClear(
-          context,
-          headline: 'Nothing to clean up',
-          message:
-              'No reclaimable ${title.toLowerCase()} found. '
-              'That is a good sign, not a failed scan.',
-          onRescan: () => bloc.add(const StartScan()),
+        return _FitOrScroll(
+          child: ScanHero.allClear(
+            context,
+            headline: 'Nothing to clean up',
+            message:
+                'No reclaimable ${title.toLowerCase()} found. '
+                'That is a good sign, not a failed scan.',
+            onRescan: () => bloc.add(const StartScan()),
+          ),
         );
 
       case ScanPhase.failed:
@@ -184,15 +188,17 @@ class ScanView extends StatelessWidget {
         );
 
       case ScanPhase.cleaning:
-        return ScanHero(
-          headline: 'Removing…',
-          message:
-              'Moving ${state.selectedCount} item'
-              '${state.selectedCount == 1 ? '' : 's'} to the Trash.',
-          icon: bloc.module.icon,
-          scanning: true,
-          actionLabel: 'Removing…',
-          onAction: null,
+        return _FitOrScroll(
+          child: ScanHero(
+            headline: 'Removing…',
+            message:
+                'Moving ${state.selectedCount} item'
+                '${state.selectedCount == 1 ? '' : 's'} to the Trash.',
+            icon: bloc.module.icon,
+            scanning: true,
+            actionLabel: 'Removing…',
+            onAction: null,
+          ),
         );
 
       case ScanPhase.finished:
@@ -204,6 +210,33 @@ class ScanView extends StatelessWidget {
       case ScanPhase.results:
         return _Results(state: state, bloc: bloc);
     }
+  }
+}
+
+/// Centres [child] when the page has room for it, and scrolls when it does not.
+///
+/// [ScanHero] is a fixed 460-wide column around a 300px ring, so on a short
+/// window — or under a tall banner, which is what a module with a coverage note
+/// has — it is simply taller than what is left, and a bare `Center` overflows
+/// rather than yielding. `minHeight` keeps the hero optically centred in the
+/// common case, so this costs nothing when everything already fits.
+class _FitOrScroll extends StatelessWidget {
+  const _FitOrScroll({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: child,
+          ),
+        );
+      },
+    );
   }
 }
 
