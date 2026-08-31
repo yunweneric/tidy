@@ -78,6 +78,9 @@ class AppLog {
   /// The junk cleanup module.
   static const AppLog cleanup = AppLog('cleanup');
 
+  /// The My Clutter module's sub-scanners.
+  static const AppLog clutter = AppLog('clutter');
+
   /// Login items, maintenance tasks, process and vitals sampling.
   static const AppLog performance = AppLog('perf');
 

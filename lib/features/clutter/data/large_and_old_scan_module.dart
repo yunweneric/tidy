@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:tidy/core/design/app_icons.dart';
+import 'package:tidy/core/logging/app_log.dart';
 import 'package:tidy/core/platform/system_bridge.dart';
 import 'package:tidy/core/scanning/domain/scan_module.dart';
 import 'package:tidy/core/scanning/domain/scan_node.dart';
@@ -59,7 +60,6 @@ class LargeAndOldScanModule implements ScanModule {
       return;
     }
 
-    var denied = false;
     final found = <ScanNode>[];
     final roots = rootsOf(home);
 
@@ -73,10 +73,7 @@ class LargeAndOldScanModule implements ScanModule {
       );
 
       final children = await _candidatesOf(root);
-      if (children == null) {
-        denied = true;
-        continue;
-      }
+      if (children == null) continue;
       if (children.isNotEmpty) {
         found.add(_groupNode(root, children, home));
       }
@@ -84,31 +81,44 @@ class LargeAndOldScanModule implements ScanModule {
 
     yield ScanProgress.done(
       found,
-      skippedForPermission: denied && found.isEmpty,
+      // Every root lives under the user's own home but is TCC-protected
+      // separately from Full Disk Access, and a denied read here comes back as
+      // an empty list rather than an error — so, like Cleanup, a sweep that ran
+      // without FDA and found nothing is reported as a permission problem, not
+      // as a confident zero.
+      skippedForPermission: !request.hasFullDiskAccess && found.isEmpty,
     );
   }
 
-  /// Immediate children of [root] that are large and old enough to show.
+  /// Immediate child files of [root] that are large and old enough to show.
+  ///
+  /// Files only, deliberately. A directory's mtime only moves when its own
+  /// entries change, so an active project can look years stale and a whole
+  /// folder is a far bigger decision than one file; packages (`.app`,
+  /// `.photoslibrary`, …) are directories too, so keeping to files also keeps
+  /// the permanently off-limits packages out without a name list that will
+  /// always miss one (`docs/feature.md` §5).
   ///
   /// Returns null when the folder could not be read at all — which for a root
   /// under the user's own home means Full Disk Access rather than a genuinely
-  /// empty folder, and must be reported rather than passed off as "nothing".
+  /// empty folder, and the caller must not pass it off as "nothing".
   Future<List<DirectoryEntry>?> _candidatesOf(String root) async {
     if (!Directory(root).existsSync()) return const [];
 
     final List<DirectoryEntry> children;
     try {
       children = await SystemBridge.childSizes(root);
-    } catch (_) {
+    } catch (e) {
+      AppLog.clutter.failed('list a clutter root', e, fields: {'root': root});
       return null;
     }
 
     final cutoff = DateTime.now().subtract(kMinAge);
     return [
       for (final child in children)
-        if (child.sizeBytes >= kMinBytes &&
-            _isOldEnough(child.modified, cutoff) &&
-            !_isProtectedPackage(child))
+        if (!child.isDirectory &&
+            child.sizeBytes >= kMinBytes &&
+            _isOldEnough(child.modified, cutoff))
           child,
     ];
   }
@@ -147,21 +157,4 @@ class LargeAndOldScanModule implements ScanModule {
   /// thing we failed to read rather than for being unused.
   static bool _isOldEnough(DateTime? modified, DateTime cutoff) =>
       modified != null && !modified.isAfter(cutoff);
-
-  /// Everything `.photoslibrary`/`.musiclibrary`/`.tvlibrary` and `.app` is a
-  /// package, not a deletable file. Even removing the package whole is a
-  /// judgement this phase does not make, and the interior is permanently off
-  /// limits (`docs/feature.md` §5) — treating the package as opaque here keeps
-  /// it out of the removal UI entirely.
-  static const Set<String> _protectedPackageSuffixes = {
-    '.photoslibrary',
-    '.musiclibrary',
-    '.tvlibrary',
-    '.app',
-  };
-
-  static bool _isProtectedPackage(DirectoryEntry child) {
-    final lower = child.name.toLowerCase();
-    return _protectedPackageSuffixes.any(lower.endsWith);
-  }
 }

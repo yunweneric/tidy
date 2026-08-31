@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:tidy/core/design/app_icons.dart';
+import 'package:tidy/core/logging/app_log.dart';
 import 'package:tidy/core/platform/system_bridge.dart';
 import 'package:tidy/core/scanning/domain/scan_module.dart';
 import 'package:tidy/core/scanning/domain/scan_node.dart';
@@ -54,15 +55,15 @@ class DownloadsClutterScanModule implements ScanModule {
     );
 
     final entries = await _candidatesOf(downloads);
-    if (entries == null) {
-      yield ScanProgress.done(const [], skippedForPermission: true);
-      return;
-    }
-
-    final root = _buildRoot(downloads, entries);
+    final root = _buildRoot(downloads, entries ?? const []);
+    final found = root == null ? const <ScanNode>[] : <ScanNode>[root];
     yield ScanProgress.done(
-      root == null ? const [] : [root],
-      skippedForPermission: false,
+      found,
+      // Downloads is TCC-protected separately from Full Disk Access, and a
+      // denied read surfaces as an empty list rather than an error — so, like
+      // Cleanup, a sweep that ran without FDA and found nothing is reported as
+      // a permission problem, not as a confident zero.
+      skippedForPermission: !request.hasFullDiskAccess && found.isEmpty,
     );
   }
 
@@ -72,7 +73,8 @@ class DownloadsClutterScanModule implements ScanModule {
     final List<DirectoryEntry> children;
     try {
       children = await SystemBridge.childSizes(root);
-    } catch (_) {
+    } catch (e) {
+      AppLog.clutter.failed('list a clutter root', e, fields: {'root': root});
       return null;
     }
 
